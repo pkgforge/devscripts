@@ -1,5 +1,8 @@
 #!/bin/env bash
 
+##Helper Script to Manage Self Hosted Linux Runners
+#SELF: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/manage_linux.sh")
+
 #------------------------------------------------------------------------------------#
 #Sanity Checks
 if [ -z "${GITHUB_PERSONAL_TOKEN}" ] || \
