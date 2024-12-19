@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 ##Helper Script to auto run self-hosted runners
+#SELF: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/run_linux.sh")
 
 #------------------------------------------------------------------------------------#
 #Requires passwordless sudo 
