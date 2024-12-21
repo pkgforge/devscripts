@@ -46,15 +46,17 @@ fi
  echo -e "[+] HOME = ${HOME}"
  echo -e "[+] WORKDIR = $(realpath .)"
  echo -e "[+] PATH = ${PATH}\n"
-#Name+{rand}
+#Cleanup Existing Containers
 if [ -z "${PODMAN_CONTAINER_NAME}" ]; then
  echo -e "\n[+] Setting Default Container Name: gh-runner-arm64x-gcp"
   export PODMAN_CONTAINER_NAME="gh-runner-arm64x-gcp"
   sudo podman stop "${PODMAN_CONTAINER_NAME}" >/dev/null 2>&1
+  sudo podman rm "${PODMAN_CONTAINER_NAME}" --force >/dev/null 2>&1
 else
  export PODMAN_CONTAINER_NAME="${PODMAN_CONTAINER_NAME}"
   echo -e "\n[+] Setting Default Container Name: ${PODMAN_CONTAINER_NAME}"
   sudo podman stop "${PODMAN_CONTAINER_NAME}" >/dev/null 2>&1
+  sudo podman rm "${PODMAN_CONTAINER_NAME}" --force >/dev/null 2>&1
 fi
 #Image
 if [ -z "${PODMAN_CONTAINER_IMAGE}" ]; then
