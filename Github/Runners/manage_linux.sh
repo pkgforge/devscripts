@@ -184,6 +184,7 @@ remove_runner() {
   "/runner-init/config.sh" remove --unattended --token "${RUNNER_TOKEN}"
   #Cleanup
   unset API_RESPONSE AUTH_URL OFFLINE_RUNNERS_ID REG_URL RUNNERS_ID R_ID RUNNER_ID RUNNER_LABELS RUNNER_TOKEN
+  kill -9 $$
 }
 export -f remove_runner
 #exit if ctrl + c
