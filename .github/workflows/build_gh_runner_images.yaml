@@ -223,10 +223,8 @@ jobs:
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
           platforms: "linux/arm64"
           tags: |
-            #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:aarch64
             pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
-            #ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:latest
             ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64
             ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
           push: true  
@@ -295,10 +293,8 @@ jobs:
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
           platforms: "linux/amd64"
           tags: |
-            #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:x86_64
             pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
-            #ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:latest
             ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64
             ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
           push: true
