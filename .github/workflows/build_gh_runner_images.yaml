@@ -14,6 +14,9 @@ defaults:
   run:
     shell: bash
     working-directory: /tmp
+permissions:
+  contents: read
+  packages: write
 #------------------------------------------------------------------------------------#  
 jobs:
   build-push-docker-alpine:
@@ -41,8 +44,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine-builder.dockerfile" "/tmp/DOCKERFILES/alpine-builder.dockerfile"
@@ -63,6 +66,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/alpine-builder
       - name: Docker Build and Push (alpine-builder)
         uses: docker/build-push-action@v6
@@ -73,6 +84,8 @@ jobs:
           tags: |
             pkgforge/alpine-builder:latest
             pkgforge/alpine-builder:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/alpine-builder:latest
+            ghcr.io/pkgforge/alpine-builder:${{ env.DOCKER_TAG }}
           push: true  
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -101,8 +114,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/archlinux-builder.dockerfile" "/tmp/DOCKERFILES/archlinux-builder.dockerfile"
@@ -123,6 +136,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/archlinux-builder
       - name: Docker Build and Push (ArchLinux-Builder)
         uses: docker/build-push-action@v6
@@ -133,6 +154,8 @@ jobs:
           tags: |
             pkgforge/archlinux-builder:latest
             pkgforge/archlinux-builder:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/archlinux-builder:latest
+            ghcr.io/pkgforge/archlinux-builder:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -162,8 +185,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/ubuntu-systemd-base.dockerfile" "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
@@ -184,6 +207,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/ubuntu-systemd-base
       - name: Docker Build and Push (Ubuntu-Systemd-Base)
         uses: docker/build-push-action@v6
@@ -192,9 +223,12 @@ jobs:
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
           platforms: "linux/arm64"
           tags: |
-            pkgforge/ubuntu-systemd-base:latest
+            #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:aarch64
-            pkgforge/ubuntu-systemd-base:${{ env.DOCKER_TAG }}
+            pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
+            #ghcr.io/pkgforge/ubuntu-systemd-base:latest
+            ghcr.io/pkgforge/ubuntu-systemd-base:aarch64
+            ghcr.io/pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
           push: true  
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -223,8 +257,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/ubuntu-systemd-base.dockerfile" "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
@@ -245,6 +279,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/ubuntu-systemd-base
       - name: Docker Build and Push (Ubuntu-Systemd-Base)
         uses: docker/build-push-action@v6
@@ -253,9 +295,12 @@ jobs:
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
           platforms: "linux/amd64"
           tags: |
-            pkgforge/ubuntu-systemd-base:latest
+            #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:x86_64
-            pkgforge/ubuntu-systemd-base:${{ env.DOCKER_TAG }}
+            pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
+            #ghcr.io/pkgforge/ubuntu-systemd-base:latest
+            ghcr.io/pkgforge/ubuntu-systemd-base:x86_64
+            ghcr.io/pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -284,8 +329,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/debian-builder-unstable.dockerfile" "/tmp/DOCKERFILES/debian-builder-unstable.dockerfile"
@@ -306,6 +351,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/debian-builder-unstable
       - name: Docker Build and Push (Debian-Unstable-Base)
         uses: docker/build-push-action@v6
@@ -316,6 +369,8 @@ jobs:
           tags: |
             pkgforge/debian-builder-unstable:latest
             pkgforge/debian-builder-unstable:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/debian-builder-unstable:latest
+            ghcr.io/pkgforge/debian-builder-unstable:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -344,8 +399,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/ubuntu-builder.dockerfile" "/tmp/DOCKERFILES/ubuntu-builder.dockerfile"
@@ -366,6 +421,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/ubuntu-builder
       - name: Docker Build and Push (ubuntu-builder)
         uses: docker/build-push-action@v6
@@ -376,7 +439,9 @@ jobs:
           tags: |
             pkgforge/ubuntu-builder:latest
             pkgforge/ubuntu-builder:${{ env.DOCKER_TAG }}
-          push: true  
+            ghcr.io/pkgforge/ubuntu-builder:latest
+            ghcr.io/pkgforge/ubuntu-builder:${{ env.DOCKER_TAG }}
+          push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-runner-aarch64:
@@ -404,8 +469,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/aarch64-ubuntu.dockerfile" "/tmp/DOCKERFILES/aarch64-ubuntu.dockerfile"
@@ -427,6 +492,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/gh-runner-aarch64-ubuntu
       - name: Docker Build and Push (gh-runner-aarch64-ubuntu)
         uses: docker/build-push-action@v6
@@ -438,6 +511,8 @@ jobs:
           tags: |
             pkgforge/gh-runner-aarch64-ubuntu:latest
             pkgforge/gh-runner-aarch64-ubuntu:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/gh-runner-aarch64-ubuntu:latest
+            ghcr.io/pkgforge/gh-runner-aarch64-ubuntu:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -466,8 +541,8 @@ jobs:
           set +x ; set +e
           #--------------#
           #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="$DOCKER_TAG"
-          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/x86_64-ubuntu.dockerfile" "/tmp/DOCKERFILES/x86_64-ubuntu.dockerfile"
@@ -489,6 +564,14 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
     #https://hub.docker.com/r/pkgforge/gh-runner-x86_64-ubuntu
       - name: Docker Build and Push (gh-runner-x86_64-ubuntu)
         uses: docker/build-push-action@v6
@@ -500,6 +583,8 @@ jobs:
           tags: |
             pkgforge/gh-runner-x86_64-ubuntu:latest
             pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/gh-runner-x86_64-ubuntu:latest
+            ghcr.io/pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
