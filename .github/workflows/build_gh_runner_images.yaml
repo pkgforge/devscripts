@@ -84,8 +84,8 @@ jobs:
           tags: |
             pkgforge/alpine-builder:latest
             pkgforge/alpine-builder:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/alpine-builder:latest
-            ghcr.io/pkgforge/alpine-builder:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine-builder:latest
+            ghcr.io/pkgforge/devscripts/alpine-builder:${{ env.DOCKER_TAG }}
           push: true  
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -154,8 +154,8 @@ jobs:
           tags: |
             pkgforge/archlinux-builder:latest
             pkgforge/archlinux-builder:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/archlinux-builder:latest
-            ghcr.io/pkgforge/archlinux-builder:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/archlinux-builder:latest
+            ghcr.io/pkgforge/devscripts/archlinux-builder:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -226,9 +226,9 @@ jobs:
             #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:aarch64
             pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
-            #ghcr.io/pkgforge/ubuntu-systemd-base:latest
-            ghcr.io/pkgforge/ubuntu-systemd-base:aarch64
-            ghcr.io/pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
+            #ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:latest
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
           push: true  
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -298,9 +298,9 @@ jobs:
             #pkgforge/ubuntu-systemd-base:latest
             pkgforge/ubuntu-systemd-base:x86_64
             pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
-            #ghcr.io/pkgforge/ubuntu-systemd-base:latest
-            ghcr.io/pkgforge/ubuntu-systemd-base:x86_64
-            ghcr.io/pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
+            #ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:latest
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -369,8 +369,8 @@ jobs:
           tags: |
             pkgforge/debian-builder-unstable:latest
             pkgforge/debian-builder-unstable:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/debian-builder-unstable:latest
-            ghcr.io/pkgforge/debian-builder-unstable:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/debian-builder-unstable:latest
+            ghcr.io/pkgforge/devscripts/debian-builder-unstable:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -439,8 +439,8 @@ jobs:
           tags: |
             pkgforge/ubuntu-builder:latest
             pkgforge/ubuntu-builder:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/ubuntu-builder:latest
-            ghcr.io/pkgforge/ubuntu-builder:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/ubuntu-builder:latest
+            ghcr.io/pkgforge/devscripts/ubuntu-builder:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -511,8 +511,8 @@ jobs:
           tags: |
             pkgforge/gh-runner-aarch64-ubuntu:latest
             pkgforge/gh-runner-aarch64-ubuntu:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/gh-runner-aarch64-ubuntu:latest
-            ghcr.io/pkgforge/gh-runner-aarch64-ubuntu:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/gh-runner-aarch64-ubuntu:latest
+            ghcr.io/pkgforge/devscripts/gh-runner-aarch64-ubuntu:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -583,8 +583,8 @@ jobs:
           tags: |
             pkgforge/gh-runner-x86_64-ubuntu:latest
             pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/gh-runner-x86_64-ubuntu:latest
-            ghcr.io/pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/gh-runner-x86_64-ubuntu:latest
+            ghcr.io/pkgforge/devscripts/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
