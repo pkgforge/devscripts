@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/archlinux-builder
-FROM azathothas/archlinux:latest
+FROM pkgforge/archlinux:latest
 #------------------------------------------------------------------------------------#
 ##Base Deps
 RUN <<EOS
