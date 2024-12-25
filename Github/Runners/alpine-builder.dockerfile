@@ -724,11 +724,14 @@ EOS
 ##Addons
 RUN <<EOS
   set +e
+ #askalono for Licenses
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/askalono" -o "/usr/bin/askalono"
+  sudo chmod +x "/usr/bin/askalono"
  #Dockerc
-  wget --quiet --show-progress "https://bin.ajam.dev/$(uname -m)/dockerc" -o "/usr/bin/dockerc"
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/dockerc" -o "/usr/bin/dockerc"
   sudo chmod +x "/usr/bin/dockerc"
  #Eget for simplified releases
-  wget --quiet --show-progress "https://bin.ajam.dev/$(uname -m)/eget" -O "/usr/bin/eget"
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/eget" -O "/usr/bin/eget"
   chmod +xwr "/usr/bin/eget"
  #Golang
   #pushd "$(mktemp -d)" >/dev/null 2>&1 && echo "yes" | bash <(curl -qfsSL "https://git.io/go-installer") && popd >/dev/null 2>&1
@@ -738,7 +741,7 @@ RUN <<EOS
   echo "yes" | bash "./install.sh"
   cd - >/dev/null 2>&1
   #Micro
-  wget --quiet --show-progress "https://bin.ajam.dev/$(uname -m)/micro" -O "/usr/bin/micro"
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/micro" -O "/usr/bin/micro"
   chmod +xwr "/usr/bin/micro"
  #musl-gcc wrapper
   ln --symbolic "/usr/bin/$(uname -m)-alpine-linux-musl-gcc" "/usr/local/bin/musl-gcc" 2>/dev/null

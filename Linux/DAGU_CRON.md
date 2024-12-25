@@ -20,7 +20,7 @@ DAGU_BASICAUTH_PASSWORD="$SECURE_PASSWORD"
 - #### SystemD
 ```bash
 ##--Systemd--##
-sudo curl -qfsSL "https://bin.ajam.dev/$(uname -m)/dagu" -o "/usr/bin/dagu" && sudo chmod +x "/usr/bin/dagu"
+sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)/dagu" -o "/usr/bin/dagu" && sudo chmod +x "/usr/bin/dagu"
 sudo mkdir -p "/etc/systemd/system/" && sudo touch "/etc/systemd/system/dagu_ts.service"
 cat << EOF | sed -e "s|DG_USER|$DAGU_USER|" -e "s|DG_HOME|$DAGU_HOME|" -e "s|DG_HOST|$DAGU_HOST|" -e "s|DG_PORT|$DAGU_PORT|" -e "s|DG_SUSER|$DAGU_BASICAUTH_USERNAME|" -e "s|DG_SPASSWD|$DAGU_BASICAUTH_PASSWORD|" | sudo tee "/etc/systemd/system/dagu_ts.service"
 [Unit]

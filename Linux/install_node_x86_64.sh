@@ -14,7 +14,7 @@ if ! command -v node > /dev/null 2>&1 || ! command -v npm > /dev/null ; then
    cd "$(find . -maxdepth 1 -type d -exec basename {} \; | grep -Ev '^\.$' | xargs -I {} realpath {})"
    #Copy to /usr/* && /usr/local/*
    if ! command -v rsync > /dev/null 2>&1 ; then
-     sudo curl -qfsSL "https://bin.ajam.dev/$(uname -m)/rsync" -o "/usr/local/bin/rsync" && sudo chmod +x "/usr/local/bin/rsync"
+     sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)/rsync" -o "/usr/local/bin/rsync" && sudo chmod +x "/usr/local/bin/rsync"
    fi
    sudo rsync --archive --checksum --human-readable --progress --quiet "./bin/" "/usr/bin/"
    sudo rsync --archive --checksum --human-readable --progress --quiet "./bin/" "/usr/local/bin/"
