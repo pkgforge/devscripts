@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
-# DOCKER HUB URL : https://hub.docker.com/r/azathothas/ubuntu-builder
+# DOCKER HUB URL : https://hub.docker.com/r/pkgforge/ubuntu-builder
 FROM ubuntu:latest
 #FROM ubuntu:rolling
 #------------------------------------------------------------------------------------#

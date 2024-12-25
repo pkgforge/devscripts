@@ -60,8 +60,8 @@ else
 fi
 #Image
 if [ -z "${PODMAN_CONTAINER_IMAGE}" ]; then
- echo -e "\n[+] Setting Default Container Image: azathothas/gh-runner-aarch64-ubuntu"
-  export PODMAN_CONTAINER_IMAGE="azathothas/gh-runner-aarch64-ubuntu"
+ echo -e "\n[+] Setting Default Container Image: pkgforge/gh-runner-aarch64-ubuntu"
+  export PODMAN_CONTAINER_IMAGE="pkgforge/gh-runner-aarch64-ubuntu"
   sudo podman rmi "${PODMAN_CONTAINER_IMAGE}" --force >/dev/null 2>&1
   sudo podman pull "${PODMAN_CONTAINER_IMAGE}"
 else

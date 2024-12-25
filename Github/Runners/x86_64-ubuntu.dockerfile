@@ -7,7 +7,7 @@
 # LINT :: https://github.com/hadolint/hadolint
 ## Note :: NO SPACE after EOS using heredoc `EOS` to write multiline scripts
 #FROM nestybox/ubuntu-jammy-systemd-docker:latest
-# URL: https://hub.docker.com/r/azathothas/gh-runner-x86_64-ubuntu
+# URL: https://hub.docker.com/r/pkgforge/gh-runner-x86_64-ubuntu
 FROM ubuntu:latest
 #FROM ubuntu:jammy
 #------------------------------------------------------------------------------------#

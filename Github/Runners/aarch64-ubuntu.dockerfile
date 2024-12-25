@@ -7,7 +7,7 @@
 # LINT :: https://github.com/hadolint/hadolint
 ## Note :: NO SPACE after EOS using heredoc `EOS` to write multiline scripts
 #FROM nestybox/ubuntu-jammy-systemd-docker:latest
-# URL: https://hub.docker.com/r/azathothas/gh-runner-aarch64-ubuntu
+# URL: https://hub.docker.com/r/pkgforge/gh-runner-aarch64-ubuntu
 FROM ubuntu:latest
 #FROM ubuntu:jammy
 #------------------------------------------------------------------------------------#
@@ -131,7 +131,7 @@ EOS
 ##Addons
 RUN <<EOS
  #Addons
- #https://github.com/Azathothas/Arsenal/blob/main/misc/Linux/install_dev_tools.sh
+ #https://github.com/pkgforge/devscripts/blob/main/Linux/install_bins_curl.sh
  curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh" -o "./tools.sh"
  dos2unix --quiet "./tools.sh" && chmod +x "./tools.sh"
  bash "./tools.sh" 2>/dev/null || true ; rm -rf "./tools.sh"

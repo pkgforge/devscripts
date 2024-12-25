@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
-#https://hub.docker.com/r/azathothas/archlinux-builder
+#https://hub.docker.com/r/pkgforge/archlinux-builder
 FROM azathothas/archlinux:latest
 #------------------------------------------------------------------------------------#
 ##Base Deps
