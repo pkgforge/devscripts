@@ -489,7 +489,7 @@ jobs:
           password: "${{ secrets.DOCKERHUB_TOKEN }}"
         continue-on-error: true
 
-    #https://hub.docker.com/r/azathothas/gh-runner-x86_64-ubuntu
+    #https://hub.docker.com/r/pkgforge/gh-runner-x86_64-ubuntu
       - name: Docker Build and Push (gh-runner-x86_64-ubuntu)
         uses: docker/build-push-action@v6
         with:
@@ -498,8 +498,8 @@ jobs:
           #platforms: "linux/amd64,linux/arm64"
           platforms: "linux/amd64"
           tags: |
-            azathothas/gh-runner-x86_64-ubuntu:latest
-            azathothas/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
+            pkgforge/gh-runner-x86_64-ubuntu:latest
+            pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
