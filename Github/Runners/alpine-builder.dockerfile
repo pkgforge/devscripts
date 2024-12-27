@@ -725,10 +725,10 @@ EOS
 RUN <<EOS
   set +e
  #askalono for Licenses
-  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/askalono" -o "/usr/bin/askalono"
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/askalono" -O "/usr/bin/askalono"
   sudo chmod +x "/usr/bin/askalono"
  #Dockerc
-  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/dockerc" -o "/usr/bin/dockerc"
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/dockerc" -O "/usr/bin/dockerc"
   sudo chmod +x "/usr/bin/dockerc"
  #Eget for simplified releases
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/eget" -O "/usr/bin/eget"
