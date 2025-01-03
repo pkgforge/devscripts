@@ -266,6 +266,8 @@ EOS
 RUN <<EOS
   locale-gen "en_US.UTF-8"
 EOS
+ENV GIT_ASKPASS="/bin/echo"
+ENV GIT_TERMINAL_PROMPT="0"
 ENV LANG="en_US.UTF-8"
 ENV LANGUAGE="en_US:en"
 ENV LC_ALL="en_US.UTF-8"
