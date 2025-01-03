@@ -755,5 +755,7 @@ RUN <<EOS
   ln --symbolic --force "/etc/bash.bashrc" "/home/alpine/.bashrc" 2>/dev/null
   ln --symbolic --force "/etc/bash.bashrc" "/etc/bash/bashrc" 2>/dev/null
 EOS
+ENV GIT_ASKPASS="/bin/echo"
+ENV GIT_TERMINAL_PROMPT="0"
 #------------------------------------------------------------------------------------#
 #END
