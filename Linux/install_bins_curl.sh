@@ -101,6 +101,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
 #b3sum : https://github.com/BLAKE3-team/BLAKE3
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/b3sum" -o "${INSTALL_DIR}/b3sum" && eval "${INSTALL_POST}" "${INSTALL_DIR}/b3sum" "${INSTALL_STRATEGY}"
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/b3sum" -o "${INSTALL_DIR_ROOT}/b3sum" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/b3sum" "${INSTALL_STRATEGY}"
+#bita: https://github.com/oll3/bita
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/bita" -o "${INSTALL_DIR}/bita" && eval "${INSTALL_POST}" "${INSTALL_DIR}/bita" "${INSTALL_STRATEGY}"
 #btop: https://github.com/aristocratos/btop
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/btop" -o "${INSTALL_DIR}/btop" && eval "${INSTALL_POST}" "${INSTALL_DIR}/btop" "${INSTALL_STRATEGY}"
 #chafa: https://github.com/hpjansson/chafa
