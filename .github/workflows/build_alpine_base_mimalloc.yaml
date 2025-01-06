@@ -47,7 +47,6 @@ jobs:
           #Repo
           mkdir -p "/tmp" && pushd "/tmp" >/dev/null 2>&1
           git clone --filter="blob:none" --depth="1" "https://github.com/pkgforge-dev/alpine-base-mimalloc"
-          sed '/^FROM/c\FROM alpine:edge' -i "./alpine-base-mimalloc/Dockerfile"
           popd >/dev/null 2>&1
         continue-on-error: true
 
@@ -73,16 +72,46 @@ jobs:
           username: "${{ github.actor }}"
           password: "${{ secrets.GITHUB_TOKEN }}"
 
-    #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc
-      - name: Docker Build and Push (alpine-base-mimalloc)
+      - name: Switch to Edge
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          sed '/^FROM/c\FROM alpine:edge' -i "/tmp/alpine-base-mimalloc/Dockerfile"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc [edge]
+      - name: Docker Build and Push (alpine-base-mimalloc:edge)
         uses: docker/build-push-action@v6
         with:
           context: "/tmp/alpine-base-mimalloc"
           platforms: "linux/amd64,linux/arm64"
           tags: |
-            pkgforge/alpine-base-mimalloc:latest
+            pkgforge/alpine-base-mimalloc:edge
             pkgforge/alpine-base-mimalloc:${{ env.DOCKER_TAG }}
-            ${{ env.GHCR_NAME }}:latest
+            ${{ env.GHCR_NAME }}:edge
+            ${{ env.GHCR_NAME }}:${{ env.DOCKER_TAG }}
+          push: true
+        continue-on-error: true
+
+      - name: Switch to Stable
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          sed '/^FROM/c\FROM alpine:stable' -i "/tmp/alpine-base-mimalloc/Dockerfile"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc [stable]
+      - name: Docker Build and Push (alpine-base-mimalloc:stable)
+        uses: docker/build-push-action@v6
+        with:
+          context: "/tmp/alpine-base-mimalloc"
+          platforms: "linux/amd64,linux/arm64"
+          tags: |
+            pkgforge/alpine-base-mimalloc:stable
+            pkgforge/alpine-base-mimalloc:${{ env.DOCKER_TAG }}
+            ${{ env.GHCR_NAME }}:stable
             ${{ env.GHCR_NAME }}:${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
