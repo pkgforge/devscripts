@@ -3,6 +3,14 @@
 #https://hub.docker.com/r/pkgforge/alpine-builder
 FROM alpine:edge
 #------------------------------------------------------------------------------------#
+##Bad Deps
+RUN <<EOS
+  set +e
+  apk update && apk upgrade --no-interactive 2>/dev/null
+  apk del ninja-is-really-ninja --force --no-interactive 2>/dev/null
+  apk cache clean --purge
+  rm -rfv "/var/cache/apk/"* 2>/dev/null
+EOS
 ##Base Deps :: https://pkgs.alpinelinux.org/packages
 RUN <<EOS
   set +e
