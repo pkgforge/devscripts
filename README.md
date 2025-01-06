@@ -10,6 +10,15 @@
 > ==> https://hub.docker.com/r/pkgforge/ubuntu-builder ([`Ubuntu Builder Image`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/ubuntu-builder.dockerfile))<br> 
 > ==> https://hub.docker.com/r/pkgforge/ubuntu-systemd-base ([`Ubuntu Dev Machine Image`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/ubuntu-systemd-base.dockerfile))<br>
 
+#### Scripts
+> [!WARNING]
+> These scripts are meant for [@pkgforge](https://github.com/pkgforge)'s internal use only. **They might not work outside of [@pkgforge](https://github.com/pkgforge)'s context**
+- [Bootstrapping using Static Binaries](https://github.com/pkgforge/devscripts/blob/main/Linux/install_bins_curl.sh)
+- [Debloating Github Runners to Maximize Storage](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/debloat_ubuntu.sh)
+- [Managing Self Hosted Github Runners](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/manage_linux.sh)
+- [Provisioning Self Hosted Github Runners](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/run_linux.sh)
+- [.profile used by all containers](https://github.com/pkgforge/devscripts/blob/main/Linux/.bashrc)
+
 #### Workflows
 - [![🐬 Build Alpine Mimalloc Images for DockerHub 🐬](https://github.com/pkgforge/devscripts/actions/workflows/build_alpine_base_mimalloc.yaml/badge.svg)](https://github.com/pkgforge/devscripts/actions/workflows/build_alpine_base_mimalloc.yaml)
 - [![🐬 Builds ArchLinux Images for DockerHub 🐬](https://github.com/pkgforge-dev/docker-archlinux/actions/workflows/build-deploy.yml/badge.svg)](https://github.com/pkgforge-dev/docker-archlinux/actions/workflows/build-deploy.yml)
