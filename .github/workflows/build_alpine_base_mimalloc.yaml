@@ -99,7 +99,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          sed '/^FROM/c\FROM alpine:stable' -i "/tmp/alpine-base-mimalloc/Dockerfile"
+          sed '/^FROM/c\FROM alpine:latest' -i "/tmp/alpine-base-mimalloc/Dockerfile"
         continue-on-error: true
 
     #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc [stable]
