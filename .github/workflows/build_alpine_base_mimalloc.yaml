@@ -47,7 +47,7 @@ jobs:
           #Repo
           mkdir -p "/tmp" && pushd "/tmp" >/dev/null 2>&1
           git clone --filter="blob:none" --depth="1" "https://github.com/pkgforge-dev/alpine-base-mimalloc"
-          sed '/^FROM/c\FROM alpine:edge' -i "./Dockerfile"
+          sed '/^FROM/c\FROM alpine:edge' -i "./alpine-base-mimalloc/Dockerfile"
           popd >/dev/null 2>&1
         continue-on-error: true
 
