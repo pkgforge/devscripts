@@ -449,7 +449,7 @@ RUN <<EOS
   apk add mesa --latest --upgrade --no-interactive 2>/dev/null
   apk add mesa-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add mesa-gbm --latest --upgrade --no-interactive 2>/dev/null
-  apk add meson --latest --upgrade --no-interactive 2>/dev/null
+  apk add meson --latest --upgrade --no-interactive --force 2>/dev/null
   apk add mlocate --latest --upgrade --no-interactive 2>/dev/null
   apk add mold --latest --upgrade --no-interactive 2>/dev/null
   apk add moreutils --latest --upgrade --no-interactive 2>/dev/null
