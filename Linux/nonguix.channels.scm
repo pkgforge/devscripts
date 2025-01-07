@@ -1,3 +1,6 @@
+;; SELF: https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/nonguix.channels.scm
+;; ADD: curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/nonguix.channels.scm" | sudo tee "/root/.config/guix/channels.scm"
+;; PULL: sudo GIT_CONFIG_PARAMETERS="'filter.blob:none.enabled=true'" guix pull --cores="$(($(nproc)+1))" --max-jobs="$(($(nproc)+1))"
 (use-modules (guix ci))
 
 ;; Define %default-guix-channel with substitutes available
