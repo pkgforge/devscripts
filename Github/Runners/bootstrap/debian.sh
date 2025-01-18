@@ -30,7 +30,7 @@ set -x
    chown -R _apt:root /var/cache/apt/archives/partial/
    dpkg-statoverride --remove /usr/bin/crontab
    DEBIAN_FRONTEND="noninteractive" apt update -y
-   DEBIAN_FRONTEND="noninteractive" apt install bash binutils coreutils curl fakeroot git locales sudo wget -y --no-install-recommends --ignore-missing
+   DEBIAN_FRONTEND="noninteractive" apt install bash binutils coreutils curl fakeroot gawk git locales sudo wget -y --no-install-recommends --ignore-missing
    locale-gen "en_US.UTF-8"
    echo "debconf debconf/frontend select Noninteractive" | debconf-set-selections
    apt purge locales perl -y ; apt autoremove -y ; apt autoclean -y
