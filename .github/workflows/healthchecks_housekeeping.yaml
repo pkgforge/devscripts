@@ -113,3 +113,41 @@ jobs:
           #commit_message: "✅ Updated (Metadata) 🛍️ <-- ${{ env.UTC_TIME }} ⌚"
           #push_options: '--force'
         continue-on-error: true
+
+      - name: Common Utils
+        env:
+          GITHUB_TOKEN: "${{ github.token }}"
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          mkdir -pv "/tmp/COMMON"
+          eget "https://github.com/Jguer/yay" --asset "$(uname -m)" --file "yay" --to "/tmp/COMMON/yay"
+          eget "https://github.com/Morganamilo/paru" --asset "$(uname -m)" --file "paru" --to "/tmp/COMMON/paru"
+          eget "https://github.com/VHSgunzo/runimage-fake-sudo-pkexec" --asset "any" --asset "tar.zst" --download-only --to "/tmp/COMMON/fake-sudo-pkexec.tar.zst"
+          if [[ -s "/tmp/COMMON/yay" ]] && \
+             [[ -s "/tmp/COMMON/paru" ]] && \
+             [[ -s "/tmp/COMMON/fake-sudo-pkexec.tar.zst" ]]; then
+           export HAS_COMMON="TRUE"
+           echo "HAS_COMMON=${HAS_COMMON}" >> "${GITHUB_ENV}"
+           UTC_TIME="$(TZ='UTC' date +'%Y_%m_%d')"
+           echo "UTC_TIME=${UTC_TIME}" >> "${GITHUB_ENV}"
+          else
+           export HAS_COMMON="FALSE"
+           echo "HAS_COMMON=${HAS_COMMON}" >> "${GITHUB_ENV}"
+          fi
+        continue-on-error: true
+
+     #continuous
+      - name: Releaser (Continuous)
+        if: env.HAS_COMMON == 'TRUE'
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          name: "Common Utils"
+          tag_name: "common-utils"
+          prerelease: true
+          draft: false
+          generate_release_notes: false
+          files: |
+            /tmp/COMMON/*
+        continue-on-error: true
