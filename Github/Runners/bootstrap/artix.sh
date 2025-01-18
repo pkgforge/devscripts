@@ -22,7 +22,7 @@ fi
   docker run --name "artix-base" --privileged "artixlinux/artixlinux:latest" bash -l -c '
   #Bootstrap
    pacman -y --sync --refresh --refresh --sysupgrade --noconfirm --debug
-   packages="bash binutils curl fakechroot fakeroot git wget"
+   packages="bash binutils curl fakechroot fakeroot gawk git sed wget"
    for pkg in $packages; do pacman -Sy "${pkg}" --noconfirm ; done
    for pkg in $packages; do pacman -Sy "${pkg}" --needed --noconfirm ; done
   #Fix & Patches 

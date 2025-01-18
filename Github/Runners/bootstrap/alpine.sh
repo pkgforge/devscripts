@@ -16,7 +16,7 @@ set -x
   #Bootstrap
    apk update --no-interactive
    apk upgrade --no-interactive
-   apk add bash binutils curl fakeroot musl-locales-lang wget --latest --upgrade --no-interactive
+   apk add bash binutils curl fakeroot gawk musl-locales-lang sed wget --latest --upgrade --no-interactive
    #apk add bash alsa-utils alsa-utils-doc alsa-lib alsaconf alsa-ucm-conf pulseaudio pulseaudio-alsa --latest --upgrade --no-interactive
   #Fix & Patches
    chmod 755 "/bin/bbsuid" 2>/dev/null
