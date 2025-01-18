@@ -12,7 +12,7 @@ set -x
 ##Bootstrap
  pushd "$(mktemp -d)" >/dev/null 2>&1
   docker stop "debian-base" 2>/dev/null ; docker rm "debian-base" 2>/dev/null
-  docker run --name "debian-base" --privileged "debian:stable-slim" sh -l -c '
+  docker run --name "debian-base" --privileged "debian:unstable-slim" sh -l -c '
   #Bootstrap
    #echo -e "nameserver 8.8.8.8\nnameserver 2620:0:ccc::2" | tee "/etc/resolv.conf"
    #echo -e "nameserver 1.1.1.1\nnameserver 2606:4700:4700::1111" | tee -a "/etc/resolv.conf"
