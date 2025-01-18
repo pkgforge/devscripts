@@ -36,7 +36,8 @@ set -x
    locale-gen "en_US.UTF-8"
    echo "debconf debconf/frontend select Noninteractive" | debconf-set-selections
    apt purge locales perl -y ; apt autoremove -y ; apt autoclean -y
-   curl -qfsSL "https://raw.githubusercontent.com/VHSgunzo/runimage-fake-sudo-pkexec/refs/heads/main/usr/bin/sudo" -o "/usr/bin/sudo" && chmod -v "a+x" "/usr/bin/sudo"
+   curl -kqfsSL "https://raw.githubusercontent.com/VHSgunzo/runimage-fake-sudo-pkexec/refs/heads/main/usr/bin/sudo" -o "./sudo"
+   mv -fv "./sudo" "/usr/bin/sudo" && chmod -v "a+x" "/usr/bin/sudo"
    apt list --installed
    apt clean -y
    find "/boot" -mindepth 1 -delete 2>/dev/null
