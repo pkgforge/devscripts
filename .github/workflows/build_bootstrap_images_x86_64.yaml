@@ -20,15 +20,26 @@ jobs:
     strategy:
       matrix:
         include:
-          #- image: "archlinux-base"
-          #  script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/archlinux.sh"
-          #  arch: "x86_64"
-          #  file: "/tmp/archlinux.tar"
+          - image: "archlinux-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/archlinux.sh"
+            arch: "x86_64"
+            file: "/tmp/rootfs.tar"
+
+          - image: "artix-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/artix.sh"
+            arch: "x86_64"
+            file: "/tmp/rootfs.tar"
 
           - image: "cachyos-base"
             script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/cachyos.sh"
             arch: "x86_64"
-            file: "/tmp/cachyos-base.tar"
+            file: "/tmp/rootfs.tar"
+
+          - image: "eweos-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/eweos.sh"
+            arch: "x86_64"
+            file: "/tmp/rootfs.tar"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

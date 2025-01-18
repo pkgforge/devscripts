@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
 ##DO NOT RUN DIRECTLY
-##Self: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/bootstrap/cachyos.sh")
+##Self: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/bootstrap/artix.sh")
 #-------------------------------------------------------#
 
 #-------------------------------------------------------#
 set -x
-## No aarch64 docker yet: https://hub.docker.com/r/cachyos/cachyos/tags
-## Official Response: https://discuss.cachyos.org/t/arm-future-for-cachyos/727/2
-## https://github.com/CachyOS/docker
+## No aarch64 docker yet: https://hub.docker.com/r/artixlinux/artixlinux
+## Though it does exist: https://wiki.artixlinux.org/Main/Aarch64
+## https://armtixlinux.org/
+## https://gitea.artixlinux.org/artixdocker/artixlinux-docker
 if [ "$(uname  -m)" == "aarch64" ]; then
    exit 0
 fi
@@ -17,8 +18,8 @@ fi
 #-------------------------------------------------------#
 ##Bootstrap
  pushd "$(mktemp -d)" >/dev/null 2>&1
-  docker stop "cachyos-base" 2>/dev/null ; docker rm "cachyos-base" 2>/dev/null
-  docker run --name "cachyos-base" --privileged "cachyos/cachyos-v3:latest" bash -l -c '
+  docker stop "artix-base" 2>/dev/null ; docker rm "artix-base" 2>/dev/null
+  docker run --name "artix-base" --privileged "artixlinux/artixlinux:latest" bash -l -c '
   #Bootstrap
    pacman -y --sync --refresh --refresh --sysupgrade --noconfirm --debug
    packages="bash binutils curl fakechroot fakeroot git wget"
@@ -100,7 +101,7 @@ fi
    touch ""/etc/{host.conf,hosts,nsswitch.conf}  2>/dev/null
    hostname 2>/dev/null; cat "/etc/os-release" 2>/dev/null'
 ##Export   
-  docker export "$(docker ps -aqf 'name=cachyos-base')" --output "rootfs.tar"
+  docker export "$(docker ps -aqf 'name=artix-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then
     rsync -achLv --mkpath "./rootfs.tar" "/tmp/rootfs.tar"
   else
@@ -114,21 +115,21 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 #-------------------------------------------------------#
 ##Push
 #ENV
-D_ID="$(docker ps -aqf 'name=cachyos-base' | tr -d '[:space:]')"
+D_ID="$(docker ps -aqf 'name=artix-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
 #Tags
-docker commit "${D_ID}" "pkgforge/cachyos-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:latest"
-docker commit "${D_ID}" "pkgforge/cachyos-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/cachyos-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:$(uname -m)"
+docker commit "${D_ID}" "pkgforge/artix-base:latest"
+docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:latest"
+docker commit "${D_ID}" "pkgforge/artix-base:${D_TAG}"
+docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:${D_TAG}"
+docker commit "${D_ID}" "pkgforge/artix-base:$(uname -m)"
+docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:$(uname -m)"
 #Push
-docker push "pkgforge/cachyos-base:latest"
-docker push "ghcr.io/pkgforge/devscripts/cachyos-base:latest"
-docker push "pkgforge/cachyos-base:${D_TAG}"
-docker push "ghcr.io/pkgforge/devscripts/cachyos-base:${D_TAG}"
-docker push "pkgforge/cachyos-base:$(uname -m)"
-docker push "ghcr.io/pkgforge/devscripts/cachyos-base:$(uname -m)"
+docker push "pkgforge/artix-base:latest"
+docker push "ghcr.io/pkgforge/devscripts/artix-base:latest"
+docker push "pkgforge/artix-base:${D_TAG}"
+docker push "ghcr.io/pkgforge/devscripts/artix-base:${D_TAG}"
+docker push "pkgforge/artix-base:$(uname -m)"
+docker push "ghcr.io/pkgforge/devscripts/artix-base:$(uname -m)"
 #-------------------------------------------------------#
