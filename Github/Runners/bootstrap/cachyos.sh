@@ -22,8 +22,8 @@ fi
   #Bootstrap
    pacman -y --sync --refresh --refresh --sysupgrade --noconfirm --debug
    packages="bash binutils curl fakechroot fakeroot git wget"
-   for pkg in $packages; do pacman -Sy "$pkg" --noconfirm ; done
-   for pkg in $packages; do pacman -Sy "$pkg" --needed --noconfirm ; done
+   for pkg in $packages; do pacman -Sy "${pkg}" --noconfirm ; done
+   for pkg in $packages; do pacman -Sy "${pkg}" --needed --noconfirm ; done
   #Fix & Patches 
    sed '\''/DownloadUser/d'\'' -i "/etc/pacman.conf"
    #sed '\''s/^.*Architecture\s*=.*$/Architecture = auto/'\'' -i "/etc/pacman.conf"
@@ -58,13 +58,13 @@ fi
   #Fake-Sudo
    pacman -Rsndd sudo 2>/dev/null
    rm -rvf "/usr/bin/sudo" 2>/dev/null
-   curl -qfsSL "https://github.com/pkgforge/flatimage-base/releases/download/$(uname -m)/fake-sudo-pkexec.tar.zst" -o "./fake-sudo-pkexec.tar.zst" && chmod +x "./fake-sudo-pkexec.tar.zst"
+   curl -qfsSL "https://github.com/pkgforge/devscripts/releases/download/common-utils/fake-sudo-pkexec.tar.zst" -o "./fake-sudo-pkexec.tar.zst" && chmod +x "./fake-sudo-pkexec.tar.zst"
    pacman -Uddd "./fake-sudo-pkexec.tar.zst" --noconfirm
    pacman -Syy fakeroot --needed --noconfirm
    rm -rvf "./fake-sudo-pkexec.tar.zst"
   #Yay
-   curl -qfsSL "https://github.com/pkgforge/flatimage-base/releases/download/$(uname -m)/yay" -o "/usr/bin/yay" && chmod +x "/usr/bin/yay"
-   yay --version  ; which fakeroot yay sudo
+   curl -qfsSL "https://github.com/pkgforge/devscripts/releases/download/common-utils/yay-$(uname -m)" -o "/usr/bin/yay" && chmod +x "/usr/bin/yay"
+   yay --version ; which fakeroot yay sudo
   #More cleanup
    rm -rfv "/usr/share/gtk-doc/"* 2>/dev/null
    rm -rfv "/usr/share/man/"* 2>/dev/null
@@ -100,7 +100,7 @@ fi
    touch ""/etc/{host.conf,hosts,nsswitch.conf}  2>/dev/null
    hostname 2>/dev/null; cat "/etc/os-release" 2>/dev/null'
 ##Export   
-  docker export "$(docker ps -aqf 'name=cachyos')" --output "rootfs.tar"
+  docker export "$(docker ps -aqf 'name=cachyos-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then
     mkdir -pv "./rootfs" && export ROOTFS_DIR="$(realpath "./rootfs")"
     rsync -achLv --mkpath "./rootfs.tar" "/tmp/cachyos-base.tar"
@@ -115,7 +115,7 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 #-------------------------------------------------------#
 ##Push
 #ENV
-D_ID="$(docker ps -qf 'name=cachyos-base' | tr -d '[:space:]')"
+D_ID="$(docker ps -aqf 'name=cachyos-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
 #Tags
