@@ -122,12 +122,16 @@ jobs:
           set +x ; set +e
           #--------------#
           mkdir -pv "/tmp/COMMON"
-          eget "https://github.com/Jguer/yay" --asset "$(uname -m)" --file "yay" --to "/tmp/COMMON/yay"
-          eget "https://github.com/Morganamilo/paru" --asset "$(uname -m)" --file "paru" --to "/tmp/COMMON/paru"
+          eget "https://github.com/Morganamilo/paru" --asset "aarch64" --file "paru" --to "/tmp/COMMON/paru-aarch64"
+          eget "https://github.com/Morganamilo/paru" --asset "x86_64" --file "paru" --to "/tmp/COMMON/paru-x86_64"
+          eget "https://github.com/Jguer/yay" --asset "aarch64" --file "yay" --to "/tmp/COMMON/yay-aarch64"
+          eget "https://github.com/Jguer/yay" --asset "x86_64" --file "yay" --to "/tmp/COMMON/yay-x86_64"
           eget "https://github.com/VHSgunzo/runimage-fake-sudo-pkexec" --asset "any" --asset "tar.zst" --download-only --to "/tmp/COMMON/fake-sudo-pkexec.tar.zst"
-          if [[ -s "/tmp/COMMON/yay" ]] && \
-             [[ -s "/tmp/COMMON/paru" ]] && \
-             [[ -s "/tmp/COMMON/fake-sudo-pkexec.tar.zst" ]]; then
+          if [[ -s "/tmp/COMMON/fake-sudo-pkexec.tar.zst" ]] && \
+             [[ -s "/tmp/COMMON/paru-aarch64" ]] && \
+             [[ -s "/tmp/COMMON/paru-x86_64" ]] && \
+             [[ -s "/tmp/COMMON/yay-aarch64" ]] && \
+             [[ -s "/tmp/COMMON/yay-x86_64" ]]; then
            export HAS_COMMON="TRUE"
            echo "HAS_COMMON=${HAS_COMMON}" >> "${GITHUB_ENV}"
            UTC_TIME="$(TZ='UTC' date +'%Y_%m_%d')"
