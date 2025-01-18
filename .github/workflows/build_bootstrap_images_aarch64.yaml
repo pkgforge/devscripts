@@ -21,6 +21,11 @@ jobs:
     strategy:
       matrix:
         include:
+          - image: "alpine-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/alpine.sh"
+            arch: "aarch64"
+            file: "/tmp/rootfs.tar"
+
           - image: "archlinux-base"
             script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/archlinux.sh"
             arch: "aarch64"
@@ -36,8 +41,18 @@ jobs:
           #  arch: "aarch64"
           #  file: "/tmp/rootfs.tar"
 
+          - image: "debian-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/debian.sh"
+            arch: "aarch64"
+            file: "/tmp/rootfs.tar"
+
           - image: "eweos-base"
             script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/eweos.sh"
+            arch: "aarch64"
+            file: "/tmp/rootfs.tar"
+
+          - image: "ubuntu-base"
+            script: "${GITHUB_WORKSPACE}/main/Github/Runners/bootstrap/ubuntu.sh"
             arch: "aarch64"
             file: "/tmp/rootfs.tar"
 
