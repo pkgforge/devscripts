@@ -82,13 +82,12 @@ SYSTMP="$(dirname $(mktemp -u))" && export SYSTMP="${SYSTMP}"
 export LANGUAGE=${LANGUAGE:-en_US:en}
 export LANG=${LANG:-en_US.UTF-8}
 export LC_ALL=${LC_ALL:-${LANG}}
-
 BW_INTERFACE="$(ip route | grep -i 'default' | awk '{print $5}' | tr -d '[:space:]')" && export BW_INTERFACE="${BW_INTERFACE}"
 current_dir="$(pwd)"
 ##PATHS (Only Required)
-export GOROOT="$HOME/.go"
-export GOPATH="$HOME/go"
-export PATH="$HOME/bin:$HOME/.cargo/bin:$HOME/.cargo/env:$HOME/.go/bin:$HOME/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$HOME/.local/bin:$HOME/miniconda3/bin:$HOME/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:$PATH"
+export GOROOT="${HOME}/.go"
+export GOPATH="${HOME}/go"
+export PATH="${HOME}/.local/share/soar/bin:${HOME}/bin:${HOME}/.cargo/bin:${HOME}/.cargo/env:${HOME}/.go/bin:${HOME}/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${HOME}/.local/bin:${HOME}/miniconda3/bin:${HOME}/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 #-------------------------------------------------------------------------------#
 
 
