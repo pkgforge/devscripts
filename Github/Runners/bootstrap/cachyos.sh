@@ -39,7 +39,7 @@ fi
    cat "/var/lib/dbus/machine-id" | tee "/etc/machine-id"
    pacman -Scc --noconfirm
    echo "disable-scdaemon" | tee "/etc/pacman.d/gnupg/gpg-agent.conf"
-   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/flatimage-base/refs/heads/main/archlinux_hooks.sh" -o "/arch_hooks.sh"
+   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/bootstrap/archlinux_hooks.sh" -o "/arch_hooks.sh"
    chmod +x "/arch_hooks.sh" ; "/arch_hooks.sh"
    rm -rfv "/arch_hooks.sh"
    echo "LANG=en_US.UTF-8" | tee "/etc/locale.conf"
@@ -102,7 +102,6 @@ fi
 ##Export   
   docker export "$(docker ps -aqf 'name=cachyos-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then
-    mkdir -pv "./rootfs" && export ROOTFS_DIR="$(realpath "./rootfs")"
     rsync -achLv --mkpath "./rootfs.tar" "/tmp/cachyos-base.tar"
   else
     echo "\n[-] FATAL: Failed to export ROOTFS\n"
@@ -121,15 +120,15 @@ export D_ID D_TAG
 #Tags
 docker commit "${D_ID}" "pkgforge/cachyos-base:latest"
 docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:latest"
-docker commit "${D_ID}" "pkgforge/cachyos-base:${DOCKER_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:${DOCKER_TAG}"
+docker commit "${D_ID}" "pkgforge/cachyos-base:${D_TAG}"
+docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:${D_TAG}"
 docker commit "${D_ID}" "pkgforge/cachyos-base:$(uname -m)"
 docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/cachyos-base:$(uname -m)"
 #Push
 docker push "pkgforge/cachyos-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/cachyos-base:latest"
-docker push "pkgforge/cachyos-base:${DOCKER_TAG}"
-docker push "ghcr.io/pkgforge/devscripts/cachyos-base:${DOCKER_TAG}"
+docker push "pkgforge/cachyos-base:${D_TAG}"
+docker push "ghcr.io/pkgforge/devscripts/cachyos-base:${D_TAG}"
 docker push "pkgforge/cachyos-base:$(uname -m)"
 docker push "ghcr.io/pkgforge/devscripts/cachyos-base:$(uname -m)"
 #-------------------------------------------------------#

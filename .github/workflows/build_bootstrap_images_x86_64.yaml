@@ -133,7 +133,7 @@ jobs:
         with:
             name: ARTIFACTS
             path: |
-              "${{ matrix.file }}"
+              ${{ matrix.file }}
             compression-level: 0 #no compression, [Default: 6 (GNU Gzip)]
             retention-days: 90 #max
             overwrite: true
@@ -150,7 +150,7 @@ jobs:
           draft: false
           generate_release_notes: false
           files: |
-            "${{ matrix.file }}"
+            ${{ matrix.file }}
         continue-on-error: true
 
      #Snapshot
@@ -165,7 +165,7 @@ jobs:
           generate_release_notes: false
           make_latest: false
           files: |
-            "${{ matrix.file }}"
+            ${{ matrix.file }}
         continue-on-error: true
 
      #Build Provenance
@@ -174,6 +174,6 @@ jobs:
         uses: actions/attest-build-provenance@v2.1.0
         with:
           subject-name: "image-${{ matrix.image }}-${{ matrix.arch }}"
-          subject-path: "${{ matrix.file }}"
+          subject-path: ${{ matrix.file }}
           show-summary: true
         continue-on-error: true
