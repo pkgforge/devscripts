@@ -57,10 +57,11 @@ set -x
    find "/var/log" -type f -name "*.log" -exec rm -rfv "{}" \; 2>/dev/null
    rm -rfv "/var/lib/apt/lists/"*
    rm -rfv "/var/cache/apt/"*
-   rm -rfv "/"{tmp,proc,sys,dev,run}
-   mkdir -pv "/"{tmp,proc,sys,dev,run/media,mnt,media,home}
-   rm -fv /etc/{host.conf,hosts,passwd,group,nsswitch.conf}
-   touch /etc/{host.conf,hosts,passwd,group,nsswitch.conf}'
+   bash -c "rm -rfv /{tmp,proc,sys,dev,run}"
+   bash -c "mkdir -pv /{tmp,proc,sys,dev,run/media,mnt,media,home}"
+   bash -c "rm -fv /etc/{host.conf,hosts,passwd,group,nsswitch.conf}"
+   bash -c "touch /etc/{host.conf,hosts,passwd,group,nsswitch.conf}"
+   '
 ##Export   
   docker export "$(docker ps -aqf 'name=debian-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then

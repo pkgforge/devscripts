@@ -33,12 +33,13 @@ set -x
    locale-gen
    locale-gen "en_US.UTF-8"
   #Cleanup
-   rm -rfv "/"{tmp,proc,sys,dev,run}
-   mkdir -pv "/"{tmp,proc,sys,dev,run/media,mnt,media,home}
-   rm -fv /etc/{host.conf,hosts,passwd,group,nsswitch.conf}
-   touch /etc/{host.conf,hosts,passwd,group,nsswitch.conf}
+   bash -c "rm -rfv /{tmp,proc,sys,dev,run}"
+   bash -c "mkdir -pv /{tmp,proc,sys,dev,run/media,mnt,media,home}"
+   bash -c "rm -fv /etc/{host.conf,hosts,passwd,group,nsswitch.conf}"
+   bash -c "touch /etc/{host.conf,hosts,passwd,group,nsswitch.conf}"
    apk info -L
-   rm -rfv "/var/cache/apk/"*'
+   rm -rfv "/var/cache/apk/"*
+   '
 ##Export   
   docker export "$(docker ps -aqf 'name=alpine-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then

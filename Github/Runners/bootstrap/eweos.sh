@@ -91,9 +91,10 @@ set -x
    find "/var/log" -type f -name "*.log" -exec rm -rfv "{}" \; 2>/dev/null
    rm -rfv "/"{tmp,proc,sys,dev,run} 2>/dev/null
    mkdir -pv "/"{tmp,proc,sys,dev,run/media,mnt,media,home}  2>/dev/null
-   rm -fv ""/etc/{host.conf,hosts,nsswitch.conf}  2>/dev/null
-   touch ""/etc/{host.conf,hosts,nsswitch.conf}  2>/dev/null
-   hostname 2>/dev/null; cat "/etc/os-release" 2>/dev/null'
+   rm -fv "/etc/"{host.conf,hosts,nsswitch.conf}  2>/dev/null
+   touch "/etc/"{host.conf,hosts,nsswitch.conf}  2>/dev/null
+   hostname 2>/dev/null; cat "/etc/os-release" 2>/dev/null
+   '
 ##Export   
   docker export "$(docker ps -aqf 'name=eweos-base')" --output "rootfs.tar"
   if [[ -f "./rootfs.tar" ]] && [[ $(stat -c%s "./rootfs.tar") -gt 10000 ]]; then
