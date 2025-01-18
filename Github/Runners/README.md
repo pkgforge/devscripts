@@ -98,9 +98,15 @@
 > sudo podman exec -it -u "runner" "$(sudo podman ps --format json | jq -r '.[] | select(.Image == "docker.io/azathothas/gh-runner-x86_64-ubuntu:latest") | .Id')" bash
 >
 > !#PrePacked Build ENV (remove --rm to Preserve Container)
-> sudo mkdir -p "/var/lib/containers/tmp"
-> sudo podman run --detach --privileged --network="bridge" --publish "22222:22" --systemd="always" --ulimit="host" --tz="UTC" --pull="always" --name="bincache-dbg" --hostname "pkgforge-dev" "docker.io/azathothas/ubuntu-systemd-base:$(uname -m)"
-> 
+> sudo mkdir -p "/var/lib/containers/tmp-runner01"
+> sudo chmod 1777 "/var/lib/containers/tmp-runner01"
+> sudo podman run --detach --privileged \
+> --device "/dev/fuse" --network="bridge" --publish "22222:22" \
+> --systemd="always" --ulimit="host" --tz="UTC" \
+> --pull="always" --name="bincache-dbg" --hostname "pkgforge-dev" \
+> --volume "/var/lib/containers/tmp-runner01:/tmp:rw,exec,dev" \
+> "docker.io/pkgforge/ubuntu-systemd-base:$(uname -m)"
+>  
 > #Run an Interactive Session
 > sudo podman exec -it -u "runner" "$(sudo podman ps --filter "name=bincache-dbg" --filter "ancestor=docker.io/azathothas/ubuntu-systemd-base:$(uname -m)" --format "{{.ID}}")" bash -l
 > #Inside the container
@@ -124,7 +130,7 @@
 > sudo docker rm -f "$(sudo docker ps -aq)"
 > sudo podman rm -f "$(sudo podman ps -aq)"
 > 
-> #To Cleanup Everyhinh
+> #To Cleanup Everything
 > sudo docker system df ; sudo docker container prune -f ; sudo docker image prune -a -f ; sudo docker system prune -a -f
 > sudo docker rmi -f "$(sudo docker images -aq)" ; sudo docker system df
 > 
