@@ -32,10 +32,11 @@ set -x
    chown -R _apt:root /var/cache/apt/archives/partial/
    dpkg-statoverride --remove /usr/bin/crontab
    ubuntu_FRONTEND="noninteractive" apt update -y
-   ubuntu_FRONTEND="noninteractive" apt install bash binutils coreutils curl fakeroot gawk git locales sed sudo wget -y --no-install-recommends --ignore-missing
+   ubuntu_FRONTEND="noninteractive" apt install bash binutils coreutils curl fakechroot fakeroot gawk git locales sed wget -y --no-install-recommends --ignore-missing
    locale-gen "en_US.UTF-8"
    echo "debconf debconf/frontend select Noninteractive" | debconf-set-selections
    apt purge locales perl -y ; apt autoremove -y ; apt autoclean -y
+   curl -qfsSL "https://raw.githubusercontent.com/VHSgunzo/runimage-fake-sudo-pkexec/refs/heads/main/usr/bin/sudo" -o "/usr/bin/sudo" && chmod -v "a+x" "/usr/bin/sudo"
    apt list --installed
    apt clean -y
    find "/boot" -mindepth 1 -delete 2>/dev/null
