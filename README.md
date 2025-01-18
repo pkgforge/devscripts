@@ -11,12 +11,18 @@
 > ==> https://hub.docker.com/r/pkgforge/ubuntu-systemd-base ([`Ubuntu Dev Machine Image`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/ubuntu-systemd-base.dockerfile))<br>
 
 #### ROOTFS
+> ==> https://github.com/pkgforge/devscripts/releases/download/alpine-base_aarch64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/alpine.sh))<br>
+> ==> https://github.com/pkgforge/devscripts/releases/download/alpine-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/alpine.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/archlinux-base_aarch64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/archlinux.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/archlinux-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/archlinux.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/artix-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/artix.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/cachyos-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/cachyos.sh))<br>
+> ==> https://github.com/pkgforge/devscripts/releases/download/debian-base_aarch64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/debian.sh))<br>
+> ==> https://github.com/pkgforge/devscripts/releases/download/debian-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/debian.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/eweos-base_aarch64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/eweos.sh))<br>
 > ==> https://github.com/pkgforge/devscripts/releases/download/eweos-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/eweos.sh))<br>
+> ==> https://github.com/pkgforge/devscripts/releases/download/ubuntu-base_aarch64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/ubuntu.sh))<br>
+> ==> https://github.com/pkgforge/devscripts/releases/download/ubuntu-base_x86_64/rootfs.tar ([`boostrap.sh`](https://github.com/pkgforge/devscripts/blob/main/Github/Runners/bootstrap/ubuntu.sh))<br>
 
 #### Scripts
 > [!WARNING]
