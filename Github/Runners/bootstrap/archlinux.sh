@@ -111,13 +111,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=archlinux-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/archlinux-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/archlinux-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/archlinux-base:latest"
-docker commit "${D_ID}" "pkgforge/archlinux-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/archlinux-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/archlinux-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/archlinux-base:$(uname -m)"
+docker tag "pkgforge/archlinux-base:temp" "pkgforge/archlinux-base:latest"
+docker tag "pkgforge/archlinux-base:temp" "ghcr.io/pkgforge/devscripts/archlinux-base:latest"
+docker tag "pkgforge/archlinux-base:temp" "pkgforge/archlinux-base:${D_TAG}"
+docker tag "pkgforge/archlinux-base:temp" "ghcr.io/pkgforge/devscripts/archlinux-base:${D_TAG}"
+docker tag "pkgforge/archlinux-base:temp" "pkgforge/archlinux-base:$(uname -m)"
+docker tag "pkgforge/archlinux-base:temp" "ghcr.io/pkgforge/devscripts/archlinux-base:$(uname -m)"
 #Push
 docker push "pkgforge/archlinux-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/archlinux-base:latest"

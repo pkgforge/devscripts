@@ -58,13 +58,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=alpine-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/alpine-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/alpine-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/alpine-base:latest"
-docker commit "${D_ID}" "pkgforge/alpine-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/alpine-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/alpine-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/alpine-base:$(uname -m)"
+docker tag "pkgforge/alpine-base:temp" "pkgforge/alpine-base:latest"
+docker tag "pkgforge/alpine-base:temp" "ghcr.io/pkgforge/devscripts/alpine-base:latest"
+docker tag "pkgforge/alpine-base:temp" "pkgforge/alpine-base:${D_TAG}"
+docker tag "pkgforge/alpine-base:temp" "ghcr.io/pkgforge/devscripts/alpine-base:${D_TAG}"
+docker tag "pkgforge/alpine-base:temp" "pkgforge/alpine-base:$(uname -m)"
+docker tag "pkgforge/alpine-base:temp" "ghcr.io/pkgforge/devscripts/alpine-base:$(uname -m)"
 #Push
 docker push "pkgforge/alpine-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/alpine-base:latest"

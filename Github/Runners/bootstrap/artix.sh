@@ -118,13 +118,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=artix-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/artix-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/artix-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:latest"
-docker commit "${D_ID}" "pkgforge/artix-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/artix-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/artix-base:$(uname -m)"
+docker tag "pkgforge/artix-base:temp" "pkgforge/artix-base:latest"
+docker tag "pkgforge/artix-base:temp" "ghcr.io/pkgforge/devscripts/artix-base:latest"
+docker tag "pkgforge/artix-base:temp" "pkgforge/artix-base:${D_TAG}"
+docker tag "pkgforge/artix-base:temp" "ghcr.io/pkgforge/devscripts/artix-base:${D_TAG}"
+docker tag "pkgforge/artix-base:temp" "pkgforge/artix-base:$(uname -m)"
+docker tag "pkgforge/artix-base:temp" "ghcr.io/pkgforge/devscripts/artix-base:$(uname -m)"
 #Push
 docker push "pkgforge/artix-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/artix-base:latest"

@@ -113,13 +113,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=eweos-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/eweos-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/eweos-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/eweos-base:latest"
-docker commit "${D_ID}" "pkgforge/eweos-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/eweos-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/eweos-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/eweos-base:$(uname -m)"
+docker tag "pkgforge/eweos-base:temp" "pkgforge/eweos-base:latest"
+docker tag "pkgforge/eweos-base:temp" "ghcr.io/pkgforge/devscripts/eweos-base:latest"
+docker tag "pkgforge/eweos-base:temp" "pkgforge/eweos-base:${D_TAG}"
+docker tag "pkgforge/eweos-base:temp" "ghcr.io/pkgforge/devscripts/eweos-base:${D_TAG}"
+docker tag "pkgforge/eweos-base:temp" "pkgforge/eweos-base:$(uname -m)"
+docker tag "pkgforge/eweos-base:temp" "ghcr.io/pkgforge/devscripts/eweos-base:$(uname -m)"
 #Push
 docker push "pkgforge/eweos-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/eweos-base:latest"

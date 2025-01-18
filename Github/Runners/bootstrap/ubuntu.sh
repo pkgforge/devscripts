@@ -82,13 +82,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=ubuntu-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/ubuntu-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/ubuntu-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/ubuntu-base:latest"
-docker commit "${D_ID}" "pkgforge/ubuntu-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/ubuntu-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/ubuntu-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/ubuntu-base:$(uname -m)"
+docker tag "pkgforge/ubuntu-base:temp" "pkgforge/ubuntu-base:latest"
+docker tag "pkgforge/ubuntu-base:temp" "ghcr.io/pkgforge/devscripts/ubuntu-base:latest"
+docker tag "pkgforge/ubuntu-base:temp" "pkgforge/ubuntu-base:${D_TAG}"
+docker tag "pkgforge/ubuntu-base:temp" "ghcr.io/pkgforge/devscripts/ubuntu-base:${D_TAG}"
+docker tag "pkgforge/ubuntu-base:temp" "pkgforge/ubuntu-base:$(uname -m)"
+docker tag "pkgforge/ubuntu-base:temp" "ghcr.io/pkgforge/devscripts/ubuntu-base:$(uname -m)"
 #Push
 docker push "pkgforge/ubuntu-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/ubuntu-base:latest"

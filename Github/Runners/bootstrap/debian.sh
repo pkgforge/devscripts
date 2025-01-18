@@ -80,13 +80,15 @@ popd "$(mktemp -d)" >/dev/null 2>&1
 D_ID="$(docker ps -aqf 'name=debian-base' | tr -d '[:space:]')"
 D_TAG="v$(date +'%Y.%m.%d' | tr -d '[:space:]')"
 export D_ID D_TAG
+#Export & Import
+docker export "${D_ID}" | docker import - "pkgforge/debian-base:temp"
 #Tags
-docker commit "${D_ID}" "pkgforge/debian-base:latest"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/debian-base:latest"
-docker commit "${D_ID}" "pkgforge/debian-base:${D_TAG}"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/debian-base:${D_TAG}"
-docker commit "${D_ID}" "pkgforge/debian-base:$(uname -m)"
-docker commit "${D_ID}" "ghcr.io/pkgforge/devscripts/debian-base:$(uname -m)"
+docker tag "pkgforge/debian-base:temp" "pkgforge/debian-base:latest"
+docker tag "pkgforge/debian-base:temp" "ghcr.io/pkgforge/devscripts/debian-base:latest"
+docker tag "pkgforge/debian-base:temp" "pkgforge/debian-base:${D_TAG}"
+docker tag "pkgforge/debian-base:temp" "ghcr.io/pkgforge/devscripts/debian-base:${D_TAG}"
+docker tag "pkgforge/debian-base:temp" "pkgforge/debian-base:$(uname -m)"
+docker tag "pkgforge/debian-base:temp" "ghcr.io/pkgforge/devscripts/debian-base:$(uname -m)"
 #Push
 docker push "pkgforge/debian-base:latest"
 docker push "ghcr.io/pkgforge/devscripts/debian-base:latest"
