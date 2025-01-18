@@ -142,7 +142,7 @@ jobs:
         if: env.HAS_IMAGE == 'TRUE'
         uses: actions/upload-artifact@v4
         with:
-            name: ARTIFACTS
+            name: "ARTIFACTS-${{ matrix.image }}_${{ matrix.arch }}"
             path: |
               ${{ matrix.file }}
             compression-level: 0 #no compression, [Default: 6 (GNU Gzip)]
