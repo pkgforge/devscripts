@@ -6,7 +6,7 @@ concurrency:
 on:
   workflow_dispatch:
   schedule:
-   - cron: "0 0 */3 * *" #every 3 Days @5:45 AM NPT
+   - cron: "0 */8 * * *"  # Every 08 Hrs
 jobs:
   push-aarch64:
     #runs-on: ubuntu-latest
