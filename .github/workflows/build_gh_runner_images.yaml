@@ -823,8 +823,8 @@ jobs:
           password: "${{ secrets.GITHUB_TOKEN }}"
         continue-on-error: true
   
-    #https://hub.docker.com/r/pkgforge/debian-guix.dockerfile
-      - name: Docker Build and Push (debian-guix.dockerfile)
+    #https://hub.docker.com/r/pkgforge/debian-guix
+      - name: Docker Build and Push (debian-guix)
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
@@ -833,10 +833,10 @@ jobs:
           build-args: |
             ARCH=$(uname -m)
           tags: |
-            pkgforge/debian-guix.dockerfile:${{ matrix.arch }}
-            pkgforge/debian-guix.dockerfile:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/debian-guix.dockerfile:${{ matrix.arch }}
-            ghcr.io/pkgforge/devscripts/debian-guix.dockerfile:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            pkgforge/debian-guix:${{ matrix.arch }}
+            pkgforge/debian-guix:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/debian-guix:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/debian-guix:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#

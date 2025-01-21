@@ -34,6 +34,8 @@ RUN <<EOS
   echo "nameserver 8.8.8.8" >> "/etc/resolv.conf"
  #Key-Verification
   #sed 's/^.*SigLevel\s*=.*$/SigLevel = Never/' -i "/etc/pacman.conf"
+ #Download user 
+  sed 's/DownloadUser/#DownloadUser/g' -i "/etc/pacman.conf"
  #Update
   pacman -Syu --noconfirm || true
 EOS
@@ -54,7 +56,7 @@ RUN <<EOS
   compgen -u
  #Fix perms
   chmod 0440 "/etc/sudoers"
-  visudo -c
+  visudo -c || true
 EOS
 ##Change Default shell for runner to bash
 RUN <<EOS
