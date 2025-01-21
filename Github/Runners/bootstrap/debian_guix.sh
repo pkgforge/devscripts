@@ -27,9 +27,12 @@ else
  GUIX_LATEST_SHA="$(git ls-remote "${GUIX_GIT_REPO}" 'HEAD' | grep -w 'HEAD' | head -n 1 | awk '{print $1}' | tr -d '[:space:]')"
  ##Daemon: https://github.com/metacall/guix/blob/master/scripts/entry-point.sh
  "/root/.config/guix/current/bin/guix-daemon" --build-users-group="guixbuild" &
+ DAEMON_PID=$!
  GIT_CONFIG_PARAMETERS="'filter.blob:none.enabled=true'" guix pull --url="${GUIX_GIT_REPO}" --commit="${GUIX_LATEST_SHA}" --cores="$(($(nproc)+1))" --max-jobs="2" --disable-authentication &
+ USER_PULL_PID=$!
  sudo GIT_CONFIG_PARAMETERS="'filter.blob:none.enabled=true'" guix pull --url="${GUIX_GIT_REPO}" --commit="${GUIX_LATEST_SHA}" --cores="$(($(nproc)+1))" --max-jobs="2" --disable-authentication &
- wait ; guix --version
+ ROOT_PULL_PID=$!
+ wait "${USER_PULL_PID}" "${ROOT_PULL_PID}" ; guix --version
  rm -rvf "./guix-install.sh" 2>/dev/null
 fi
 #-------------------------------------------------------#
