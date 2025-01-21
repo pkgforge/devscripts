@@ -8,15 +8,18 @@ RUN <<EOS
   #Base
   set +e
   pacman -Syu --noconfirm
-  pacman base-devel bash bison ca-certificates coreutils curl dos2unix findutils gettext git gnupg gperf imagemagick jq less lzip lzlib moreutils micro nano ncdu pacutils p7zip rsync sudo texinfo tmux unzip util-linux wget xz zip --sync --noconfirm || true
+  packages="base-devel bash bison ca-certificates coreutils curl dos2unix findutils gettext git gnupg gperf imagemagick jq less lzip lzlib moreutils micro nano ncdu pacutils p7zip rsync sudo texinfo tmux unzip util-linux wget xz zip"
+  for pkg in $packages; do pacman "$pkg" --sync --noconfirm ; done
   #RE
   pacman -Syu --noconfirm
   pacman base-devel bash bison ca-certificates coreutils curl dos2unix findutils gettext git gnupg gperf imagemagick jq less lzip lzlib moreutils micro nano ncdu pacutils p7zip rsync sudo texinfo tmux unzip util-linux wget xz zip --sync --needed --noconfirm || true
   #NetTools
-  pacman inetutils iproute2 iputils net-tools openbsd-netcat --sync --needed --noconfirm || true
+  packages="inetutils iproute2 iputils net-tools openbsd-netcat"
+  for pkg in $packages; do pacman "$pkg" --sync --noconfirm ; done
   setcap 'cap_net_raw+ep' "$(which ping)"
   #Python & Deps
-  pacman patchelf python python-devtools python-distro python-lxml python-netifaces python-pypatchelf python-pip python-pipx python-pkgconfig python-xxhash scons sysfsutils virt-what --sync --needed --noconfirm || true
+  packages="patchelf python python-devtools python-distro python-lxml python-netifaces python-pypatchelf python-pip python-pipx python-pkgconfig python-xxhash scons sysfsutils virt-what"
+  for pkg in $packages; do pacman "$pkg" --sync --needed --noconfirm ; done
   #Test
   python --version 2>/dev/null ; python3 --version 2>/dev/null || true
   pip --version 2>/dev/null ; pip3 --version 2>/dev/null || true
@@ -101,7 +104,8 @@ RUN <<EOS
   ##Main
   set +e
   pacman -Syu --noconfirm || true
-  pacman aria2 autoconf autoconf-archive automake bazel bc binutils b3sum brotli busybox ccache clang cmake coreutils cython diffutils dos2unix findutils fontconfig gawk gcc gettext kernel-headers-musl jq libpcap libtool meson musl nasm polkit pkgconf rsync spirv-headers spirv-tools sqlite texinfo texi2html util-linux util-linux-libs wget libxslt xxhash yasm --sync --needed --noconfirm || true
+  packages="aria2 autoconf autoconf-archive automake bazel bc binutils b3sum brotli busybox ccache clang cmake coreutils cython diffutils dos2unix findutils fontconfig gawk gcc gettext kernel-headers-musl jq libpcap libtool meson musl nasm polkit pkgconf rsync spirv-headers spirv-tools sqlite texinfo texi2html util-linux util-linux-libs wget libxslt xxhash yasm"
+  for pkg in $packages; do pacman "$pkg" --sync --needed --noconfirm ; done
   #Re
   pacman -Syu --noconfirm || true
   pacman aria2 autoconf autoconf-archive automake bazel bc binutils b3sum brotli busybox ccache clang cmake coreutils cython diffutils dos2unix findutils fontconfig gawk gcc gettext kernel-headers-musl jq libpcap libtool meson musl nasm polkit pkgconf rsync spirv-headers spirv-tools sqlite texinfo texi2html util-linux util-linux-libs wget libxslt xxhash yasm --sync --needed --noconfirm || true
