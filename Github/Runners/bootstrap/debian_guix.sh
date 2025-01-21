@@ -25,6 +25,8 @@ else
  ##mirror
  #GUIX_GIT_REPO="https://github.com/Millak/guix"
  GUIX_LATEST_SHA="$(git ls-remote "${GUIX_GIT_REPO}" 'HEAD' | grep -w 'HEAD' | head -n 1 | awk '{print $1}' | tr -d '[:space:]')"
+ ##Daemon: https://github.com/metacall/guix/blob/master/scripts/entry-point.sh
+ "/root/.config/guix/current/bin/guix-daemon" --build-users-group="guixbuild" &
  GIT_CONFIG_PARAMETERS="'filter.blob:none.enabled=true'" guix pull --url="${GUIX_GIT_REPO}" --commit="${GUIX_LATEST_SHA}" --cores="$(($(nproc)+1))" --max-jobs="2" --disable-authentication &
  sudo GIT_CONFIG_PARAMETERS="'filter.blob:none.enabled=true'" guix pull --url="${GUIX_GIT_REPO}" --commit="${GUIX_LATEST_SHA}" --cores="$(($(nproc)+1))" --max-jobs="2" --disable-authentication &
  wait ; guix --version
