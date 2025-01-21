@@ -1,6 +1,6 @@
-328K └─┬ main
-248K   ├─┬ Github
-244K   │ └─┬ Runners
+332K └─┬ main
+252K   ├─┬ Github
+248K   │ └─┬ Runners
  64K   │   ├─┬ bootstrap
 8.0K   │   │ ├── ubuntu.sh
 8.0K   │   │ ├── eweos.sh
@@ -21,7 +21,8 @@
  12K   │   ├── archlinux-builder.dockerfile
  12K   │   ├── README.md
 8.0K   │   ├── run_linux.sh
-8.0K   │   └── debloat_ubuntu.sh
+8.0K   │   ├── debloat_ubuntu.sh
+4.0K   │   └── debian-guix.dockerfile
  64K   ├─┬ Linux
  24K   │ ├── install_bins_curl.sh
  12K   │ ├── sshd_config_passwordless
