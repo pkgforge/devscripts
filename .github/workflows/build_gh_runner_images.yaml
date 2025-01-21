@@ -748,7 +748,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: ${{ matrix.arch }}
+          - arch: aarch64
             platform: amd64
             runner: ubuntu-24.04-arm
           - arch: x86_64
