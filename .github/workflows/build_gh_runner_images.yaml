@@ -236,9 +236,18 @@ jobs:
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-archlinux-builder:
-    name: Push (ArchLinux-Builder) --> Docker Hub
-    runs-on: ubuntu-latest
-    
+    name: Push (ArchLinux-Builder ${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: amd64
+            runner: ubuntu-24.04-arm
+          - arch: x86_64
+            platform: arm64
+            runner: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -298,10 +307,10 @@ jobs:
           file: "/tmp/DOCKERFILES/archlinux-builder.dockerfile"
           platforms: "linux/amd64,linux/arm64"
           tags: |
-            pkgforge/archlinux-builder:latest
-            pkgforge/archlinux-builder:latest-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/archlinux-builder:latest
-            ghcr.io/pkgforge/devscripts/archlinux-builder:latest-${{ env.DOCKER_TAG }}
+            pkgforge/archlinux-builder:${{ matrix.arch }}
+            pkgforge/archlinux-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/archlinux-builder:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/archlinux-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
@@ -527,9 +536,18 @@ jobs:
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-ubuntu-builder:
-    name: Push (Ubuntu-Builder) --> Docker Hub
-    runs-on: ubuntu-latest
-    
+    name: Push (Ubuntu-Builder ${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: amd64
+            runner: ubuntu-24.04-arm
+          - arch: x86_64
+            platform: arm64
+            runner: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -587,12 +605,12 @@ jobs:
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu-builder.dockerfile"
-          platforms: "linux/amd64,linux/arm64"
+          platforms: "linux/${{ matrix.platform }}"
           tags: |
-            pkgforge/ubuntu-builder:latest
-            pkgforge/ubuntu-builder:latest-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/ubuntu-builder:latest
-            ghcr.io/pkgforge/devscripts/ubuntu-builder:latest-${{ env.DOCKER_TAG }}
+            pkgforge/ubuntu-builder:${{ matrix.arch }}
+            pkgforge/ubuntu-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/ubuntu-builder:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/ubuntu-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
 #------------------------------------------------------------------------------------#
