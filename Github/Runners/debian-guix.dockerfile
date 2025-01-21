@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/debian-guix
-FROM pkgforge/debian-builder-unstable:latest
+FROM ARG ARCH
+FROM "pkgforge/debian-builder-unstable:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Install
 RUN <<EOS
