@@ -242,10 +242,10 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            platform: amd64
+            platform: arm64
             runner: ubuntu-24.04-arm
           - arch: x86_64
-            platform: arm64
+            platform: amd64
             runner: ubuntu-latest
 
     steps:
@@ -463,10 +463,10 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            platform: amd64
+            platform: arm64
             runner: ubuntu-24.04-arm
           - arch: x86_64
-            platform: arm64
+            platform: amd64
             runner: ubuntu-latest
   
     steps:
@@ -542,10 +542,10 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            platform: amd64
+            platform: arm64
             runner: ubuntu-24.04-arm
           - arch: x86_64
-            platform: arm64
+            platform: amd64
             runner: ubuntu-latest
 
     steps:
@@ -767,10 +767,10 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            platform: amd64
+            platform: arm64
             runner: ubuntu-24.04-arm
           - arch: x86_64
-            platform: arm64
+            platform: amd64
             runner: ubuntu-latest
     steps:
       - name: Checkout repository
