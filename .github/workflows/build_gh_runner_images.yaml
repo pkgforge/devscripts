@@ -831,7 +831,7 @@ jobs:
           file: "/tmp/DOCKERFILES/debian-guix.dockerfile"
           platforms: "linux/${{ matrix.platform }}"
           build-args: |
-            ARCH=$(uname -m)
+            ARCH=${{ matrix.arch }}
           tags: |
             pkgforge/debian-guix:${{ matrix.arch }}
             pkgforge/debian-guix:${{ matrix.arch }}-${{ env.DOCKER_TAG }}

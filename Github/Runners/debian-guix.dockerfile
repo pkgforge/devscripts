@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/debian-guix
-FROM ARG ARCH
+ARG ARCH
 FROM "pkgforge/debian-builder-unstable:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Install
