@@ -100,7 +100,7 @@ RUN <<EOS
   #----------------------#
   #Main
   set +e
-  packages="aria2 autoconf autoconf-archive automake autopoint bc binutils b3sum brotli build-essential ca-certificates ccache clang cmake cmake-extras coreutils cython3 diffutils dos2unix execline findutils fontconfig gawk gcc gettext itstool lzip jq libtool libtool-bin make meson musl musl-dev musl-tools nasm policycoreutils pkg-config python3 p7zip-full spirv-cross rsync texinfo texi2html txt2html util-linux wget xsltproc xxhash xz-utils yasm"
+  packages="aria2 autoconf autoconf-archive automake autopoint bc binutils b3sum brotli build-essential ca-certificates ccache clang cmake cmake-extras coreutils cython3 diffutils dos2unix execline findutils fontconfig gawk gcc gettext itstool lzip jq libcap-dev libcapnp-dev libtool libtool-bin liburing linux-headers-amd64 make meson musl musl-dev musl-tools nasm policycoreutils pkg-config python3 p7zip-full spirv-cross rsync swig texinfo texi2html txt2html util-linux wget xsltproc xxhash xz-utils yasm"
   #Install
   apt update -y -qq
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
