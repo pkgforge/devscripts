@@ -460,6 +460,7 @@ RUN <<EOS
   apk add meson --latest --upgrade --no-interactive --force 2>/dev/null
   apk add mlocate --latest --upgrade --no-interactive 2>/dev/null
   apk add mold --latest --upgrade --no-interactive 2>/dev/null
+  #apk add mold --repository="https://dl-cdn.alpinelinux.org/alpine/edge/community" --latest --upgrade --no-interactive 2>/dev/null
   apk add moreutils --latest --upgrade --no-interactive 2>/dev/null
   apk add mount --latest --upgrade --no-interactive 2>/dev/null
   apk add mpv --latest --upgrade --no-interactive 2>/dev/null
@@ -747,7 +748,7 @@ RUN <<EOS
   apk del go --force --no-interactive 2>/dev/null
   curl -qfsSL "https://git.io/go-installer" -o "./install.sh" && chmod +x "./install.sh"
   echo "yes" | bash "./install.sh"
-  cd - >/dev/null 2>&1
+  rm -rf "$(realpath .)" && cd - >/dev/null 2>&1 || true
   #Micro
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/micro" -O "/usr/bin/micro"
   chmod +xwr "/usr/bin/micro"
