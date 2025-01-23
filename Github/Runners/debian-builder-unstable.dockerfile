@@ -12,7 +12,7 @@ RUN <<EOS
   echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
   packages="apt-transport-https apt-utils autopoint bash bison ca-certificates coreutils curl dos2unix fdupes file findutils gettext git gnupg2 gperf imagemagick jq locales locate moreutils nano ncdu p7zip-full rename rsync software-properties-common texinfo sudo tmux unzip util-linux xz-utils wget zip"
   #Install
-  apt-get update -y -qq
+  apt update -y -qq
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   #Install_Re
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
@@ -23,7 +23,7 @@ RUN <<EOS
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   setcap 'cap_net_raw+ep' "$(which ping)"
   #Python
-  apt-get install python3 -y
+  apt install python3 -y
   #Test
   python --version 2>/dev/null ; python3 --version 2>/dev/null
   #Install pip:
@@ -102,7 +102,7 @@ RUN <<EOS
   set +e
   packages="aria2 autoconf autoconf-archive automake autopoint bc binutils b3sum brotli build-essential ca-certificates ccache clang cmake cmake-extras coreutils cython3 diffutils dos2unix execline findutils fontconfig gawk gcc gettext itstool lzip jq libtool libtool-bin make meson musl musl-dev musl-tools nasm policycoreutils pkg-config python3 p7zip-full spirv-cross rsync texinfo texi2html txt2html util-linux wget xsltproc xxhash xz-utils yasm"
   #Install
-  apt-get update -y -qq
+  apt update -y -qq
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   #Install_Re
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
@@ -124,10 +124,13 @@ RUN <<EOS
   sudo apt install libpcap-dev pcaputils -y 2>/dev/null 
   #----------------------#        
   #libsqlite3
-  sudo apt-get install libsqlite3-dev sqlite3 sqlite3-pcre sqlite3-tools -y 2>/dev/null
+  sudo apt install libsqlite3-dev sqlite3 sqlite3-pcre sqlite3-tools -y 2>/dev/null
   #----------------------#
   #lzma
-  sudo apt-get install liblz-dev librust-lzma-sys-dev lzma lzma-dev -y
+  sudo apt install liblz-dev librust-lzma-sys-dev lzma lzma-dev -y
+  #----------------------#
+  #mold
+  sudo apt install mold -y
   #----------------------#
   #staticx: https://github.com/JonathonReinhart/staticx/blob/main/.github/workflows/build-test.yml
   export CWD="$(realpath .)" ; cd "$(mktemp -d)" >/dev/null 2>&1 ; realpath .
@@ -135,8 +138,8 @@ RUN <<EOS
   git clone --filter "blob:none" "https://github.com/JonathonReinhart/staticx" --branch "add-type-checking" && cd "./staticx"
   #https://github.com/JonathonReinhart/staticx/blob/main/build.sh
   pip install -r "./requirements.txt" --break-system-packages --upgrade --force
-  sudo apt-get update -y
-  sudo apt-get install -y busybox musl-tools scons
+  sudo apt update -y
+  sudo apt install -y busybox musl-tools scons
   export BOOTLOADER_CC="musl-gcc"
   rm -rf "./build" "./dist" "./scons_build" "./staticx/assets"
   python "./setup.py" sdist bdist_wheel
@@ -185,5 +188,5 @@ ENV GIT_TERMINAL_PROMPT="0"
 ENV LANG="en_US.UTF-8"
 ENV LANGUAGE="en_US:en"
 ENV LC_ALL="en_US.UTF-8"
-ENV PATH="$HOME/bin:$HOME/.cargo/bin:$HOME/.cargo/env:$HOME/.go/bin:$HOME/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$HOME/.local/bin:$HOME/miniconda3/bin:$HOME/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:$PATH"
+ENV PATH="${HOME}/bin:${HOME}/.cargo/bin:${HOME}/.cargo/env:${HOME}/.go/bin:${HOME}/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${HOME}/.local/bin:${HOME}/miniconda3/bin:${HOME}/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:$PATH"
 #------------------------------------------------------------------------------------#
