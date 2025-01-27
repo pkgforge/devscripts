@@ -14,7 +14,7 @@ set -x
   docker stop "archlinux-base" 2>/dev/null ; docker rm "archlinux-base" 2>/dev/null
   docker run --name "archlinux-base" --privileged "azathothas/archlinux:latest" bash -l -c '
   #Bootstrap
-   pacman -y --sync --refresh --refresh --sysupgrade --noconfirm --debug
+   pacman -y --sync --refresh --sysupgrade --noconfirm --debug
    packages="bash binutils curl fakechroot fakeroot gawk git sed wget"
    for pkg in $packages; do pacman -Sy "${pkg}" --noconfirm ; done
    for pkg in $packages; do pacman -Sy "${pkg}" --needed --noconfirm ; done
@@ -43,8 +43,16 @@ set -x
    echo "en_US.UTF-8 UTF-8" | tee -a "/etc/locale.gen"
    echo "LC_ALL=en_US.UTF-8" | tee -a "/etc/environment"
    locale-gen ; locale-gen "en_US.UTF-8"
+  #Chaotic-AUR: https://aur.chaotic.cx/docs
+   if [[ "$(uname -m | tr -d "[:space:]")" == "x86_64" ]]; then
+     pacman-key --recv-key "3056513887B78AEB" --keyserver "keyserver.ubuntu.com"
+     pacman-key --lsign-key "3056513887B78AEB"
+     pacman -U "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst" --noconfirm
+     pacman -U "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst" --noconfirm
+     echo -e "[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" | tee -a "/etc/pacman.conf"
+   fi
   #Cleanup
-   pacman -y --sync --refresh --refresh --sysupgrade --noconfirm
+   pacman -y --sync --refresh --sysupgrade --noconfirm
    pacman -Rsn base-devel --noconfirm
    pacman -Rsn perl --noconfirm
    pacman -Rsn python --noconfirm
