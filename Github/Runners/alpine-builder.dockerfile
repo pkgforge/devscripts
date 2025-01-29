@@ -407,6 +407,8 @@ RUN <<EOS
   apk add libxml2 --latest --upgrade --no-interactive 2>/dev/null
   apk add libxml2-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libxml2-utils --latest --upgrade --no-interactive 2>/dev/null
+  apk add libxo --latest --upgrade --no-interactive 2>/dev/null
+  apk add libxo-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libxpresent --latest --upgrade --no-interactive 2>/dev/null
   apk add libxpresent-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libxrandr --latest --upgrade --no-interactive 2>/dev/null
