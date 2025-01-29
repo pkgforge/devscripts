@@ -306,6 +306,7 @@ RUN <<EOS
   apk add librsvg-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add librtlsdr --latest --upgrade --no-interactive 2>/dev/null
   apk add librtlsdr-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libbsd-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libseccomp --latest --upgrade --no-interactive 2>/dev/null
   apk add libseccomp-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libseccomp-static --latest --upgrade --no-interactive 2>/dev/null
