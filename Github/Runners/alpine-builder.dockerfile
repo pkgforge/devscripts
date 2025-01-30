@@ -198,6 +198,7 @@ RUN <<EOS
   apk add jpeg --latest --upgrade --no-interactive 2>/dev/null
   apk add jpeg-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add jq --latest --upgrade --no-interactive 2>/dev/null
+  apk add jq-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add json-glib --latest --upgrade --no-interactive 2>/dev/null
   apk add keyutils --latest --upgrade --no-interactive 2>/dev/null
   apk add keyutils-dev --latest --upgrade --no-interactive 2>/dev/null
