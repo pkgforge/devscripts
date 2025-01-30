@@ -12,7 +12,7 @@ set -x
 ##Bootstrap
  pushd "$(mktemp -d)" >/dev/null 2>&1
   docker stop "archlinux-base" 2>/dev/null ; docker rm "archlinux-base" 2>/dev/null
-  docker run --name "archlinux-base" --privileged "azathothas/archlinux:latest" bash -l -c '
+  docker run --name "archlinux-base" --privileged "pkgforge/archlinux:latest" bash -l -c '
   #Bootstrap
    pacman -y --sync --refresh --sysupgrade --noconfirm --debug
    packages="bash binutils curl fakechroot fakeroot gawk git sed wget"
