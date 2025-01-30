@@ -652,6 +652,7 @@ RUN <<EOS
   apk add tinyalsa-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add tinyalsa-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add tinyalsa-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add tmux --latest --upgrade --no-interactive 2>/dev/null
   apk add txt2man --latest --upgrade --no-interactive 2>/dev/null
   apk add tzdata --latest --upgrade --no-interactive 2>/dev/null
   apk add uchardet-libs --latest --upgrade --no-interactive 2>/dev/null
