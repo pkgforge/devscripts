@@ -93,7 +93,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
 #archey: https://github.com/HorlogeSkynet/archey4
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/archey" -o "${INSTALL_DIR}/archey" && eval "${INSTALL_POST}" "${INSTALL_DIR}/archey" "${INSTALL_STRATEGY}"
 #aria2c
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/aria2c" -o "${INSTALL_DIR}/aria2c" && eval "${INSTALL_POST}" "${INSTALL_DIR}/aria2c" "${INSTALL_STRATEGY}"
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/aria2" -o "${INSTALL_DIR}/aria2" && eval "${INSTALL_POST}" "${INSTALL_DIR}/aria2" "${INSTALL_STRATEGY}"
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/aria2" -o "${INSTALL_DIR}/aria2c" && eval "${INSTALL_POST}" "${INSTALL_DIR}/aria2c" "${INSTALL_STRATEGY}"
 #askalono: https://github.com/jpeddicord/askalono
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/askalono" -o "${INSTALL_DIR}/askalono" && eval "${INSTALL_POST}" "${INSTALL_DIR}/askalono" "${INSTALL_STRATEGY}"
 #bsdtar
