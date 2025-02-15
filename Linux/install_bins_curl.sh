@@ -141,6 +141,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/eget" -o "${INSTALL_DIR}/eget" && eval "${INSTALL_POST}" "${INSTALL_DIR}/eget" "${INSTALL_STRATEGY}"
 #epoch : https://github.com/sj14/epoch
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/epoch" -o "${INSTALL_DIR}/epoch" && eval "${INSTALL_POST}" "${INSTALL_DIR}/epoch" "${INSTALL_STRATEGY}"
+#faketty : https://github.com/dtolnay/faketty
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/faketty" -o "${INSTALL_DIR}/faketty" && eval "${INSTALL_POST}" "${INSTALL_DIR}/faketty" &
 #fastfetch : https://github.com/fastfetch-cli/fastfetch
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/fastfetch" -o "${INSTALL_DIR}/fastfetch" && eval "${INSTALL_POST}" "${INSTALL_DIR}/fastfetch" & 
 #freeze
@@ -179,8 +181,6 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/jq" -o "${INSTALL_DIR}/jq" && eval "${INSTALL_POST}" "${INSTALL_DIR}/jq" "${INSTALL_STRATEGY}"
 #logdy: https://github.com/logdyhq/logdy-core
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/logdy" -o "${INSTALL_DIR}/logdy" && eval "${INSTALL_POST}" "${INSTALL_DIR}/logdy" "${INSTALL_STRATEGY}"
-#mdcat: https://github.com/swsnr/mdcat
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/mdcat" -o "${INSTALL_DIR}/mdcat" && eval "${INSTALL_POST}" "${INSTALL_DIR}/mdcat" "${INSTALL_STRATEGY}"
 #micro
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/micro" -o "${INSTALL_DIR}/micro" && eval "${INSTALL_POST}" "${INSTALL_DIR}/micro" "${INSTALL_STRATEGY}"
 #miniserve: https://github.com/svenstaro/miniserve
