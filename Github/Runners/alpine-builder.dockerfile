@@ -741,9 +741,6 @@ RUN <<EOS
  #askalono for Licenses
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/askalono" -O "/usr/bin/askalono"
   sudo chmod +x "/usr/bin/askalono"
- #Dockerc
-  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/dockerc" -O "/usr/bin/dockerc"
-  sudo chmod +x "/usr/bin/dockerc"
  #Eget for simplified releases
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/eget" -O "/usr/bin/eget"
   chmod +xwr "/usr/bin/eget"
@@ -759,6 +756,7 @@ RUN <<EOS
   chmod +xwr "/usr/bin/micro"
  #musl-gcc wrapper
   ln --symbolic "/usr/bin/$(uname -m)-alpine-linux-musl-gcc" "/usr/local/bin/musl-gcc" 2>/dev/null
+  true
 EOS
 #------------------------------------------------------------------------------------#
 ##Config
