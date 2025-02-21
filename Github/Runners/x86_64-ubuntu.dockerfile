@@ -159,7 +159,7 @@ WORKDIR /runner
 RUN <<EOS
  #Setup GH Runner (X86_64)
   #eget "https://github.com/actions/runner" --asset "linux" --asset "x64" --asset "^arm" --asset "tar.gz" --to "./runner.tar.gz" --download-only
-  wget --quiet --show-progress "https://pub.ajam.dev/utils/gh-runner-x86_64/runner.tar.gz" -O "./runner.tar.gz"
+  wget --quiet --show-progress "https://github.com/pkgforge/devscripts/releases/download/gh-x86_64-Linux/runner.tar.gz" -O "./runner.tar.gz"
   if [ ! -f "./runner.tar.gz" ]; then
      exit 1
   fi
