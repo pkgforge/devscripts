@@ -217,6 +217,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/soar" -o "${INSTALL_DIR}/soar" && eval "${INSTALL_POST}" "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}"
 #speedtest-go : https://github.com/showwin/speedtest-go
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/speedtest-go" -o "${INSTALL_DIR}/speedtest-go" && eval "${INSTALL_POST}" "${INSTALL_DIR}/speedtest-go" "${INSTALL_STRATEGY}"
+#strace
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/strace" -o "${INSTALL_DIR}/strace" && eval "${INSTALL_POST}" "${INSTALL_DIR}/strace" "${INSTALL_STRATEGY}"
 #sttr: https://github.com/abhimanyu003/sttr
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/sttr" -o "${INSTALL_DIR}/sttr" && eval "${INSTALL_POST}" "${INSTALL_DIR}/sttr" "${INSTALL_STRATEGY}"
 #tailscale : https://github.com/tailscale/tailscale
