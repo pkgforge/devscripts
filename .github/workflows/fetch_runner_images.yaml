@@ -1,0 +1,234 @@
+name: 📦🐧 Github Runner (Fetcher|Updater) 📦🐧
+#MAX_RUNTIME: 02 Minutes */10 * * * * 
+
+on:
+  #push:
+  workflow_dispatch:
+  schedule:
+  # - cron: "0 */8 * * *"  # Every 8 HRs
+   - cron: "30 08 * * 3"  # 08:30 PM UTC Wed (02:15 AM NPT Thu Midnight)
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - image: "aarch64-Linux"
+            arch: "aarch64"
+            file: "/tmp/runner.tar.gz"
+
+          - image: "x86_64-Linux"
+            arch: "aarch64"
+            file: "/tmp/runner.tar.gz"
+
+    steps:
+      - name: Setup Env [${{ matrix.image }}]
+        run: |
+          ##presets
+          set +x ; set +e
+          #-------------#
+          ##CoreUtils
+          export DEBIAN_FRONTEND="noninteractive"
+          echo "DEBIAN_FRONTEND=${DEBIAN_FRONTEND}" >> "${GITHUB_ENV}"
+          sudo apt update -y -qq
+          #https://github.com/ilikenwf/apt-fast?tab=readme-ov-file#quick-install
+          bash -c "$(curl -qfsSL 'https://raw.githubusercontent.com/ilikenwf/apt-fast/master/quick-install.sh')"
+          if ! command -v apt-fast &> /dev/null; then
+             echo -e "\n[-] docker NOT Found\n"
+             echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
+             exit 1
+          fi
+          sudo apt-fast install apt-transport-https apt-utils bc ca-certificates coreutils curl dos2unix fdupes git-lfs gnupg2 \
+          jq moreutils p7zip-full rename rsync software-properties-common texinfo tmux torsocks util-linux wget zsync -y -qq 2>/dev/null
+          sudo apt-fast update -y -qq 2>/dev/null
+          ##tmp
+          SYSTMP="$(dirname $(mktemp -u))" && export SYSTMP="${SYSTMP}"
+          #GH ENV
+          echo "SYSTMP=${SYSTMP}" >> "${GITHUB_ENV}"
+          echo "GHA_MODE=MATRIX" >> "${GITHUB_ENV}"
+          echo "GIT_TERMINAL_PROMPT=0" >> "${GITHUB_ENV}"
+          echo "GIT_ASKPASS=/bin/echo" >> "${GITHUB_ENV}"
+          echo "GH_PAGER=" >> "${GITHUB_ENV}"
+          gh config set prompt disabled
+          git config --global "credential.helper" store
+          git config --global "user.email" "AjamX101@gmail.com"
+          git config --global "user.name" "Azathothas"
+          ##User-Agent
+          USER_AGENT="$(curl -qfsSL 'https://pub.ajam.dev/repos/Azathothas/Wordlists/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
+          echo "USER_AGENT=${USER_AGENT}" >> "${GITHUB_ENV}"
+          ##Wget
+          echo 'progress = dot:giga' | sudo tee -a "/etc/wgetrc"
+          echo 'progress = dot:giga' | tee -a "${HOME}/.wgetrc"
+        continue-on-error: true            
+
+      - name: Create Metadata Tag [gh-${{ matrix.image }}]
+        if: env.CONTINUE_GHRUN != 'FALSE'
+        env:
+          GH_TOKEN: "${{ github.token }}"
+          GITHUB_TOKEN: "${{ github.token }}"
+        run: |
+          ##presets
+          set +x ; set +e
+          #-------------#
+          METADATA_TAG="soar-nest"
+          export METADATA_TAG="$(echo "gh-${{ matrix.image }}" | tr -d '[:space:]')"
+          echo "METADATA_TAG=${METADATA_TAG}" >> "${GITHUB_ENV}"
+          echo "GH_PAGER=" >> "${GITHUB_ENV}"
+          gh config set prompt disabled
+          gh release create "${METADATA_TAG}" --repo "${GITHUB_REPOSITORY}" --title "${METADATA_TAG}" --prerelease
+          sleep 3 ; gh release view "${METADATA_TAG}" --repo "${GITHUB_REPOSITORY}"
+          METADATA_TAG_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${METADATA_TAG}"
+          echo METADATA_TAG_URL="${METADATA_TAG_URL}" >> "${GITHUB_ENV}"
+          METADATA_TAG_STATUS="$(curl -X "HEAD" -qfsSL "${METADATA_TAG_URL}" -I | sed -n 's/^[[:space:]]*HTTP\/[0-9.]*[[:space:]]\+\([0-9]\+\).*/\1/p' | tail -n1 | tr -d '[:space:]')"
+          if echo "${METADATA_TAG_STATUS}" | grep -qi '200$'; then
+            export METADATA_DIR="/tmp/PKG_METADATA"
+            echo "METADATA_DIR=${METADATA_DIR}" >> "${GITHUB_ENV}"
+            mkdir -pv "${METADATA_DIR}"
+            echo "CONTINUE_GHRUN=TRUE" >> "${GITHUB_ENV}"
+          else
+            echo -e "\n[✗] FATAL: Failed to Create ${METADATA_TAG} <== [Release Tag]\n"
+            echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
+           exit 1
+          fi
+        continue-on-error: true
+
+      - name: Download [gh-${{ matrix.image }}]
+        if: env.CONTINUE_GHRUN != 'FALSE'
+        env:
+          GH_TOKEN: "${{ github.token }}"
+          GITHUB_TOKEN: "${{ github.token }}"
+        run: |
+          ##presets
+          set +x ; set +e
+          #-------------#
+          OUT_FILE="${{ matrix.file }}"
+          SRC_REPO="actions/runner"
+           pushd "$(mktemp -d)" &>/dev/null && TMPDIR="$(realpath .)"
+            #Fetch Release Metadata
+             for i in {1..5}; do
+               gh api "repos/${SRC_REPO}/releases" --paginate | jq . > "${TMPDIR}/RELEASES.json"
+                unset REL_COUNT ; REL_COUNT="$(jq -r '.. | objects | select(has("browser_download_url")) | .browser_download_url' "${TMPDIR}/RELEASES.json" | grep -iv 'null' | sort -u | wc -l | tr -d '[:space:]')"
+                if [[ "${REL_COUNT}" -le 10 ]]; then
+                  echo "Retrying... ${i}/5"
+                 sleep 2
+                elif [[ "${REL_COUNT}" -gt 10 ]]; then
+                  unset REL_COUNT
+                  break
+                fi
+             done
+            #Sanity Check URLs 
+             REL_COUNT="$(jq -r '.. | objects | select(has("browser_download_url")) | .browser_download_url' "${TMPDIR}/RELEASES.json" | grep -iv 'null' | sort -u | wc -l | tr -d '[:space:]')"
+             if [[ "${REL_COUNT}" -le 10 ]]; then
+                echo -e "\n[-] FATAL: Failed to Fetch Release MetaData\n"
+                echo "[-] Count: ${REL_COUNT}"
+                echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
+               exit 1
+             else
+              #Get Download URL
+               if echo "${{ matrix.image }}" | grep -qiE 'aarch64'; then
+                 REL_DL_URL="$(cat "${TMPDIR}/RELEASES.json" | jq -r '.[] | select(.prerelease | not) | .assets[].browser_download_url | select((. | test("\\.(sha|sha256|sha512|sig)$") | not) and (. | test("apple|darwin|macos|osx|win|x64"; "i") | not))' |\
+                  grep -Ei "arm64" | grep -Ei "linux" | sort --version-sort | tail -n 1 | tr -d '[:space:]')"
+               elif echo "${{ matrix.image }}" | grep -qiE 'x86_64'; then
+                 REL_DL_URL="$(cat "${TMPDIR}/RELEASES.json" | jq -r '.[] | select(.prerelease | not) | .assets[].browser_download_url | select((. | test("\\.(sha|sha256|sha512|sig)$") | not) and (. | test("apple|arm64|darwin|macos|osx|win"; "i") | not))' |\
+                  grep -Ei "x64" | grep -Ei "linux" | sort --version-sort | tail -n 1 | tr -d '[:space:]')"
+               fi
+             fi
+            #Download
+             if ! echo "${REL_DL_URL}" | grep -qiE '^https?://'; then
+                echo -e "[-] FATAL: Failed to fetch Download URL"
+                echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
+               exit 1
+             else
+               curl -w "(DL) <== %{url}\n" -qfSL "${REL_DL_URL}" -o "${OUT_FILE}" | tee "${TMPDIR}/REL_NOTE.txt"
+             fi
+            #Check 
+             if [[ -s "${OUT_FILE}" ]] && [[ $(stat -c%s "${OUT_FILE}") -gt 10000 ]]; then
+                echo -e "[+] Downloaded Artifact"
+                realpath "${OUT_FILE}" && du -sh "${OUT_FILE}"  
+                echo "CONTINUE_GHRUN=TRUE" >> "${GITHUB_ENV}"
+                export HAS_RELEASE="TRUE"
+                echo "HAS_RELEASE=${HAS_RELEASE}" >> "${GITHUB_ENV}"
+                #Rel Notes
+                 echo -e "" > "/tmp/RELEASE_NOTE.md"
+                 echo '---' >> "/tmp/RELEASE_NOTE.md"
+                 echo '```console' >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n" >> "/tmp/RELEASE_NOTE.md"
+                 cat "${TMPDIR}/REL_NOTE.txt" >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n[+] --> HOST" >> "/tmp/RELEASE_NOTE.md"
+                 echo "${{ matrix.image }}" >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n[+] --> FILE" >> "/tmp/RELEASE_NOTE.md"
+                 file "${OUT_FILE}" | sed 's|/tmp/||' >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n[+] --> SIZE" >> "/tmp/RELEASE_NOTE.md"
+                 du -sh "${OUT_FILE}" | awk '{unit=substr($1,length($1)); sub(/[BKMGT]$/,"",$1); print $1 " " unit "B"}' >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n[+] --> BLAKE3SUM" >> "/tmp/RELEASE_NOTE.md"
+                 b3sum "${OUT_FILE}" | grep -oE '^[a-f0-9]{64}' | tr -d '[:space:]' >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n\n[+] --> SHA256SUM" >> "/tmp/RELEASE_NOTE.md"
+                 sha256sum "${OUT_FILE}" | grep -oE '^[a-f0-9]{64}' | tr -d '[:space:]' >> "/tmp/RELEASE_NOTE.md"
+                 echo -e "\n" >> "/tmp/RELEASE_NOTE.md"
+                 echo -e '```\n' >> "/tmp/RELEASE_NOTE.md"
+                #Time
+                 UTC_TIME="$(TZ='UTC' date +'%Y_%m_%d')"
+                 echo "UTC_TIME=${UTC_TIME}" >> "${GITHUB_ENV}"
+             else
+                echo -e "[-] FATAL: Downloaded Artifact seems broken"
+                echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
+                export HAS_RELEASE="FALSE"
+                echo "HAS_RELEASE=${HAS_RELEASE}" >> "${GITHUB_ENV}"
+               exit 1
+             fi
+        continue-on-error: true
+
+      - name: Fail (If Build Failed)
+        if: env.HAS_RELEASE == 'FALSE'
+        run: |
+          #presets
+          set +x ; set +e
+          #-------------#
+          exit 1
+        continue-on-error: false
+
+      #Artifacts
+      - name: Upload (Build) Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+            name: "gh-${{ matrix.image }}"
+            path: |
+              ${{ matrix.file }}
+            compression-level: 0 #no compression, [Default: 6 (GNU Gzip)]
+            retention-days: 90 #max
+            overwrite: true
+        continue-on-error: true
+
+      #continuous
+      - name: Releaser (Continuous)
+        if: env.HAS_RELEASE == 'TRUE'
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          name: "${{ env.METADATA_TAG }}"
+          tag_name: "${{ env.METADATA_TAG }}"
+          prerelease: true
+          draft: false
+          generate_release_notes: false
+          body_path: "/tmp/RELEASE_NOTE.md"
+          files: |
+            ${{ matrix.file }}
+        continue-on-error: true
+
+      #Snapshot
+      - name: Releaser (Snapshot)
+        if: env.HAS_RELEASE == 'TRUE'
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          name: "${{ env.METADATA_TAG }}"
+          tag_name: "${{ env.UTC_TIME }}-${{ env.METADATA_TAG }}"
+          prerelease: false
+          draft: false
+          generate_release_notes: false
+          make_latest: false
+          body_path: "/tmp/RELEASE_NOTE.md"
+          files: |
+            ${{ matrix.file }}
+        continue-on-error: true
