@@ -95,6 +95,7 @@ RUN <<EOS
   ln --symbolic --force "/etc/bash.bashrc" "/etc/bash/bashrc" 2>/dev/null
  #Recheck 
   grep runner "/etc/passwd"
+  true
 EOS
 #------------------------------------------------------------------------------------#
 
