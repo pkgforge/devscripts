@@ -6,23 +6,27 @@ on:
   workflow_dispatch:
   schedule:
   # - cron: "0 */8 * * *"  # Every 8 HRs
+   - cron: "30 07 * * 3"  # 07:30 PM UTC Wed (01:15 AM NPT Thu Midnight)
    - cron: "30 08 * * 3"  # 08:30 PM UTC Wed (02:15 AM NPT Thu Midnight)
 jobs:
   fetch:
-    runs-on: ubuntu-latest
+    runs-on: "${{ matrix.runner }}"
     timeout-minutes: 20
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: "aarch64-Linux"
             arch: "aarch64"
             file: "/tmp/runner.tar.gz"
+            runner: "ubuntu-24.04-arm"
 
           - image: "x86_64-Linux"
             arch: "aarch64"
             file: "/tmp/runner.tar.gz"
+            runner: "ubuntu-latest"
 
     steps:
       - name: Setup Env [${{ matrix.image }}]
@@ -41,8 +45,8 @@ jobs:
              echo "CONTINUE_GHRUN=FALSE" >> "${GITHUB_ENV}"
              exit 1
           fi
-          sudo apt-fast install apt-transport-https apt-utils bc ca-certificates coreutils curl dos2unix fdupes git-lfs gnupg2 \
-          jq moreutils p7zip-full rename rsync software-properties-common texinfo tmux torsocks util-linux wget zsync -y -qq 2>/dev/null
+          BASE_PKGS=(apt-transport-https apt-utils bc ca-certificates b3sum coreutils curl dos2unix fdupes git-lfs gnupg2 jq moreutils p7zip-full rename rsync software-properties-common texinfo tmux util-linux wget zsync)
+          for pkg in "${BASE_PKGS[@]}"; do sudo DEBIAN_FRONTEND="noninteractive" apt-fast install -f "${pkg}" -y --ignore-missing 2>/dev/null; done
           sudo apt-fast update -y -qq 2>/dev/null
           ##tmp
           SYSTMP="$(dirname $(mktemp -u))" && export SYSTMP="${SYSTMP}"
