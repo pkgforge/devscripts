@@ -11,9 +11,17 @@ for pkg in "${BASE_PKGS[@]}"; do DEBIAN_FRONTEND="noninteractive" sudo apt-fast 
 sudo apt --fix-broken install
 sudo apt autoremove -y -qq
 sudo apt autoclean -y -qq
-pushd &>/dev/null &&\
- curl -qfsSL "https://api.gh.pkgforge.dev/repos/apptainer/apptainer/releases/latest?per_page=100" | jq -r ".. | objects | .browser_download_url? // empty" | grep -Ei "amd64" |\
- grep -Eiv "tar\.gz|\.b3sum" | grep -Eiv "dbg|debug|suid" | grep -Ei "deb" | sort --version-sort | tail -n 1 | tr -d "[:space:]" | xargs -I "{}" curl -qfsSL "{}" -o "./apptainer.deb"
+pushd &>/dev/null
+ get_apptainer()
+ {
+  curl -qfsSL "https://api.gh.pkgforge.dev/repos/apptainer/apptainer/releases/latest?per_page=100" | jq -r ".. | objects | .browser_download_url? // empty" | grep -Ei "amd64" |\
+  grep -Eiv "tar\.gz|\.b3sum" | grep -Eiv "dbg|debug|suid" | grep -Ei "deb" | sort --version-sort | tail -n 1 | tr -d "[:space:]" | xargs -I "{}" curl -w "(DL) <== %{url}\n" -qfSL "{}" -o "./apptainer.deb"
+ }
+ for i in {1..10}; do
+   get_apptainer
+   [ -s "./apptainer.deb" ] && break
+   sleep 2
+ done
  sudo chmod -v "a+x" "./apptainer.deb"
  sudo dpkg -i "./apptainer.deb" || sudo apt --fix-broken install && sudo dpkg -i "./apptainer.deb"
  command -v apptainer &>/dev/null || echo -e "\[X] FATAL: apptainer is NOT Installed\n$(exit 1)"
