@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 #----------------------------------------------------------------------------#
-#Usage: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforgde/devscripts/main/misc/Linux/setup_ssh.sh")
-#Force: curl -qfsSL "https://raw.githubusercontent.com/pkgforgde/devscripts/main/misc/Linux/setup_ssh.sh" | bash -s -- -f
+#Usage: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Linux/setup_ssh.sh")
+#Force: curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Linux/setup_ssh.sh" | bash -s -- -f
 #----------------------------------------------------------------------------#
 
 #----------------------------------------------------------------------------#
