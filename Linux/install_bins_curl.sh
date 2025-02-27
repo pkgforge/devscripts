@@ -227,7 +227,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
 #taplo: https://github.com/tamasfe/taplo
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/taplo" -o "${INSTALL_DIR}/taplo" && eval "${INSTALL_POST}" "${INSTALL_DIR}/taplo" "${INSTALL_STRATEGY}"
 #tealdeer: https://github.com/tealdeer-rs/tealdeer
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tealdeer" -o "${INSTALL_DIR}/tealdeer" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tealdeer" "${INSTALL_STRATEGY}"
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/tldr" -o "${INSTALL_DIR}/tldr" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tldr" "${INSTALL_STRATEGY}"
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/tldr" -o "${INSTALL_DIR}/tealdeer" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tealdeer" "${INSTALL_STRATEGY}"
 #tmux
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/tmux" -o "${INSTALL_DIR}/tmux" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tmux" "${INSTALL_STRATEGY}"
 #tok
