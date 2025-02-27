@@ -97,6 +97,7 @@ if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 alias 7z_archive='7z a -t7z -mx="9" -mmt="$(($(nproc)+1))" -bsp1 -bt $1 $2'
+alias apptainer_run='unshare -r apptainer run --allow-setuid --keep-privs --writable'
 alias bat='batcat'
 alias benchmarkQ='curl -qfsSL bench.sh | bash'
 alias benchmarkX='curl -qfsSL yabs.sh | bash -s -- -i'
