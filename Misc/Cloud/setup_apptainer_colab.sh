@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/Cloud/setup_apptainer.sh
+# https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/Cloud/setup_apptainer_colab.sh
 
 #-------------------------------------------------------#
 #Install
