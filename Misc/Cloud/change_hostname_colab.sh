@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/Cloud/change_hostname_colab.sh
 #Get the current hostname
   unset hostname
   hostname="$(cat '/etc/hostname')"
