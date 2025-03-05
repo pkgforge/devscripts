@@ -197,7 +197,7 @@ jobs:
      #Build Provenance
       - name: Attest Build Provenance
         if: env.HAS_IMAGE == 'TRUE'
-        uses: actions/attest-build-provenance@v2.2.1
+        uses: actions/attest-build-provenance@v2.2.3
         with:
           subject-name: "image-${{ matrix.image }}-${{ matrix.arch }}"
           subject-path: ${{ matrix.file }}
