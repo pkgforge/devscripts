@@ -658,6 +658,7 @@ RUN <<EOS
   apk add uchardet-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add uchardet-static --latest --upgrade --no-interactive 2>/dev/null
   apk add ufw --latest --upgrade --no-interactive 2>/dev/null
+  apk add unixodbc-static --latest --upgrade --no-interactive 2>/dev/null
   apk add upx --latest --upgrade --no-interactive 2>/dev/null
   apk add usbutils --latest --upgrade --no-interactive 2>/dev/null
   apk add usbutils-dev --latest --upgrade --no-interactive 2>/dev/null
