@@ -128,6 +128,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/dos2unix" -o "${INSTALL_DIR}/dos2unix" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dos2unix" "${INSTALL_STRATEGY}"
 #duf
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/duf" -o "${INSTALL_DIR}/duf" && eval "${INSTALL_POST}" "${INSTALL_DIR}/duf" "${INSTALL_STRATEGY}"
+#duplicut
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/duplicut" -o "${INSTALL_DIR}/duplicut" && eval "${INSTALL_POST}" "${INSTALL_DIR}/duplicut" "${INSTALL_STRATEGY}"
 #dust
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/dust" -o "${INSTALL_DIR}/dust" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dust" "${INSTALL_STRATEGY}"
 #dwarfs-tools
