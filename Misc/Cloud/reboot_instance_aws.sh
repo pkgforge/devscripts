@@ -26,27 +26,27 @@
      export PATH="${PATH}:${SYSTMP}"
    fi
  #AWS_ACCESS_KEY_ID
-   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "${AWS_ACCESS_KEY_ID+x}" ]; then
+   if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_ACCESS_KEY_ID+x}" ]; then
      echo -e "\n[-] AWS_ACCESS_KEY_ID isn't Exported\n"
     exit 1
    fi
  #AWS_ACCESS_KEY_ID
-   if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "${AWS_SECRET_ACCESS_KEY+x}" ]; then
+   if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY+x}" ]; then
      echo -e "\n[-] AWS_SECRET_ACCESS_KEY isn't Exported\n"
     exit 1
    fi
  #AWS_REGION
-   if [ -z "$AWS_REGION" ] || [ -z "${AWS_REGION+x}" ]; then
+   if [ -z "${AWS_REGION}" ] || [ -z "${AWS_REGION+x}" ]; then
      echo -e "\n[-] AWS_REGION isn't Exported\n"
     exit 1
    fi
  #EC2_INSTANCE_NAME
-   if [ -z "$EC2_INSTANCE_NAME" ] || [ -z "${EC2_INSTANCE_NAME+x}" ]; then
+   if [ -z "${EC2_INSTANCE_NAME}" ] || [ -z "${EC2_INSTANCE_NAME+x}" ]; then
      echo -e "\n[-] EC2_INSTANCE_NAME isn't Exported\n"
     exit 1
    fi
  #EC2_INSTANCE_ID
-   if [ -z "$EC2_INSTANCE_ID" ] || [ -z "${EC2_INSTANCE_ID+x}" ]; then
+   if [ -z "${EC2_INSTANCE_ID}" ] || [ -z "${EC2_INSTANCE_ID+x}" ]; then
      echo -e "\n[-] EC2_INSTANCE_ID isn't Exported\n"
     exit 1
    fi
