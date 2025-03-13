@@ -213,7 +213,7 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/rsync" -o "${INSTALL_DIR}/rsync" && eval "${INSTALL_POST}" "${INSTALL_DIR}/rsync" "${INSTALL_STRATEGY}"
 #script
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/script" -o "${INSTALL_DIR}/script" && eval "${INSTALL_POST}" "${INSTALL_DIR}/script" "${INSTALL_STRATEGY}"
-#shellcheck
+#[shellcheck]
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/shellcheck" -o "${INSTALL_DIR}/shellcheck" && eval "${INSTALL_POST}" "${INSTALL_DIR}/shellcheck" "${INSTALL_STRATEGY}" 
 #soar
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/soar" -o "${INSTALL_DIR}/soar" && eval "${INSTALL_POST}" "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}"
