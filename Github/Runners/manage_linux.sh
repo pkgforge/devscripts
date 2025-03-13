@@ -182,6 +182,8 @@ remove_runner() {
   fi
   #Remove Self  
   "/runner-init/config.sh" remove --unattended --token "${RUNNER_TOKEN}"
+  #Write Status
+  [[ -d "/tmp" && -w "/tmp" ]] && echo "EXITED" | tee "/tmp/GHA_CI_STATUS"
   #Cleanup
   unset API_RESPONSE AUTH_URL OFFLINE_RUNNERS_ID REG_URL RUNNERS_ID R_ID RUNNER_ID RUNNER_LABELS RUNNER_TOKEN
   kill -9 $$
