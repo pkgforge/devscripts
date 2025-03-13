@@ -134,34 +134,6 @@ export -f generate_token
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
-##Register Runner
-cd "/runner-init"
-RUNNER_ID="${RUNNER_NAME}_$(openssl rand -hex 6 | tr -d '[:space:]')" && export RUNNER_ID="${RUNNER_ID}"
-echo "[+] Registering Runner --> ${RUNNER_ID}" && generate_token
-if [ -n "${RUNNER_TOKEN}" ]; then
-  ##Configure
-   echo "[+] Configuring Runner..."
-   echo "[+] (ID: ${RUNNER_ID})"
-   echo "[+] (LABELS: ${RUNNER_LABELS})"
-   echo "[+] (TOKEN: ${RUNNER_TOKEN})"
-   echo "[+] (URL: ${REG_URL})"
-   "/runner-init/config.sh" \
-     --name "${RUNNER_ID}" \
-     --labels "${RUNNER_LABELS}" \
-     --token "${RUNNER_TOKEN}" \
-     --url "${REG_URL}" \
-     --unattended \
-     --replace \
-     --ephemeral
-else
-   echo "[-] Failed to Generate Token..."
-   echo -e "\n[+] GITHUB_PERSONAL_TOKEN: ${GITHUB_PERSONAL_TOKEN}\n"
-     curl -fsSL "https://api.github.com/user" -H "Authorization: Bearer ${GITHUB_PERSONAL_TOKEN}" -H 'Accept: application/vnd.github+json'
-   exit 1
-fi
-#------------------------------------------------------------------------------------#
-
-#------------------------------------------------------------------------------------#
 ##Remove Runner Upon Completion
 remove_runner() {
   generate_token
@@ -182,13 +154,50 @@ remove_runner() {
   fi
   #Remove Self  
   "/runner-init/config.sh" remove --unattended --token "${RUNNER_TOKEN}"
-  #Write Status
-  [[ -d "/tmp" && -w "/tmp" ]] && echo "EXITED" | tee "/tmp/GHA_CI_STATUS"
   #Cleanup
   unset API_RESPONSE AUTH_URL OFFLINE_RUNNERS_ID REG_URL RUNNERS_ID R_ID RUNNER_ID RUNNER_LABELS RUNNER_TOKEN
   kill -9 $$
 }
 export -f remove_runner
+#------------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------------#
+##Register Runner
+cd "/runner-init"
+RUNNER_ID="${RUNNER_NAME}_$(openssl rand -hex 6 | tr -d '[:space:]')" && export RUNNER_ID="${RUNNER_ID}"
+echo "[+] Registering Runner --> ${RUNNER_ID}" && generate_token
+if [ -n "${RUNNER_TOKEN}" ]; then
+  ##Configure
+   echo "[+] Configuring Runner..."
+   echo "[+] (ID: ${RUNNER_ID})"
+   echo "[+] (LABELS: ${RUNNER_LABELS})"
+   echo "[+] (TOKEN: ${RUNNER_TOKEN})"
+   echo "[+] (URL: ${REG_URL})"
+ ##Run  
+   "/runner-init/config.sh" \
+     --name "${RUNNER_ID}" \
+     --labels "${RUNNER_LABELS}" \
+     --token "${RUNNER_TOKEN}" \
+     --url "${REG_URL}" \
+     --unattended \
+     --replace \
+     --ephemeral
+ ##Write Status
+   [[ -f "/tmp/GHA_CI_STATUS" && -w "/tmp/GHA_CI_STATUS" ]] && echo "" > "/tmp/GHA_CI_STATUS"
+   if [[ -d "/tmp" && -w "/tmp" ]]; then
+     echo "EXITED" | tee "/tmp/GHA_CI_STATUS"
+   fi
+ ##Remove  
+   remove_runner
+else
+   echo "[-] Failed to Generate Token..."
+   echo -e "\n[+] GITHUB_PERSONAL_TOKEN: ${GITHUB_PERSONAL_TOKEN}\n"
+     curl -fsSL "https://api.github.com/user" -H "Authorization: Bearer ${GITHUB_PERSONAL_TOKEN}" -H 'Accept: application/vnd.github+json'
+   exit 1
+fi
+#------------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------------#
 #exit if ctrl + c
 trap 'remove_runner; exit 130' SIGINT
 #exit if kill|pkill -9
