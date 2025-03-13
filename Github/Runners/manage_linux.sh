@@ -137,6 +137,11 @@ export -f generate_token
 ##Remove Runner Upon Completion
 remove_runner() {
   generate_token
+  #Write Status
+   [[ -f "/tmp/GHA_CI_STATUS" && -w "/tmp/GHA_CI_STATUS" ]] && echo "" > "/tmp/GHA_CI_STATUS"
+   if [[ -d "/tmp" && -w "/tmp" ]]; then
+     echo "EXITED" | tee "/tmp/GHA_CI_STATUS"
+   fi
   echo -e "\n[+] Removing Runners ...\n"
   #Remove Offline Runners
   if [ -n "${GITHUB_REPOSITORY}" ]; then
@@ -153,7 +158,7 @@ remove_runner() {
      done
   fi
   #Remove Self  
-  "/runner-init/config.sh" remove --unattended --token "${RUNNER_TOKEN}"
+  "/runner-init/config.sh" remove --token "${RUNNER_TOKEN}"
   #Cleanup
   unset API_RESPONSE AUTH_URL OFFLINE_RUNNERS_ID REG_URL RUNNERS_ID R_ID RUNNER_ID RUNNER_LABELS RUNNER_TOKEN
   kill -9 $$
@@ -182,13 +187,6 @@ if [ -n "${RUNNER_TOKEN}" ]; then
      --unattended \
      --replace \
      --ephemeral
- ##Write Status
-   [[ -f "/tmp/GHA_CI_STATUS" && -w "/tmp/GHA_CI_STATUS" ]] && echo "" > "/tmp/GHA_CI_STATUS"
-   if [[ -d "/tmp" && -w "/tmp" ]]; then
-     echo "EXITED" | tee "/tmp/GHA_CI_STATUS"
-   fi
- ##Remove  
-   remove_runner
 else
    echo "[-] Failed to Generate Token..."
    echo -e "\n[+] GITHUB_PERSONAL_TOKEN: ${GITHUB_PERSONAL_TOKEN}\n"
