@@ -68,20 +68,25 @@ export PS1="${nameC}\u${atC}@${hostC}\h${normalC}:${pathC}\w${pointerC}$ ${norma
 
 #-------------------------------------------------------------------------------#
 ##ENV VARS
-if [ -z "${USER}" ]; then
-  USER="$(whoami)" && export USER="$USER"
+if [[ -z "${USER+x}" ]] || [[ -z "${USER##*[[:space:]]}" ]]; then
+ USER="$(whoami | tr -d '[:space:]')"
 fi
-if [ -z "${HOME}" ]; then
-  HOME="$(getent passwd $USER | cut -d: -f6)" && export HOME="$HOME"
+if [[ -z "${HOME+x}" ]] || [[ -z "${HOME##*[[:space:]]}" ]]; then
+ HOME="$(getent passwd "${USER}" | awk -F':' 'NF >= 6 {print $6}' | tr -d '[:space:]')"
 fi
-if [ -z "${USER_AGENT}" ]; then
-  USER_AGENT="$(curl -qfsSL 'https://pub.ajam.dev/repos/Azathothas/Wordlists/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
+if [[ -z "${HOMETMP+x}" ]] || [[ -z "${HOMETMP##*[[:space:]]}" ]]; then
+ HOMETMP="${HOME}/tmp" ; mkdir -p "${HOMETMP}"
 fi
-SYSTMP="$(dirname $(mktemp -u))" && export SYSTMP="${SYSTMP}"
+if [[ -z "${USER_AGENT}" ]]; then
+  USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
+fi
+if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
+ SYSTMP="$(dirname $(mktemp -u) | tr -d '[:space:]')"
+fi
 #Core
-export LANGUAGE=${LANGUAGE:-en_US:en}
-export LANG=${LANG:-en_US.UTF-8}
-export LC_ALL=${LC_ALL:-${LANG}}
+export LANGUAGE="${LANGUAGE:-en_US:en}"
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-${LANG}}"
 BW_INTERFACE="$(ip route | grep -i 'default' | awk '{print $5}' | tr -d '[:space:]')" && export BW_INTERFACE="${BW_INTERFACE}"
 current_dir="$(pwd)"
 ##PATHS (Only Required)
@@ -93,7 +98,7 @@ export PATH="${HOME}/.local/share/soar/bin:${HOME}/bin:${HOME}/.cargo/bin:${HOME
 
 #-------------------------------------------------------------------------------#
 ##Aliases
-if [ -f ~/.bash_aliases ]; then
+if [[ -f ~/.bash_aliases ]]; then
     . ~/.bash_aliases
 fi
 alias 7z_archive='7z a -t7z -mx="9" -mmt="$(($(nproc)+1))" -bsp1 -bt $1 $2'
@@ -134,15 +139,15 @@ alias rdp_logs='grep -rsh "rdp" "/var/log" | sort | less'
 alias tail_log='tail -f -n +1'
 alias tmpdir='cd $(mktemp -d)'
 alias tmpdir_du='du -h --max-depth="1" "/tmp" 2>/dev/null | sort -hr'
-alias tmpdir_push='pushd "$(mktemp -d)" >/dev/null 2>&1'
-alias tmpdir_pop='popd >/dev/null 2>&1'
+alias tmpdir_push='pushd "$(mktemp -d)" &>/dev/null'
+alias tmpdir_pop='popd &>/dev/null'
 alias scb='xclip -selection c'
 alias vdir='vdir --color=auto'
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
 ##Completions
-if [ -f "/etc/bash_completion" ] && ! shopt -oq posix; then
+if [[ -f "/etc/bash_completion" ]] && ! shopt -oq posix; then
     . "/etc/bash_completion"
 fi
 #-------------------------------------------------------------------------------#
@@ -169,5 +174,8 @@ shopt -s checkwinsize
 
 #-------------------------------------------------------------------------------#
 ##Dedupe & Fix Path
-PATH="$(echo "${PATH}" | awk 'BEGIN{RS=":";ORS=":"}{gsub(/\n/,"");if(!a[$0]++)print}' | sed 's/:*$//')" ; export PATH
+if command -v awk &>/dev/null && command -v sed &>/dev/null; then
+ PATH="$(echo "${PATH}" | awk 'BEGIN{RS=":";ORS=":"}{gsub(/\n/,"");if(!a[$0]++)print}' | sed 's/:*$//')"
+fi
+export PATH
 #-------------------------------------------------------------------------------#
