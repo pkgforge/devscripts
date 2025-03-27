@@ -13,15 +13,15 @@ RUN <<EOS
    set +e ; export CWD="$(realpath .)" ; cd "$(mktemp -d)" &>/dev/null ; realpath "."
    emerge --sync --ask="n" --jobs="$(($(nproc)+1))" || rm -rf "/var/db/repos/gentoo" 2>/dev/null 
    emerge --sync --ask="n" --jobs="$(($(nproc)+1))"
-   mv -fv "/etc/portage/gnupg" "/etc/portage/gnupg.bak"
+   mv -fv "/etc/portage/gnupg" "/etc/portage/gnupg.bak" 2>/dev/null
    getuto ; emerge --sync --ask="n" --jobs="$(($(nproc)+1))"
-   emerge "dev-vcs/git" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg
-   emerge "dev-vcs/git" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg 2>/dev/null
+   emerge "dev-vcs/git" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg --noreplace
+   emerge "dev-vcs/git" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg --noreplace 2>/dev/null
    if ! command -v git >/dev/null; then
       echo "FATAL: Failed to Install GIT"
      exit 1
    fi
-   emerge "net-misc/curl" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg
+   emerge "net-misc/curl" --ask="n" --jobs="$(($(nproc)+1))" --getbinpkg --noreplace
    if ! command -v curl >/dev/null; then
      wget "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/curl" -O "/usr/bin/curl"
      chmod +x "/usr/bin/curl"
