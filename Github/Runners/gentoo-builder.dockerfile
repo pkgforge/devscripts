@@ -150,6 +150,7 @@ RUN <<EOS
    emerge --sync --ask="n" --binpkg-respect-use="n" --jobs="$(($(nproc)+1))"
    yes "y" | eselect news read all &>/dev/null
    emerge "llvm-core/clang" --ask="n" --binpkg-respect-use="n" --jobs="$(($(nproc)+1))" --getbinpkg --noreplace --verbose
+   env-update && source "/etc/profile"
    for pkg in $packages; do emerge "$pkg" --ask="n" --binpkg-respect-use="n" --jobs="$(($(nproc)+1))" --getbinpkg --noreplace ; done
   #Static Libs: https://packages.gentoo.org/useflags/static-libs
    unset USE
