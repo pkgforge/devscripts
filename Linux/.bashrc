@@ -84,9 +84,11 @@ if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
  SYSTMP="$(dirname $(mktemp -u) | tr -d '[:space:]')"
 fi
 #Core
+export BASH_SILENCE_DEPRECATION_WARNING="1"
 export LANGUAGE="${LANGUAGE:-en_US:en}"
 export LANG="${LANG:-en_US.UTF-8}"
-export LC_ALL="${LC_ALL:-${LANG}}"
+export LC_ALL="${LC_ALL:-${LANG}}" 2>/dev/null
+export TMOUT="0"
 BW_INTERFACE="$(ip route | grep -i 'default' | awk '{print $5}' | tr -d '[:space:]')" && export BW_INTERFACE="${BW_INTERFACE}"
 current_dir="$(pwd)"
 ##PATHS (Only Required)
