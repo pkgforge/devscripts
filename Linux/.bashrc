@@ -136,6 +136,7 @@ alias miniserve_up='miniserve --port 9977 --title "Files" --header "Miniserved: 
 alias my_ipv4='curl --ipv4 -qfsSL "http://ipv4.whatismyip.akamai.com" ; echo'
 alias my_ipv6='curl --ipv6 -qfsSL "http://ipv6.whatismyip.akamai.com" ; echo'
 alias podman_purge='podman stop -a && podman rm -a -f && podman rmi -a -f'
+alias repology_helper='source <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/metadata/refs/heads/main/soarpkgs/scripts/repology_fetcher.sh")'
 alias ssh_logs='grep -rsh "ssh" "/var/log" | grep -i "auth" | sort | less'
 alias rdp_logs='grep -rsh "rdp" "/var/log" | sort | less'
 alias tail_log='tail -f -n +1'
