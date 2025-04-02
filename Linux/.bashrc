@@ -20,6 +20,12 @@ export BASH_IS_INTERACTIVE="0"
 case $- in
    *i*) export BASH_IS_INTERACTIVE="1";;
 esac
+##Is Passwordless?
+if sudo -n true 2>/dev/null; then
+  export PASSWORDLESS_SUDO="1"
+else
+  export PASSWORDLESS_SUDO="0"
+fi
 ##Apperance
 if [[ "$(tput colors 2>/dev/null | tr -d '[:space:]')" -eq 256 ]]; then
    export TERM="xterm-256color"
@@ -311,6 +317,7 @@ export PATH
 ##FZF
 if [[ "${NO_FZF}" != 1 ]]; then
   if sudo -n true 2>/dev/null; then
+  if [[ "${PASSWORDLESS_SUDO}" == 1 ]]; then
     if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
       sudo ln -s "$(realpath $(command -v batcat))" "${HOME}/.local/bin/bat"
     fi
