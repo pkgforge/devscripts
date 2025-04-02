@@ -108,7 +108,8 @@ export LANGUAGE="${LANGUAGE:-en_US:en}"
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-${LANG}}" 2>/dev/null
 export TMOUT="0"
-BW_INTERFACE="$(ip route | grep -i 'default' | awk '{print $5}' | tr -d '[:space:]')" && export BW_INTERFACE="${BW_INTERFACE}"
+BW_INTERFACE="$(ip route show '0/0' | grep -i 'default' | grep -oP 'dev\s+\K\S+' | head -n 1 | tr -d '"'\''[:space:]')" 
+export BW_INTERFACE
 current_dir="$(pwd)"
 ##PATHS (Only Required)
 if [[ -z "${GOROOT}" && -d "${HOME}/.go" ]]; then
@@ -210,6 +211,15 @@ function install_soar()
   soar sync
 }
 export -f install_soar
+function decode_base64()
+{
+  if [[ -f "$1" ]]; then
+    base64 -d "$1"
+  else
+    echo "${1:-$(cat)}" | base64 -d
+  fi
+}
+export -f decode_base64
 function disable_fzf()
 {
   unset "$(set | grep -o '^_fzf[^=]*' | tr '\n' ' ')" 2>/dev/null
@@ -225,6 +235,28 @@ function disable_fzf()
   fi
 }
 export -f disable_fzf
+function encode_base64()
+{
+  if [[ -f "$1" ]]; then
+    base64 -w0 "$1"
+  else  
+    echo "${1:-$(cat)}" | base64 -w0
+  fi
+}
+export -f encode_base64
+function fix_validate_jsonl()
+{
+  if ! awk --version 2>&1 | grep -qi "busybox"; then
+    if [[ -f "$1" ]]; then
+      awk '/^\s*{\s*$/ {flag=1;buffer="{\n";next} /^\s*}\s*$/ {if(flag){print buffer"}\n"};flag=0;next} flag{buffer=buffer$0"\n"} /^\{.*\}$/ {print $0"\n"}' "$1"
+    else  
+      echo "${1:-$(cat)}" | awk '/^\s*{\s*$/ {flag=1;buffer="{\n";next} /^\s*}\s*$/ {if(flag){print buffer"}\n"};flag=0;next} flag{buffer=buffer$0"\n"} /^\{.*\}$/ {print $0"\n"}'
+    fi
+  else
+    echo "BusyBox awk Detected, Install GnuAWK(gawk)"
+  fi
+}
+export -f fix_validate_jsonl
 function install_soar_force()
 {
   if [[ ! -d "${HOME}/bin" ]]; then
@@ -269,6 +301,34 @@ function strip_debug()
   strip --strip-debug --strip-dwo --strip-unneeded "$1" 2>/dev/null
 }
 export -f strip_debug
+function strip_space_stdin()
+{
+  if [[ -f "$1" ]]; then
+    sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$1"
+  else  
+    echo "${1:-$(cat)}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+  fi
+}
+export -f strip_space_stdin
+function strip_space_tr()
+{
+  echo "${1:-$(cat)}" | tr -d '"'\''[:space:]'
+}
+export -f strip_space_tr
+function url_decode_py()
+{
+  if command -v python &>/dev/null; then
+    echo "${1:-$(cat)}" | python -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read().strip()))'
+  elif
+    echo "${1:-$(cat)}" | python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read().strip()))'
+  fi
+}
+export -f url_decode_py
+function url_encode_jq()
+{
+  echo "${1:-$(cat)}" | jq -sRr '@uri' | tr -d '[:space:]'
+}
+export -f url_encode_jq
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
