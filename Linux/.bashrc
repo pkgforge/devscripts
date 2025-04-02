@@ -114,6 +114,9 @@ fi
 if [[ ! -d "${HOME}/bin" ]]; then
    mkdir -p "${HOME}/bin"
 fi
+if [[ ! -d "${HOME}/.local/bin" ]]; then
+   mkdir -p "${HOME}/.local/bin"
+fi
 export PATH="${HOME}/.local/share/soar/bin:${HOME}/bin:${HOME}/.cargo/bin:${HOME}/.cargo/env:${HOME}/.go/bin:${HOME}/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${HOME}/.local/bin:${HOME}/miniconda3/bin:${HOME}/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 #-------------------------------------------------------------------------------#
 
@@ -201,10 +204,19 @@ function install_soar()
   soar sync
 }
 export -f install_soar
+function disable_fzf()
+{
+  unset "$(set | grep -o '^_fzf[^=]*')" 2>/dev/null
+  unset -f "$(declare -F | grep -o '_fzf[^ ]*')" 2>/dev/null
+}
+export -f disable_fzf
 function install_soar_force()
 {
   if [[ ! -d "${HOME}/bin" ]]; then
-   mkdir -p "${HOME}/bin"
+     mkdir -p "${HOME}/bin"
+  fi
+  if [[ ! -d "${HOME}/.local/bin" ]]; then
+     mkdir -p "${HOME}/.local/bin"
   fi
   rm -rvf "${HOME}/.config/soar" "${HOME}/.local/share/soar" 2>/dev/null
   bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
@@ -288,13 +300,25 @@ export PATH
 
 #-------------------------------------------------------------------------------#
 ##FZF
-if [[ "${NO_FZF}" != 1 && "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
-   export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-   #export FZF_DEFAULT_OPTS='--no-height --color=bg+:#343d46,gutter:-1,pointer:#ff3c3c,info:#0dbc79,hl:#0dbc79,hl+:#23d18b'
-   export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
-   export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :50 {}'"
-   export FZF_ALT_C_COMMAND='fd --type d "." --hidden --exclude .git'
-   export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -50'"
-   eval "$(fzf --bash)"
+if [[ "${NO_FZF}" != 1 ]]; then
+  if sudo -n true 2>/dev/null; then
+    if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
+      sudo ln -s "$(realpath $(command -v batcat))" "${HOME}/.local/bin/bat"
+    fi
+    if command -v fd-find &>/dev/null && ! command -v fd &>/dev/null; then
+      sudo ln -s "$(realpath $(command -v fd-find))" "${HOME}/.local/bin/fd"
+    fi
+  fi
+  if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
+     export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+     #export FZF_DEFAULT_OPTS='--no-height --color=bg+:#343d46,gutter:-1,pointer:#ff3c3c,info:#0dbc79,hl:#0dbc79,hl+:#23d18b'
+     export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
+     export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :50 {}'"
+     export FZF_ALT_C_COMMAND='fd --type d "." --hidden --exclude .git'
+     export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -50'"
+     eval "$(fzf --bash)"
+  fi
+elif [[ "${NO_FZF}" == 1 ]]; then
+   disable_fzf &>/dev/null
 fi
 #-------------------------------------------------------------------------------#
