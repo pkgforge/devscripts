@@ -14,7 +14,7 @@
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
-#shellcheck disable=SC2142
+#shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
@@ -31,9 +31,9 @@ if [[ "$(tput colors 2>/dev/null | tr -d '[:space:]')" -eq 256 ]]; then
    export TERM="xterm-256color"
 fi
 if command -v micro &>/dev/null; then
-   EDITOR="$(realpath $(command -v micro) | tr -d '[:space:]')"
+   EDITOR="$(realpath "$(command -v micro)" | tr -d '[:space:]')"
 elif command -v nano &>/dev/null; then
-   EDITOR="$(realpath $(command -v nano) | tr -d '[:space:]')"
+   EDITOR="$(realpath "$(command -v nano)" | tr -d '[:space:]')"
 fi
 export EDITOR
 #Colours
@@ -100,7 +100,7 @@ if [[ -z "${USER_AGENT}" ]]; then
   USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
 fi
 if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
- SYSTMP="$(dirname $(mktemp -u) | tr -d '[:space:]')"
+ SYSTMP="$(dirname "$(mktemp -u)" | tr -d '[:space:]')"
 fi
 #Core
 export BASH_SILENCE_DEPRECATION_WARNING="1"
@@ -129,8 +129,8 @@ export PATH="${HOME}/.local/share/soar/bin:${HOME}/bin:${HOME}/.cargo/bin:${HOME
 
 #-------------------------------------------------------------------------------#
 ##Aliases
-if [[ -f "~/.bash_aliases" ]]; then
-    . "~/.bash_aliases"
+if [[ -f "${HOME}/.bash_aliases" ]]; then
+    . "${HOME}/.bash_aliases"
 fi
 alias apptainer_run='unshare -r apptainer run --allow-setuid --keep-privs --writable'
 alias bat='batcat'
@@ -142,7 +142,7 @@ alias clean_buildenv='unset AR AS CC CFLAGS CPP CXX CPPFLAGS CXXFLAGS DLLTOOL HO
 alias dir='dir --color=auto'
 alias docker_purge='docker stop $(docker ps -aq) && docker rm $(docker ps -aq) && docker rmi $(docker images -q) -f'
 alias du_dir='du -h --max-depth=1 | sort -h'
-alias esort='for file in ./* ; do sort -u "$file" -o "$file"; done'
+alias esort='find "." -maxdepth 1 -type f -exec sort -u "{}" -o "{}" \;'
 alias egrep='egrep --color=auto'
 alias fdfind='fd'
 alias fgrep='fgrep --color=auto'
@@ -319,7 +319,7 @@ function url_decode_py()
 {
   if command -v python &>/dev/null; then
     echo "${1:-$(cat)}" | python -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read().strip()))'
-  elif
+  elif command -v python3 &>/dev/null; then
     echo "${1:-$(cat)}" | python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read().strip()))'
   fi
 }
@@ -383,10 +383,10 @@ export PATH
 if [[ "${NO_FZF}" != 1 ]]; then
   if [[ "${PASSWORDLESS_SUDO}" == 1 ]]; then
     if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
-      sudo ln -s "$(realpath $(command -v batcat))" "${HOME}/.local/bin/bat"
+      sudo ln -s "$(realpath "$(command -v batcat)")" "${HOME}/.local/bin/bat"
     fi
     if command -v fd-find &>/dev/null && ! command -v fd &>/dev/null; then
-      sudo ln -s "$(realpath $(command -v fd-find))" "${HOME}/.local/bin/fd"
+      sudo ln -s "$(realpath "$(command -v fd-find)")" "${HOME}/.local/bin/fd"
     fi
   fi
   if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
