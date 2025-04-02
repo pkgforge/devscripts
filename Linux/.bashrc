@@ -97,11 +97,12 @@ if [[ -z "${HOMETMP+x}" ]] || [[ -z "${HOMETMP##*[[:space:]]}" ]]; then
  HOMETMP="${HOME}/tmp" ; mkdir -p "${HOMETMP}"
 fi
 if [[ -z "${USER_AGENT}" ]]; then
-  USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
+  USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')"
 fi
 if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
  SYSTMP="$(dirname "$(mktemp -u)" | tr -d '[:space:]')"
 fi
+export USER HOME HOMETMP USER_AGENT SYSTMP
 #Core
 export BASH_SILENCE_DEPRECATION_WARNING="1"
 export LANGUAGE="${LANGUAGE:-en_US:en}"
