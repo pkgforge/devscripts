@@ -206,8 +206,17 @@ function install_soar()
 export -f install_soar
 function disable_fzf()
 {
-  unset "$(set | grep -o '^_fzf[^=]*')" 2>/dev/null
-  unset -f "$(declare -F | grep -o '_fzf[^ ]*')" 2>/dev/null
+  unset "$(set | grep -o '^_fzf[^=]*' | tr '\n' ' ')" 2>/dev/null
+  unset "$(set | grep -o '^__fzf[^=]*' | tr '\n' ' ')" 2>/dev/null
+  unset "$(declare -F | grep -o '_fzf[^ ]*' | tr '\n' ' ')" 2>/dev/null
+  unset -f "$(declare -F | grep -o '_fzf[^ ]*' | tr '\n' ' ')" 2>/dev/null
+  unset "$(declare -F | grep -o '__fzf[^ ]*' | tr '\n' ' ')" 2>/dev/null
+  unset -f "$(declare -F | grep -o '__fzf[^ ]*' | tr '\n' ' ')" 2>/dev/null
+  bind '"\C-r": reverse-search-history'
+  bind '"\t": complete'
+  if [[ -f "/etc/inputrc" ]]; then
+     bind -f "/etc/inputrc"
+  fi
 }
 export -f disable_fzf
 function install_soar_force()
