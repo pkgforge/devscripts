@@ -258,6 +258,11 @@ function nixbuild_static()
   nix-build '<nixpkgs>' --impure --attr "pkgsStatic.$1" --cores "$(($(nproc)+1))" --max-jobs "$(($(nproc)+1))" --log-format bar-with-logs --out-link "./NIX_BUILD"
 }
 export -f nixbuild_static
+function refreshenv()
+{
+  source "$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
+}
+export -f refreshenv
 function strip_debug()
 {
   objcopy --remove-section=".comment" --remove-section=".note.*" "$1" 2>/dev/null
@@ -316,7 +321,6 @@ export PATH
 #-------------------------------------------------------------------------------#
 ##FZF
 if [[ "${NO_FZF}" != 1 ]]; then
-  if sudo -n true 2>/dev/null; then
   if [[ "${PASSWORDLESS_SUDO}" == 1 ]]; then
     if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
       sudo ln -s "$(realpath $(command -v batcat))" "${HOME}/.local/bin/bat"
