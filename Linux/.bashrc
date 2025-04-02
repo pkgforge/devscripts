@@ -14,9 +14,22 @@
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
+#shellcheck disable=SC2142
+##Is Interactive?
+export BASH_IS_INTERACTIVE="0"
+case $- in
+   *i*) export BASH_IS_INTERACTIVE="1";;
+esac
 ##Apperance
-export TERM="xterm-256color"
-export EDITOR="/usr/bin/nano"
+if [[ "$(tput colors 2>/dev/null | tr -d '[:space:]')" -eq 256 ]]; then
+   export TERM="xterm-256color"
+fi
+if command -v micro &>/dev/null; then
+   EDITOR="$(realpath $(command -v micro) | tr -d '[:space:]')"
+elif command -v nano &>/dev/null; then
+   EDITOR="$(realpath $(command -v nano) | tr -d '[:space:]')"
+fi
+export EDITOR
 #Colours
 txtblk='\[\e[0;30m\]' # Black - Regular
 txtred='\[\e[0;31m\]' # Red
@@ -92,23 +105,29 @@ export TMOUT="0"
 BW_INTERFACE="$(ip route | grep -i 'default' | awk '{print $5}' | tr -d '[:space:]')" && export BW_INTERFACE="${BW_INTERFACE}"
 current_dir="$(pwd)"
 ##PATHS (Only Required)
-export GOROOT="${HOME}/.go"
-export GOPATH="${HOME}/go"
+if [[ -z "${GOROOT}" && -d "${HOME}/.go" ]]; then
+   export GOROOT="${HOME}/.go"
+fi
+if [[ -z "${GOPATH}" && -d "${HOME}/go" ]]; then
+   export GOPATH="${HOME}/go"
+fi
+if [[ ! -d "${HOME}/bin" ]]; then
+   mkdir -p "${HOME}/bin"
+fi
 export PATH="${HOME}/.local/share/soar/bin:${HOME}/bin:${HOME}/.cargo/bin:${HOME}/.cargo/env:${HOME}/.go/bin:${HOME}/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${HOME}/.local/bin:${HOME}/miniconda3/bin:${HOME}/miniconda3/condabin:/usr/local/zig:/usr/local/zig/lib:/usr/local/zig/lib/include:/usr/local/musl/bin:/usr/local/musl/lib:/usr/local/musl/include:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 #-------------------------------------------------------------------------------#
 
-
 #-------------------------------------------------------------------------------#
 ##Aliases
-if [[ -f ~/.bash_aliases ]]; then
-    . ~/.bash_aliases
+if [[ -f "~/.bash_aliases" ]]; then
+    . "~/.bash_aliases"
 fi
-alias 7z_archive='7z a -t7z -mx="9" -mmt="$(($(nproc)+1))" -bsp1 -bt $1 $2'
 alias apptainer_run='unshare -r apptainer run --allow-setuid --keep-privs --writable'
 alias bat='batcat'
 alias benchmarkQ='curl -qfsSL bench.sh | bash'
 alias benchmarkX='curl -qfsSL yabs.sh | bash -s -- -i'
 alias cf_warp_trace='echo ; curl -qfsSL "https://1.1.1.1/cdn-cgi/trace" ; echo'
+alias clean_buildenv='unset AR AS CC CFLAGS CPP CXX CPPFLAGS CXXFLAGS DLLTOOL HOST_CC HOST_CXX LD LDFLAGS LIBS NM OBJCOPY OBJDUMP RANLIB READELF SIZE STRINGS STRIP SYSROOT'
 #alias df='duf'
 alias dir='dir --color=auto'
 alias docker_purge='docker stop $(docker ps -aq) && docker rm $(docker ps -aq) && docker rmi $(docker images -q) -f'
@@ -119,7 +138,8 @@ alias fdfind='fd'
 alias fgrep='fgrep --color=auto'
 alias file_size='stat -c "%s" "$1" "$2" | numfmt --to="iec" --suffix="B"'
 alias grep='grep --color=auto'
-alias history_purge='history -c 2>/dev/null ; rm -rf "$HOME/.bash_history"'
+alias history_purge='history -c 2>/dev/null ; rm -rf "${HOME}/.bash_history"'
+alias history_purge_root='sudo history -c 2>/dev/null ; sudo rm -rf "/root/.bash_history" 2>/dev/null'
 alias ip_ifconfig='ip -a -d -h -p -s address'
 alias ip_ifconfig_resolve='ip -a -d -h -p -r -s address'
 alias ip_ifconfig_netconf='ip -a -d -h -p -s netconf'
@@ -131,6 +151,8 @@ alias ls_ports_progs='sudo netstat -atulpen'
 alias ls_ports_ip='sudo lsof -i -l -R -n'
 alias list_ports_netstat='sudo netstat -atulpen'
 alias list_procs='sudo ps aux'
+alias max_procs='echo "$(($(nproc)+1))"'
+alias max_threads='echo "$(($(nproc)+1))"'
 alias miniserve_dl='miniserve --port 9977 --title "Files" --header "Miniserved: yes" --color-scheme-dark monokai --hide-theme-selector --qrcode --show-wget-footer --hide-version-footer --verbose'
 alias miniserve_up='miniserve --port 9977 --title "Files" --header "Miniserved: yes" --color-scheme-dark monokai --hide-theme-selector --qrcode --show-wget-footer --hide-version-footer --upload-files --verbose'
 alias my_ipv4='curl --ipv4 -qfsSL "http://ipv4.whatismyip.akamai.com" ; echo'
@@ -160,7 +182,70 @@ fi
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
-#Functions
+##Functions
+function 7z_archive()
+{
+  7z a -t7z -mx="9" -mmt="$(($(nproc)+1))" -bsp1 -bt "$1" "$2"
+}
+export -f 7z_archive
+function install_soar()
+{
+  if [[ ! -d "${HOME}/bin" ]]; then
+   mkdir -p "${HOME}/bin"
+  fi
+  bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
+  command -v soar &>/dev/null || return 1
+  if [[ ! -s "${HOME}/.config/soar/config.toml" ]]; then
+     soar defconfig --external
+  fi
+  soar sync
+}
+export -f install_soar
+function install_soar_force()
+{
+  if [[ ! -d "${HOME}/bin" ]]; then
+   mkdir -p "${HOME}/bin"
+  fi
+  rm -rvf "${HOME}/.config/soar" "${HOME}/.local/share/soar" 2>/dev/null
+  bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
+  command -v soar &>/dev/null || return 1
+  soar defconfig --external
+  soar sync
+}
+export -f install_soar_force
+function nixbuild_cleanup() 
+{
+  nix-collect-garbage
+  nix-store --gc
+}
+export -f nixbuild_cleanup
+function nixbuild_info()
+{
+  echo -e "\n"
+  nix-instantiate --eval --expr "builtins.toJSON (with import <nixpkgs> {}; $1.meta)" --quiet 2>/dev/null | jq -r fromjson 2>/dev/null
+  echo -e "\n"
+}
+export -f nixbuild_info
+function nixbuild_static()
+{
+  nix-build '<nixpkgs>' --impure --attr "pkgsStatic.$1" --cores "$(($(nproc)+1))" --max-jobs "$(($(nproc)+1))" --log-format bar-with-logs --out-link "./NIX_BUILD"
+}
+export -f nixbuild_static
+function strip_debug()
+{
+  objcopy --remove-section=".comment" --remove-section=".note.*" "$1" 2>/dev/null
+  strip --strip-debug --strip-dwo --strip-unneeded "$1" 2>/dev/null
+}
+export -f strip_debug
+#-------------------------------------------------------------------------------#
+
+#-------------------------------------------------------------------------------#
+##GIT
+if [[ "${BASH_IS_INTERACTIVE}" == 0 ]]; then
+   export GH_PAGER=""
+   export GIT_TERMINAL_PROMPT="0"
+   export GIT_ASKPASS="/bin/echo"
+fi
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
@@ -177,6 +262,20 @@ export HISTTIMEFORMAT="[${USER}, %F %T]  "
 #Check the window size after each command and, if necessary,
 #update the values of LINES and COLUMNS.
 shopt -s checkwinsize
+#Turn on ../**/*.ext Globs
+shopt -q -s extglob
+#-------------------------------------------------------------------------------#
+
+#-------------------------------------------------------------------------------#
+##Nix
+if [[ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]]; then
+   source "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" &>/dev/null
+   if command -v nix &>/dev/null; then
+     export NIXPKGS_ALLOW_BROKEN="1"
+     export NIXPKGS_ALLOW_UNFREE="1"
+     export NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM="1"
+   fi
+fi
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
@@ -185,4 +284,17 @@ if command -v awk &>/dev/null && command -v sed &>/dev/null; then
  PATH="$(echo "${PATH}" | awk 'BEGIN{RS=":";ORS=":"}{gsub(/\n/,"");if(!a[$0]++)print}' | sed 's/:*$//')"
 fi
 export PATH
+#-------------------------------------------------------------------------------#
+
+#-------------------------------------------------------------------------------#
+##FZF
+if [[ "${NO_FZF}" != 1 && "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
+   export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+   #export FZF_DEFAULT_OPTS='--no-height --color=bg+:#343d46,gutter:-1,pointer:#ff3c3c,info:#0dbc79,hl:#0dbc79,hl+:#23d18b'
+   export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
+   export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :50 {}'"
+   export FZF_ALT_C_COMMAND='fd --type d "." --hidden --exclude .git'
+   export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -50'"
+   eval "$(fzf --bash)"
+fi
 #-------------------------------------------------------------------------------#
