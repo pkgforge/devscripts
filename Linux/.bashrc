@@ -15,7 +15,7 @@
 
 #-------------------------------------------------------------------------------#
 #shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
-export BASHRC_SRC_VER="v0.0.1+1"
+export BASHRC_SRC_VER="v0.0.2"
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
