@@ -15,7 +15,7 @@
 
 #-------------------------------------------------------------------------------#
 #shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
-export BASHRC_SRC_VER="v0.0.2"
+export BASHRC_SRC_VER="v0.0.2+1"
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
@@ -353,7 +353,8 @@ function refreshenv()
 export -f refreshenv
 function refresh_bashrc()
 {
-  BASHRC_SRC_URL="https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc"
+  local BASHRC_SRC_URL_TMP="https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc?$(gen_random_string_date || mktemp -u)=$(gen_random_string_date || mktemp -u)"
+  local BASHRC_SRC_URL="$(echo "${BASHRC_SRC_URL_TMP}" | tr -d '[:space:]')"
   if [[ "${PASSWORDLESS_SUDO}" == 1 ]]; then
    if [[ "${HAS_CURL}" == 1 ]]; then
      sudo curl -qfsSL "${BASHRC_SRC_URL}" -H "Cache-Control: no-cache" -H "Pragma: no-cache" -H "Expires: 0" -o "/etc/bash.bashrc" &&\
