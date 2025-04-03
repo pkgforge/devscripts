@@ -199,6 +199,7 @@ alias tmpdir='cd $(mktemp -d)'
 alias tmpdir_du='du -h --max-depth="1" "/tmp" 2>/dev/null | sort -hr'
 alias tmpdir_push='pushd "$(mktemp -d)" &>/dev/null'
 alias tmpdir_pop='popd &>/dev/null'
+alias update_bashrc='declare -F refresh_bashrc &>/dev/null && refresh_bashrc'
 alias scb='xclip -selection c'
 alias vdir='vdir --color=auto'
 #-------------------------------------------------------------------------------#
