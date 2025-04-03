@@ -277,6 +277,21 @@ function fix_validate_jsonl()
   fi
 }
 export -f fix_validate_jsonl
+function gen_random_string()
+{
+  local R_LIMIT="${1:-32}"
+  local X="X"
+  local T_IN_T=$(printf '%s' "${X}$(printf '%.0sX' $(seq 1 "${R_LIMIT}"))")
+  local T_IN="$(echo "${T_IN_T}" | head -c 251 | tr -d '[:space:]')"
+  local T_OUT=$(mktemp -u "${T_IN}XXXX")
+  echo "${T_OUT}" | tr -d "[:space:]" | head -c "${R_LIMIT}"
+}
+export -f gen_random_string
+function gen_random_string_date()
+{
+  echo "$(gen_random_string ${1:-2})-$(date --utc +'%Y-%m-%dT%H-%M-%SZ%2N_%p_UTC')" | tr -d '[:space:]'
+}
+export -f gen_random_string_date
 function init_fzf()
 {
   if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
