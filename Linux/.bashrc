@@ -15,6 +15,7 @@
 
 #-------------------------------------------------------------------------------#
 #shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
+export BASHRC_SRC_VER="v0.0.1"
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
@@ -149,6 +150,7 @@ if [[ -f "${HOME}/.bash_aliases" ]]; then
     . "${HOME}/.bash_aliases"
 fi
 alias apptainer_run='unshare -r apptainer run --allow-setuid --keep-privs --writable'
+alias bashrc_version='echo "${BASHRC_SRC_VER}"'
 alias bat='batcat'
 alias benchmarkQ='curl -qfsSL bench.sh | bash'
 alias benchmarkX='curl -qfsSL yabs.sh | bash -s -- -i'
