@@ -21,10 +21,13 @@ case $- in
    *i*) export BASH_IS_INTERACTIVE="1";;
 esac
 ##Is Passwordless?
-if sudo -n true 2>/dev/null; then
-  export PASSWORDLESS_SUDO="1"
-else
-  export PASSWORDLESS_SUDO="0"
+if command -v sudo &>/dev/null; then
+ export SUDO_CMD_PREFIX="sudo"
+  if sudo -n true 2>/dev/null; then
+    export PASSWORDLESS_SUDO="1"
+  else
+    export PASSWORDLESS_SUDO="0"
+  fi
 fi
 ##Has curl
 if ! command -v curl &>/dev/null; then
@@ -155,6 +158,7 @@ alias clean_buildenv='unset AR AS CC CFLAGS CPP CXX CPPFLAGS CXXFLAGS DLLTOOL HO
 alias dir='dir --color=auto'
 alias docker_purge='docker stop $(docker ps -aq) && docker rm $(docker ps -aq) && docker rmi $(docker images -q) -f'
 alias du_dir='du -h --max-depth=1 | sort -h'
+alias edit_bashrc='eval "${SUDO_CMD_PREFIX}" "${EDITOR}" "$(realpath "${HOME}/.bashrc" | tr -d "[:space:]")"'
 alias esort='find "." -maxdepth 1 -type f -exec sort -u "{}" -o "{}" \;'
 alias egrep='egrep --color=auto'
 alias fdfind='fd'
