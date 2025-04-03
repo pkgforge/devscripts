@@ -96,6 +96,11 @@ fi
 if [[ -z "${HOMETMP+x}" ]] || [[ -z "${HOMETMP##*[[:space:]]}" ]]; then
  HOMETMP="${HOME}/tmp" ; mkdir -p "${HOMETMP}"
 fi
+if [[ -z "${HOST_TRIPLET}" ]] || [[ -z "${HOST_TRIPLET##*[[:space:]]}" ]]; then
+  _HOST_TRIPLET="$(uname -m)-$(uname -s)"
+  HOST_TRIPLET="$(echo "${_HOST_TRIPLET}" | tr -d '[:space:]')"
+  export HOST_TRIPLET
+fi
 if [[ -z "${USER_AGENT}" ]]; then
   USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')"
 fi
@@ -258,6 +263,19 @@ function fix_validate_jsonl()
   fi
 }
 export -f fix_validate_jsonl
+function init_fzf()
+{
+  if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
+     export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+     #export FZF_DEFAULT_OPTS='--no-height --color=bg+:#343d46,gutter:-1,pointer:#ff3c3c,info:#0dbc79,hl:#0dbc79,hl+:#23d18b'
+     export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
+     export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :50 {}'"
+     export FZF_ALT_C_COMMAND='fd --type d "." --hidden --exclude .git'
+     export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -50'"
+     eval "$(fzf --bash)"
+  fi
+}
+export -f init_fzf
 function install_soar_force()
 {
   if [[ ! -d "${HOME}/bin" ]]; then
@@ -296,6 +314,18 @@ function refreshenv()
   source "$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
 }
 export -f refreshenv
+function setup_fzf()
+{
+  if [[ -d "${HOME}/.local/bin" ]] && [[ -w "${HOME}/.local/bin" ]]; then
+     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/bat" -o "${HOME}/.local/bin/bat"
+     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fd" -o "${HOME}/.local/bin/fd"
+     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fzf" -o "${HOME}/.local/bin/fzf"
+     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/tree" -o "${HOME}/.local/bin/tree"
+     chmod 'a+x' "${HOME}/.local/bin/bat" "${HOME}/.local/bin/fd" "${HOME}/.local/bin/fzf" "${HOME}/.local/bin/tree"
+     init_fzf && fzf --version && fzf
+  fi
+}
+export -f setup_fzf
 function strip_debug()
 {
   objcopy --remove-section=".comment" --remove-section=".note.*" "$1" 2>/dev/null
@@ -391,13 +421,7 @@ if [[ "${NO_FZF}" != 1 ]]; then
     fi
   fi
   if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
-     export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-     #export FZF_DEFAULT_OPTS='--no-height --color=bg+:#343d46,gutter:-1,pointer:#ff3c3c,info:#0dbc79,hl:#0dbc79,hl+:#23d18b'
-     export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
-     export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :50 {}'"
-     export FZF_ALT_C_COMMAND='fd --type d "." --hidden --exclude .git'
-     export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -50'"
-     eval "$(fzf --bash)"
+     init_fzf
   fi
 elif [[ "${NO_FZF}" == 1 ]]; then
    disable_fzf &>/dev/null
