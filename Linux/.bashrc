@@ -26,6 +26,13 @@ if sudo -n true 2>/dev/null; then
 else
   export PASSWORDLESS_SUDO="0"
 fi
+##Has curl
+if ! command -v curl &>/dev/null; then
+   export HAS_CURL="0"
+   echo "[-] WARNING: curl is not Installed (A lot of things will Break)"
+else
+   export HAS_CURL="1"
+fi
 ##Apperance
 if [[ "$(tput colors 2>/dev/null | tr -d '[:space:]')" -eq 256 ]]; then
    export TERM="xterm-256color"
@@ -102,7 +109,7 @@ if [[ -z "${HOST_TRIPLET}" ]] || [[ -z "${HOST_TRIPLET##*[[:space:]]}" ]]; then
   export HOST_TRIPLET
 fi
 if [[ -z "${USER_AGENT}" ]]; then
-  USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')"
+ [[ "${HAS_CURL}" == 1 ]] && USER_AGENT="$(curl -qfsSL 'https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')"
 fi
 if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
  SYSTMP="$(dirname "$(mktemp -u)" | tr -d '[:space:]')"
@@ -209,7 +216,7 @@ function install_soar()
   if [[ ! -d "${HOME}/bin" ]]; then
    mkdir -p "${HOME}/bin"
   fi
-  bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
+  [[ "${HAS_CURL}" == 1 ]] && bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
   command -v soar &>/dev/null || return 1
   if [[ ! -s "${HOME}/.config/soar/config.toml" ]]; then
      soar defconfig --external
@@ -285,7 +292,7 @@ function install_soar_force()
      mkdir -p "${HOME}/.local/bin"
   fi
   rm -rvf "${HOME}/.config/soar" "${HOME}/.local/share/soar" 2>/dev/null
-  bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
+  [[ "${HAS_CURL}" == 1 ]] && bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/soar/refs/heads/main/install.sh")
   command -v soar &>/dev/null || return 1
   soar defconfig --external
   soar sync
@@ -314,15 +321,39 @@ function refreshenv()
   source "$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
 }
 export -f refreshenv
+function refresh_bashrc()
+{
+  BASHRC_SRC_URL="https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc"
+  if [[ "${PASSWORDLESS_SUDO}" == 1 ]]; then
+   if [[ "${HAS_CURL}" == 1 ]]; then
+     sudo curl -qfsSL "${BASHRC_SRC_URL}" -H "Cache-Control: no-cache" -H "Pragma: no-cache" -H "Expires: 0" -o "/etc/bash.bashrc" &&\
+     curl -qfsSL "${BASHRC_SRC_URL}" -w "(SRC) <== %{url}\n" -I
+     if [[ -f "/etc/bash.bashrc" ]]; then
+       sudo ln -fs "/etc/bash.bashrc" "/root/.bashrc" 2>/dev/null
+       sudo ln -fs "/etc/bash.bashrc" "${HOME}/.bashrc" 2>/dev/null
+       sudo ln -fs "/etc/bash.bashrc" "/etc/bash/bashrc" 2>/dev/null
+     fi
+   fi
+  elif [[ -w "${HOME}" ]]; then
+   if [[ "${HAS_CURL}" == 1 ]]; then
+     curl -qfsSL "${BASHRC_SRC_URL}" -H "Cache-Control: no-cache" -H "Pragma: no-cache" -H "Expires: 0" -o "${HOME}/.bashrc" &&\
+     curl -qfsSL "${BASHRC_SRC_URL}" -w "(SRC) <== %{url}\n" -I
+   fi
+  fi
+  refreshenv
+}
+export -f refresh_bashrc
 function setup_fzf()
 {
   if [[ -d "${HOME}/.local/bin" ]] && [[ -w "${HOME}/.local/bin" ]]; then
-     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/bat" -o "${HOME}/.local/bin/bat"
-     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fd" -o "${HOME}/.local/bin/fd"
-     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fzf" -o "${HOME}/.local/bin/fzf"
-     curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/tree" -o "${HOME}/.local/bin/tree"
-     chmod 'a+x' "${HOME}/.local/bin/bat" "${HOME}/.local/bin/fd" "${HOME}/.local/bin/fzf" "${HOME}/.local/bin/tree"
-     init_fzf && fzf --version && fzf
+    if [[ "${HAS_CURL}" == 1 ]]; then
+      curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/bat" -o "${HOME}/.local/bin/bat"
+      curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fd" -o "${HOME}/.local/bin/fd"
+      curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/fzf" -o "${HOME}/.local/bin/fzf"
+      curl -w "(DL) <== %{url}\n" -qfsSL "https://bin.pkgforge.dev/${HOST_TRIPLET}/tree" -o "${HOME}/.local/bin/tree"
+      chmod 'a+x' "${HOME}/.local/bin/bat" "${HOME}/.local/bin/fd" "${HOME}/.local/bin/fzf" "${HOME}/.local/bin/tree"
+      init_fzf && fzf --version && fzf
+    fi
   fi
 }
 export -f setup_fzf
