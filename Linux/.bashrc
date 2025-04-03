@@ -15,7 +15,7 @@
 
 #-------------------------------------------------------------------------------#
 #shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
-export BASHRC_SRC_VER="v0.0.1"
+export BASHRC_SRC_VER="v0.0.1+1"
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
@@ -325,7 +325,15 @@ function nixbuild_static()
 export -f nixbuild_static
 function refreshenv()
 {
-  source "$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
+  local BASHRC_FILE="$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
+  if [[ -f "${BASHRC_FILE}" ]]; then
+   source "${BASHRC_FILE}"
+   if command -v sed &>/dev/null; then
+     sed -n '/^\s*export\s\+BASHRC_SRC_VER=/s/^\s*export\s\+//p' "${BASHRC_FILE}"
+   elif command -v grep &>/dev/null; then
+     grep -oP '^\s*export\s+\K(BASHRC_SRC_VER="[^"]+")' "${BASHRC_FILE}"
+   fi
+  fi
 }
 export -f refreshenv
 function refresh_bashrc()
