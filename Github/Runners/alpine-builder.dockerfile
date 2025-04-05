@@ -245,6 +245,9 @@ RUN <<EOS
   apk add libdav1d --latest --upgrade --no-interactive 2>/dev/null
   apk add libdbusmenu-glib --latest --upgrade --no-interactive 2>/dev/null
   apk add libdbusmenu-glib-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libdeflate --latest --upgrade --no-interactive 2>/dev/null
+  apk add libdeflate-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libdeflate-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libdrm --latest --upgrade --no-interactive 2>/dev/null
   apk add libdrm-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libdw --latest --upgrade --no-interactive 2>/dev/null
