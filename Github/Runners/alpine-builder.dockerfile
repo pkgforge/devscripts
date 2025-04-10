@@ -249,6 +249,8 @@ RUN <<EOS
   apk add libcdio --latest --upgrade --no-interactive 2>/dev/null
   apk add libcdio++ --latest --upgrade --no-interactive 2>/dev/null
   apk add libcdio-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libconfig-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libconfig-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libcurl --latest --upgrade --no-interactive 2>/dev/null
   apk add libdav1d --latest --upgrade --no-interactive 2>/dev/null
   apk add libdbusmenu-glib --latest --upgrade --no-interactive 2>/dev/null
