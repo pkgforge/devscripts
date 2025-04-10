@@ -15,6 +15,7 @@ EOS
 RUN <<EOS
   set +e
   apk update && apk upgrade --no-interactive 2>/dev/null
+  apk add acl --latest --upgrade --no-interactive 2>/dev/null
   apk add acl-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add acl-static --latest --upgrade --no-interactive 2>/dev/null
   apk add alpine-sdk --latest --upgrade --no-interactive 2>/dev/null
@@ -102,6 +103,8 @@ RUN <<EOS
   apk add dpdk-static --latest --upgrade --no-interactive 2>/dev/null
   apk add dtc --latest --upgrade --no-interactive 2>/dev/null
   apk add dtc-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add eigen --latest --upgrade --no-interactive 2>/dev/null
+  apk add eigen-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add elfutils --latest --upgrade --no-interactive 2>/dev/null
   apk add elfutils-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add execline --latest --upgrade --no-interactive 2>/dev/null
@@ -200,6 +203,11 @@ RUN <<EOS
   apk add jq --latest --upgrade --no-interactive 2>/dev/null
   apk add jq-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add json-glib --latest --upgrade --no-interactive 2>/dev/null
+  apk add judy --latest --upgrade --no-interactive 2>/dev/null
+  apk add judy-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add kmod --latest --upgrade --no-interactive 2>/dev/null
+  apk add kmod-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add kmod-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add keyutils --latest --upgrade --no-interactive 2>/dev/null
   apk add keyutils-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add keyutils-libs --latest --upgrade --no-interactive 2>/dev/null
@@ -248,6 +256,7 @@ RUN <<EOS
   apk add libdeflate --latest --upgrade --no-interactive 2>/dev/null
   apk add libdeflate-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libdeflate-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add liblksctp --latest --upgrade --no-interactive 2>/dev/null
   apk add libdrm --latest --upgrade --no-interactive 2>/dev/null
   apk add libdrm-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libdw --latest --upgrade --no-interactive 2>/dev/null
@@ -275,6 +284,8 @@ RUN <<EOS
   apk add libmaxminddb-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libmaxminddb-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add libmaxminddb-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add libmd --latest --upgrade --no-interactive 2>/dev/null
+  apk add libmd-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libmount --latest --upgrade --no-interactive 2>/dev/null
   apk add libncurses++ --latest --upgrade --no-interactive 2>/dev/null
   apk add libncursesw --latest --upgrade --no-interactive 2>/dev/null
@@ -310,6 +321,8 @@ RUN <<EOS
   apk add librsvg-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add librtlsdr --latest --upgrade --no-interactive 2>/dev/null
   apk add librtlsdr-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libbsd --latest --upgrade --no-interactive 2>/dev/null
+  apk add libbsd-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libbsd-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libseccomp --latest --upgrade --no-interactive 2>/dev/null
   apk add libseccomp-dev --latest --upgrade --no-interactive 2>/dev/null
@@ -420,6 +433,9 @@ RUN <<EOS
   apk add libxrandr-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libxscrnsaver --latest --upgrade --no-interactive 2>/dev/null
   apk add libxscrnsaver-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libxslt --latest --upgrade --no-interactive 2>/dev/null
+  apk add libxslt-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add libxslt-static --latest --upgrade --no-interactive 2>/dev/null
   apk add libxtst --latest --upgrade --no-interactive 2>/dev/null
   apk add libxtst-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libxtst-static --latest --upgrade --no-interactive 2>/dev/null
@@ -470,6 +486,7 @@ RUN <<EOS
   #apk add mold --repository="https://dl-cdn.alpinelinux.org/alpine/edge/community" --latest --upgrade --no-interactive 2>/dev/null
   apk add moreutils --latest --upgrade --no-interactive 2>/dev/null
   apk add mount --latest --upgrade --no-interactive 2>/dev/null
+  apk add mpfr-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add mpv --latest --upgrade --no-interactive 2>/dev/null
   apk add mpv-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add mpv-libs --latest --upgrade --no-interactive 2>/dev/null
