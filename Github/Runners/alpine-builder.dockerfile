@@ -553,6 +553,7 @@ RUN <<EOS
   apk add opus-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add pahole --latest --upgrade --no-interactive 2>/dev/null
   apk add pam-u2f --latest --upgrade --no-interactive 2>/dev/null
+  apk add pandoc-cli --latest --upgrade --no-interactive 2>/dev/null
   apk add pango --latest --upgrade --no-interactive 2>/dev/null
   apk add pango-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add pango-tools --latest --upgrade --no-interactive 2>/dev/null
