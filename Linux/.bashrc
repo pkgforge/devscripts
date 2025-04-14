@@ -15,12 +15,24 @@
 
 #-------------------------------------------------------------------------------#
 #shellcheck disable=SC1090,SC1091,SC2034,SC2142,SC2148
-export BASHRC_SRC_VER="v0.0.2+1"
+export BASHRC_SRC_VER="v0.0.3"
 ##Is Interactive?
 export BASH_IS_INTERACTIVE="0"
 case $- in
    *i*) export BASH_IS_INTERACTIVE="1";;
 esac
+##Where is bash?
+function _which_bash()
+{
+  BASH_BIN_PATH="$(realpath $(command -v bash))"
+  if [[ -s "${BASH_BIN_PATH}" ]]; then
+     export BASH_BIN_PATH
+  else
+     unset BASH_BIN_PATH
+  fi
+}
+export -f _which_bash
+_which_bash
 ##Is Passwordless?
 if command -v sudo &>/dev/null; then
  export SUDO_CMD_PREFIX="sudo"
@@ -36,6 +48,18 @@ if ! command -v curl &>/dev/null; then
    echo "[-] WARNING: curl is not Installed (A lot of things will Break)"
 else
    export HAS_CURL="1"
+fi
+##Is on WSL
+IS_ON_WSL="0"
+[[ -n "${WSLENV+x}" ]] && IS_ON_WSL="1"
+[[ -s "/etc/wsl.conf" ]] && IS_ON_WSL="1"
+export IS_ON_WSL
+##Where are we
+OWD_PATH="$(realpath "." 2>/dev/null | tr -d '[:space:]')"
+if [[ -d "${OWD_PATH}" ]]; then
+   export OWD_PATH
+else
+   unset OWD_PATH
 fi
 ##Apperance
 if [[ "$(tput colors 2>/dev/null | tr -d '[:space:]')" -eq 256 ]]; then
@@ -212,12 +236,14 @@ fi
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
-##Functions
+###Functions
+##Archive to 7z
 function 7z_archive()
 {
   7z a -t7z -mx="9" -mmt="$(($(nproc)+1))" -bsp1 -bt "$1" "$2"
 }
 export -f 7z_archive
+##Install Soar
 function install_soar()
 {
   if [[ ! -d "${HOME}/bin" ]]; then
@@ -231,6 +257,7 @@ function install_soar()
   soar sync
 }
 export -f install_soar
+##Decode base64
 function decode_base64()
 {
   if [[ -f "$1" ]]; then
@@ -240,6 +267,7 @@ function decode_base64()
   fi
 }
 export -f decode_base64
+##Disable fzf
 function disable_fzf()
 {
   unset "$(set | grep -o '^_fzf[^=]*' | tr '\n' ' ')" 2>/dev/null
@@ -255,6 +283,7 @@ function disable_fzf()
   fi
 }
 export -f disable_fzf
+##Encode to base64
 function encode_base64()
 {
   if [[ -f "$1" ]]; then
@@ -264,6 +293,7 @@ function encode_base64()
   fi
 }
 export -f encode_base64
+##Fix jsonl
 function fix_validate_jsonl()
 {
   if ! awk --version 2>&1 | grep -qi "busybox"; then
@@ -277,6 +307,7 @@ function fix_validate_jsonl()
   fi
 }
 export -f fix_validate_jsonl
+##Generate Random String
 function gen_random_string()
 {
   local R_LIMIT="${1:-32}"
@@ -287,11 +318,13 @@ function gen_random_string()
   echo "${T_OUT}" | tr -d "[:space:]" | head -c "${R_LIMIT}"
 }
 export -f gen_random_string
+##Generate Random string with date
 function gen_random_string_date()
 {
   echo "$(gen_random_string ${1:-2})-$(date --utc +'%Y-%m-%dT%H-%M-%SZ%2N_%p_UTC')" | tr -d '[:space:]'
 }
 export -f gen_random_string_date
+##Initialize fzf
 function init_fzf()
 {
   if [[ "$(command -v bat)" && "$(command -v fd)" && "$(command -v fzf)" && "$(command -v tree)" ]]; then
@@ -305,6 +338,7 @@ function init_fzf()
   fi
 }
 export -f init_fzf
+##Reinstall soar
 function install_soar_force()
 {
   if [[ ! -d "${HOME}/bin" ]]; then
@@ -320,12 +354,14 @@ function install_soar_force()
   soar sync
 }
 export -f install_soar_force
+##Cleanup using Nix
 function nixbuild_cleanup() 
 {
   nix-collect-garbage
   nix-store --gc
 }
 export -f nixbuild_cleanup
+##Print PKGINFO using nix
 function nixbuild_info()
 {
   echo -e "\n"
@@ -333,11 +369,65 @@ function nixbuild_info()
   echo -e "\n"
 }
 export -f nixbuild_info
+##Statically Build using nix
 function nixbuild_static()
 {
   nix-build '<nixpkgs>' --impure --attr "pkgsStatic.$1" --cores "$(($(nproc)+1))" --max-jobs "$(($(nproc)+1))" --log-format bar-with-logs --out-link "./NIX_BUILD"
 }
 export -f nixbuild_static
+##Pack files with upx + remove upx headers + wrappe
+function pack_exe()
+{
+  if [[ "$(command -v awk)" &&\
+        "$(command -v file)" &&\
+        "$(command -v grep)" &&\
+        "$(command -v sed)" &&\
+        "$(command -v strip)" &&\
+        "$(command -v upx)" &&\
+        "$(command -v wrappe)" ]]; then
+    if [[ -f "$1" ]]; then
+      local input="$(realpath $1 | tr -d '[:space:]')"
+      local p_name="$(basename ${input})"
+      local c_wd="$(realpath .)"
+      rm -fv "${input}.upx" "${input}.st" "${input}.wp" 2>/dev/null
+      chmod 'a+x' "${input}"
+      upx --best --ultra-brute "${input}" -f --force-overwrite -o"${input}.upx"
+     #Remove Headers
+       if command -v perl &>/dev/null; then
+         #NO_SSTRIP=1 --> Don't use sstrip
+         #NO_ADD_SECTION=1 --> Don't try to insert a null header
+         "${BASH_BIN_PATH}" <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Misc/remove_upx_info.sh") "${input}.upx"
+         if [[ -s "${input}.upx.st" ]] && [[ $(stat -c%s "${input}.upx.st") -gt 3 ]]; then
+           mv -fv "${input}.upx.st" "${input}.st"
+         fi
+         if upx -d "${input}.st" --force-overwrite -o"/dev/null" 2>&1 | grep -qi "not[[:space:]]*packed"; then
+           echo "[+] ${input} ==> ${input}.upx (UPXed) ==> ${input}.st (UPXed + Stealth)"
+         else
+           echo "[-] Removal of UPX Headers likely Failed"
+         fi
+       fi
+     #Pack as WRAPPE
+      if command -v wrappe &>/dev/null; then
+        pushd "$(mktemp -d)" &>/dev/null &&\
+          cp "${input}" "./${p_name}" &&\
+          wrappe --current-dir "command" --compression "22" --show-information "none" --unpack-directory ".${p_name}" --unpack-target "local" --cleanup "." "./${p_name}" "${input}.wp"
+        popd &>/dev/null && cd "${c_wd}"
+        echo "[+] ${input} ==> ${input}.wp (Wrappe ZSTD 22)"
+      fi  
+     #Print Info
+      cd "${c_wd}" && file "${input}" && du -b "${input}"
+      [[ -s "${input}.upx" ]] && file "${input}.upx" && du -b "${input}.upx"
+      [[ -s "${input}.st" ]] && file "${input}.st" && du -b "${input}.st"
+      [[ -s "${input}.wp" ]] && file "${input}.wp" && du -b "${input}.wp"
+    else
+      echo "[-] Directly Specify a File"
+    fi
+  else
+     echo "[-] Install: awk file grep sed strip upx wrappe"
+  fi
+}
+export -f pack_exe
+##Source the bashrc file & reload env
 function refreshenv()
 {
   local BASHRC_FILE="$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
@@ -351,6 +441,7 @@ function refreshenv()
   fi
 }
 export -f refreshenv
+##Pull new bashrc from remote & resource
 function refresh_bashrc()
 {
   local BASHRC_SRC_URL_TMP="https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc?$(gen_random_string_date || mktemp -u)=$(gen_random_string_date || mktemp -u)"
@@ -374,6 +465,7 @@ function refresh_bashrc()
   refreshenv
 }
 export -f refresh_bashrc
+##Setup fzf
 function setup_fzf()
 {
   if [[ -d "${HOME}/.local/bin" ]] && [[ -w "${HOME}/.local/bin" ]]; then
@@ -388,12 +480,14 @@ function setup_fzf()
   fi
 }
 export -f setup_fzf
+##Strip ELF
 function strip_debug()
 {
   objcopy --remove-section=".comment" --remove-section=".note.*" "$1" 2>/dev/null
   strip --strip-debug --strip-dwo --strip-unneeded "$1" 2>/dev/null
 }
 export -f strip_debug
+##Strip space from each line
 function strip_space_stdin()
 {
   if [[ -f "$1" ]]; then
@@ -403,11 +497,13 @@ function strip_space_stdin()
   fi
 }
 export -f strip_space_stdin
+##Strip space from stdin for single input
 function strip_space_tr()
 {
   echo "${1:-$(cat)}" | tr -d '"'\''[:space:]'
 }
 export -f strip_space_tr
+##Decode URL encoded string
 function url_decode_py()
 {
   if command -v python &>/dev/null; then
@@ -417,11 +513,121 @@ function url_decode_py()
   fi
 }
 export -f url_decode_py
+##URL encode string
 function url_encode_jq()
 {
   echo "${1:-$(cat)}" | jq -sRr '@uri' | tr -d '[:space:]'
 }
 export -f url_encode_jq
+##zapper path
+function _zap_get_self()
+{
+  if [[ -z "${_ZAP_BIN_PATH+x}" ]] || [[ -z "${_ZAP_BIN_PATH##*[[:space:]]}" ]]; then
+    if command -v zapper-stealth &>/dev/null; then
+       _ZAP_BIN_PATH="$(realpath $(command -v zapper))"
+    elif command -v zapper &>/dev/null; then
+       _ZAP_BIN_PATH="$(realpath $(command -v zapper))"
+    fi
+  fi
+  if [[ -n "${_ZAP_BIN_PATH+x}" ]] && [[ -s "${_ZAP_BIN_PATH}" ]]; then
+    if [[ ! -x "${_ZAP_BIN_PATH}" ]]; then
+       chmod '+x' "${_ZAP_BIN_PATH}" &>/dev/null
+    fi
+    if [[ -x "${_ZAP_BIN_PATH}" ]]; then
+       _Z_BPATH="${_ZAP_BIN_PATH}"
+    fi
+    unset _ZAP_BIN_PATH
+  fi
+}
+export -f _zap_get_self
+##Zap Proc name & Env
+# _zap_proc "${PROCESS_NAME}" "${CMD_NAME}" "${CMD_ARGS}" #otherwise chosen at random
+function _zap_proc()
+{
+  _zap_get_self &>/dev/null
+  [[ ! -s "${BASH_BIN_PATH}" ]] && _which_bash &>/dev/null
+  if [[ -n "${_Z_BPATH+x}" ]] && [[ -s "${_Z_BPATH}" ]]; then
+    if declare -F "$1" &>/dev/null; then
+       func_name="$1"
+       local -f "${func_name}"
+       unset p_name
+    elif declare -F "$2" &>/dev/null; then
+       func_name="$2"
+       local -f "${func_name}"
+       local p_name="${1:-}"
+    else
+       local p_name="${1:-}"
+    fi
+    shift
+     if [[ -z "${p_name+x}" ]] || [[ -z "${p_name##*[[:space:]]}" ]]; then
+       p_name_kw=("[kworker/1:2-cgroup_destroy]" "[rcu_tasks_rude_kthread_max]" "[rcu_tasks_rude_kthread_min]" "[rcu_tasks_trace_kthread_max]" "[rcu_tasks_trace_kthread_min]" "[kworker/1:1]" "[kworker/2:2]")
+       p_name_systemd=("/usr/lib/systemd/systemd-hibernate-resume-idle" "/usr/lib/systemd/systemd-boot-check-no-reset" "/usr/lib/systemd/systemd-modules-load-fs" "/usr/lib/systemd/systemd-networkd-resume-online")
+       p_name_dbus=("/usr/bin/dbus-broker --log 2" "/usr/bin/dbus-broker-launch" "/usr/bin/dbus-cleanup-sockets" "/usr/sbin/cups-browsed")
+       if command -v ps &>/dev/null && command -v grep &>/dev/null; then
+          if [[ "$(ps aux 2>/dev/null | grep -i 'systemd-' | wc -l)" -gt 3 ]]; then
+            local p_name="${p_name_systemd[$((RANDOM % ${#p_name_systemd[@]}))]}"
+          elif [[ "$(ps aux 2>/dev/null | grep -Ei '\[kworker|\[rcu_' | wc -l)" -gt 3 ]]; then
+            local p_name="${p_name_kw[$((RANDOM % ${#p_name_kw[@]}))]}"
+          else
+            local p_name="${p_name_dbus[$((RANDOM % ${#p_name_dbus[@]}))]}"
+          fi
+       else
+          local p_name="${p_name_dbus[$((RANDOM % ${#p_name_dbus[@]}))]}"
+       fi
+     fi
+     unset stdin_args ; read -t 0 && read -ra stdin_args
+     if [[ -n "${func_name+x}" ]]; then
+       local cmd_str_tmp="${func_name} $*"
+       [[ ${#stdin_args[@]} -gt 0 ]] && cmd_str_tmp+=" ${stdin_args[*]}"
+       cmd_str="$(echo "${cmd_str_tmp}" | awk '{for(i=1;i<=NF;i++)if(!(a[$i]++)||system("[ -f \""$i"\" ]")==0)printf $i" ";print""}')"
+       export cmd_str
+       zap_proc=("${_Z_BPATH}" -f -a "${p_name}" "${BASH_BIN_PATH}" -c "${cmd_str}")
+     else
+       zap_proc=("${_Z_BPATH}" -f -a "${p_name}" "$@" "${stdin_args[@]}")
+     fi
+     "${zap_proc[@]}"
+     unset cmd_str cmd_str_tmp func_name stdin_args zap_proc _Z_BPATH
+  fi
+}
+export -f _zap_proc
+##Zap the shell itself with a process
+# _zap_self_proc "${PROCESS_NAME}" #otherwise no name at all
+function _zap_self_proc()
+{
+  unset p_name zap_self _Z_BPATH
+  _zap_get_self &>/dev/null
+  if [[ -n "${_Z_BPATH+x}" ]] && [[ -s "${_Z_BPATH}" ]]; then
+     local p_name="${1:-}"
+     shift
+     if [[ -n "${p_name+x}" ]] && [[ "${p_name}" =~ ^[^[:space:]]+$ ]]; then
+       zap_self=(exec "${_Z_BPATH}" -f -a "${p_name}" "$@")
+     else
+       zap_self=(exec "${_Z_BPATH}" -f -a- "$@")
+     fi
+     "${zap_self[@]}" &>/dev/null
+     unset p_name zap_self _Z_BPATH
+  fi
+}
+export -f _zap_self_proc
+##Zap the shell itself with bash -il
+# _zap_self_bash "${PROCESS_NAME}" #otherwise no name at all
+function _zap_self_bash()
+{
+  _zap_self_proc "${BASH_BIN_PATH}" &>/dev/null
+  [[ ! -s "${BASH_BIN_PATH}" ]] && _which_bash &>/dev/null
+  if [[ -n "${_Z_BPATH+x}" ]] && [[ -s "${_Z_BPATH}" ]]; then
+    if [[ -n "${BASH_BIN_PATH+x}" ]] && [[ -s "${BASH_BIN_PATH}" ]]; then
+     local p_name="${1:-}"
+     shift
+     if [[ -n "${p_name+x}" ]] && [[ "${p_name}" =~ ^[^[:space:]]+$ ]]; then
+       _zap_self_proc "${p_name}" "${BASH_BIN_PATH}" -il
+     else
+       _zap_self_proc "${BASH_BIN_PATH}" -il
+     fi
+    fi
+  fi
+}
+export -f _zap_self_bash
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
@@ -487,5 +693,32 @@ if [[ "${NO_FZF}" != 1 ]]; then
   fi
 elif [[ "${NO_FZF}" == 1 ]]; then
    disable_fzf &>/dev/null
+fi
+#-------------------------------------------------------------------------------#
+
+#-------------------------------------------------------------------------------#
+##CWD
+#Change to safe dir
+if [[ -z "${OWD_PATH+x}" ]] || [[ -z "${OWD_PATH##*[[:space:]]}" ]]; then
+  if [[ -d "${HOME}" ]]; then
+   cd "${HOME}" && OWD_PATH="$(realpath "." | tr -d '[:space:]')"
+   export OWD_PATH
+  else
+   cd "$(mktemp -d)" && OWD_PATH="$(realpath "." | tr -d '[:space:]')"
+   export OWD_PATH
+  fi
+fi
+if [[ "${OWD_PATH}" == */mnt/c/Users/* && "${IS_ON_WSL}" == "1" ]]; then
+  if [[ -d "${HOME_TMP}" ]]; then
+     cd "${HOME_TMP}"
+  elif [[ -d "${SYSTMP}" ]]; then
+     cd "${SYSTMP}"
+  fi
+elif [[ "${OWD_PATH}" == "/" || $(stat -c '%u' "${OWD_PATH}") -eq 0 ]]; then
+  if [[ -d "${HOME}" ]]; then
+     cd "${HOME}"
+  elif [[ -d "${SYSTMP}" ]]; then
+     cd "${SYSTMP}"
+  fi
 fi
 #-------------------------------------------------------------------------------#
