@@ -709,8 +709,8 @@ if [[ -z "${OWD_PATH+x}" ]] || [[ -z "${OWD_PATH##*[[:space:]]}" ]]; then
   fi
 fi
 if [[ "${OWD_PATH}" == */mnt/c/Users/* && "${IS_ON_WSL}" == "1" ]]; then
-  if [[ -d "${HOME_TMP}" ]]; then
-     cd "${HOME_TMP}"
+  if [[ -d "${HOMETMP}" ]]; then
+     cd "${HOMETMP}"
   elif [[ -d "${SYSTMP}" ]]; then
      cd "${SYSTMP}"
   fi
