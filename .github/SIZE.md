@@ -1,5 +1,5 @@
 ```mathematica
-516K └─┬ main
+520K └─┬ main
 300K   ├─┬ Github
 296K   │ └─┬ Runners
  64K   │   ├─┬ bootstrap
@@ -25,7 +25,7 @@
 8.0K   │   ├── run_linux.sh
 8.0K   │   ├── debloat_ubuntu.sh
 4.0K   │   └── debian-guix.dockerfile
-116K   ├─┬ Misc
+120K   ├─┬ Misc
  72K   │ ├─┬ User-Agents
  12K   │ │ ├── user_agents_all.txt
 4.0K   │ │ ├── ua_safari_macos_latest.txt
@@ -48,7 +48,7 @@
 4.0K   │ │ ├── setup_idx.nix
 4.0K   │ │ ├── setup_apptainer_colab.sh
 4.0K   │ │ └── change_hostname_colab.sh
-4.0K   │ └── remove_upx_info.sh
+8.0K   │ └── remove_upx_info.sh
  84K   ├─┬ Linux
  28K   │ ├── install_bins_curl.sh
  12K   │ ├── sshd_config_passwordless
