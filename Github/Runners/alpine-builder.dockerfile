@@ -619,6 +619,7 @@ RUN <<EOS
   apk add rdma-core-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add rng-tools --latest --upgrade --no-interactive 2>/dev/null
   apk add rng-tools-extra --latest --upgrade --no-interactive 2>/dev/null
+  apk add rpcgen --latest --upgrade --no-interactive 2>/dev/null
   apk add rsync --latest --upgrade --no-interactive 2>/dev/null
   apk add rubberband --latest --upgrade --no-interactive 2>/dev/null
   apk add rubberband-libs --latest --upgrade --no-interactive 2>/dev/null
@@ -764,10 +765,10 @@ RUN <<EOS
   set +e
  #askalono for Licenses
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/askalono" -O "/usr/bin/askalono"
-  sudo chmod +x "/usr/bin/askalono"
+  chmod "a+x" "/usr/bin/askalono"
  #Eget for simplified releases
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/eget" -O "/usr/bin/eget"
-  chmod +xwr "/usr/bin/eget"
+  chmod "a+x" "/usr/bin/eget"
  #Golang
   #pushd "$(mktemp -d)" >/dev/null 2>&1 && echo "yes" | bash <(curl -qfsSL "https://git.io/go-installer") && popd >/dev/null 2>&1
   cd "$(mktemp -d)" >/dev/null 2>&1
@@ -775,9 +776,12 @@ RUN <<EOS
   curl -qfsSL "https://git.io/go-installer" -o "./install.sh" && chmod +x "./install.sh"
   echo "yes" | bash "./install.sh"
   rm -rf "$(realpath .)" && cd - >/dev/null 2>&1 || true
-  #Micro
+ #Micro
   wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/micro" -O "/usr/bin/micro"
-  chmod +xwr "/usr/bin/micro"
+  chmod "a+x" "/usr/bin/micro"
+ #Soar
+  wget --quiet --show-progress "https://bin.pkgforge.dev/$(uname -m)/soar" -O "/usr/bin/soar"
+  chmod "a+x" "/usr/bin/soar"
  #musl-gcc wrapper
   ln --symbolic "/usr/bin/$(uname -m)-alpine-linux-musl-gcc" "/usr/local/bin/musl-gcc" 2>/dev/null
   true
