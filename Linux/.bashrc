@@ -49,7 +49,13 @@ if ! command -v curl &>/dev/null; then
 else
    export HAS_CURL="1"
 fi
-##Is on WSL
+##Is on Colab?
+IS_ON_COLAB="0"
+command -v colab_diagnose_me &>/dev/null && IS_ON_COLAB="1"
+command -v colab-fileshim.py &>/dev/null && IS_ON_COLAB="1"
+[[ -S "/tmp/colab_runtime.sock" ]] && IS_ON_COLAB="1"
+export IS_ON_COLAB
+##Is on WSL?
 IS_ON_WSL="0"
 [[ -n "${WSLENV+x}" ]] && IS_ON_WSL="1"
 [[ -s "/etc/wsl.conf" ]] && IS_ON_WSL="1"
