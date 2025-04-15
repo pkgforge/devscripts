@@ -55,6 +55,9 @@ RUN <<EOS
   apk add brotli-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add brotli-static --latest --upgrade --no-interactive 2>/dev/null
   apk add bsd-compat-headers --latest --upgrade --no-interactive 2>/dev/null
+  apk add btrfs-progs-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add btrfs-progs-libs --latest --upgrade --no-interactive 2>/dev/null
+  apk add btrfs-progs-static --latest --upgrade --no-interactive 2>/dev/null
   apk add build-base --latest --upgrade --no-interactive 2>/dev/null
   apk add bzip2 --latest --upgrade --no-interactive 2>/dev/null
   apk add bzip2-dev --latest --upgrade --no-interactive 2>/dev/null
@@ -170,6 +173,7 @@ RUN <<EOS
   apk add gnutls-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add gnutls-utils --latest --upgrade --no-interactive 2>/dev/null
   apk add gperf --latest --upgrade --no-interactive 2>/dev/null
+  apk add gpgme-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add gpsd-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add grep --latest --upgrade --no-interactive 2>/dev/null
   apk add gstreamer --latest --upgrade --no-interactive 2>/dev/null
