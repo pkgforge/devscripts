@@ -219,6 +219,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/soar" -o "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}"
 #speedtest-go : https://github.com/showwin/speedtest-go
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/speedtest-go" -o "${INSTALL_DIR}/speedtest-go" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/speedtest-go" "${INSTALL_STRATEGY}"
+#sstrip
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/sstrip" -o "${INSTALL_DIR}/sstrip" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/sstrip" "${INSTALL_STRATEGY}"
 #strace
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/strace" -o "${INSTALL_DIR}/strace" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/strace" "${INSTALL_STRATEGY}"
 #sttr: https://github.com/abhimanyu003/sttr
@@ -239,6 +241,8 @@ INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/trufflehog" -o "${INSTALL_DIR}/trufflehog" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/trufflehog" "${INSTALL_STRATEGY}"
 #trurl : https://github.com/curl/trurl
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/trurl" -o "${INSTALL_DIR}/trurl" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/trurl" "${INSTALL_STRATEGY}"
+#ulexec
+ eval "${INSTALL_PRE}" "${INSTALL_SRC}/ulexec" -o "${INSTALL_DIR}/ulexec" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ulexec" "${INSTALL_STRATEGY}"
 #unfurl : https://github.com/tomnomnom/unfurl 
  eval "${INSTALL_PRE}" "${INSTALL_SRC}/unfurl" -o "${INSTALL_DIR}/unfurl" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/unfurl" "${INSTALL_STRATEGY}"
 #upx : https://github.com/upx/upx
