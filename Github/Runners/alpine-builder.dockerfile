@@ -54,6 +54,7 @@ RUN <<EOS
   apk add brotli-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add brotli-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add brotli-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add bpftool --latest --upgrade --no-interactive 2>/dev/null
   apk add bsd-compat-headers --latest --upgrade --no-interactive 2>/dev/null
   apk add btrfs-progs-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add btrfs-progs-libs --latest --upgrade --no-interactive 2>/dev/null
@@ -457,12 +458,18 @@ RUN <<EOS
   apk add linux-pam-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add linux-tools --latest --upgrade --no-interactive 2>/dev/null
   apk add linux-tools-dev --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm16-dev --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm16-static --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm17 --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm17-libs --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm17-linker-tools --latest --upgrade --no-interactive 2>/dev/null
-  apk add llvm17-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm-libs --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm-linker-tools --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm19 --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm19-libs --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm19-linker-tools --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm19-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm20 --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm20-libs --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm20-linker-tools --latest --upgrade --no-interactive 2>/dev/null
+  apk add llvm20-static --latest --upgrade --no-interactive 2>/dev/null
   apk add lm-sensors --latest --upgrade --no-interactive 2>/dev/null
   apk add lm-sensors-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add lm-sensors-libs --latest --upgrade --no-interactive 2>/dev/null
