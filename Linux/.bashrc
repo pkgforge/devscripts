@@ -436,6 +436,7 @@ export -f pack_exe
 ##Source the bashrc file & reload env
 function refreshenv()
 {
+  hash -r &>/dev/null
   local BASHRC_FILE="$(realpath "${HOME}/.bashrc" | tr -d '[:space:]')"
   if [[ -f "${BASHRC_FILE}" ]]; then
    source "${BASHRC_FILE}"
