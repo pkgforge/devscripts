@@ -178,7 +178,7 @@ jobs:
      #continuous
       - name: Releaser (Continuous)
         if: env.HAS_COMMON == 'TRUE'
-        uses: softprops/action-gh-release@v2.2.1
+        uses: softprops/action-gh-release@v2.2.2
         with:
           name: "Common Utils"
           tag_name: "common-utils"
