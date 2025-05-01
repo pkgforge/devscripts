@@ -453,6 +453,8 @@ RUN <<EOS
   apk add libzip-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add libzmq --latest --upgrade --no-interactive 2>/dev/null
   apk add libzmq-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add lld --latest --upgrade --no-interactive 2>/dev/null
+  apk add lld-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add linux-headers --latest --upgrade --no-interactive 2>/dev/null
   apk add linux-pam --latest --upgrade --no-interactive 2>/dev/null
   apk add linux-pam-dev --latest --upgrade --no-interactive 2>/dev/null
