@@ -527,6 +527,8 @@ RUN <<EOS
   apk add ndctl-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add ndctl-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add netcat-openbsd --latest --upgrade --no-interactive 2>/dev/null
+  apk add net-snmp-dev --latest --upgrade --no-interactive 2>/dev/null
+  apk add net-snmp-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add nettle --latest --upgrade --no-interactive 2>/dev/null
   apk add nettle-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add nettle-static --latest --upgrade --no-interactive 2>/dev/null
@@ -613,6 +615,7 @@ RUN <<EOS
   apk add readline --latest --upgrade --no-interactive 2>/dev/null
   apk add readline-dev --latest --upgrade --no-interactive 2>/dev/null
   apk add readline-static --latest --upgrade --no-interactive 2>/dev/null
+  apk add scdoc --latest --upgrade --no-interactive 2>/dev/null
   apk add spirv-headers --latest --upgrade --no-interactive 2>/dev/null
   apk add spirv-tools --latest --upgrade --no-interactive 2>/dev/null
   apk add spirv-tools-dev --latest --upgrade --no-interactive 2>/dev/null
