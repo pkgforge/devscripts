@@ -17,6 +17,7 @@
    [[ ! -d "${SYSTMP}" ]] && mkdir -p "${SYSTMP}"
    export SYSTMP
  fi
+ mkdir -p "${SYSTMP}/emtpy"
 ##Track Time 
  echo -e "\n==> [+] Started Initiating at :: $(TZ='UTC' date +'%A, %Y-%m-%d (%I:%M:%S %p)') UTC\n"
  START_TIME="$(date '+%s')"
@@ -42,7 +43,7 @@
 ##Check
  yes "y" | sudo bash -c "whoami" &>/dev/null
  hash -r &>/dev/null
- for DEP_CMD in g++ rsync sudo tar xz; do
+ for DEP_CMD in find g++ rsync sudo tar xz; do
     case "$(command -v "${DEP_CMD}" 2>/dev/null)" in
         "") echo -e "\n[✗] FATAL: ${DEP_CMD} is NOT INSTALLED\n"
            exit 1 ;;
@@ -106,10 +107,7 @@
        if [[ -d "/ix/trash" ]]; then
          echo -e "\n[BG] Purging '/ix/trash'"
          du -sh "/ix/trash" 2>/dev/null ; echo -e "\n"
-         sudo rsync -a --delete --exclude='.*' "/dev/null/" "/ix/trash/" &>/dev/null
-         #sudo rm -rf "/ix/trash" &>/dev/null
-         #sudo mkdir -p "/ix/trash"
-         #sudo chown --recursive "root" "/ix/trash" &>/dev/null
+         find "/ix/trash" -mindepth 1 -delete &>/dev/null
        fi
        sleep 120
      done
@@ -140,9 +138,7 @@
  sudo kill -9 "${bg_pid}" 2>/dev/null
  if [[ -d "/ix/trash" ]]; then
    echo -e "\n[BG] Purging '/ix/trash'\n"
-   sudo rm -rvf "/ix/trash" &>/dev/null
-   sudo mkdir -p "/ix/trash"
-   sudo chown --recursive "root" "/ix/trash" &>/dev/null
+   find "/ix/trash" -mindepth 1 -delete &>/dev/null
  fi
 ##Calc Time
  END_TIME="$(date '+%s')"
