@@ -32,13 +32,13 @@
  fi
  if command -v apk &>/dev/null; then
    apk update ; apk upgrade --no-interactive 2>/dev/null
-   apk add 7zip bash binutils build-base coreutils fakeroot findutils file g++ gcompat git grep \
+   apk add 7zip bash binutils build-base coreutils curl fakeroot findutils file g++ gcompat git grep \
      jq libc-dev linux-headers lld llvm moreutils parted python3 rsync sudo tar tree util-linux xz zstd --latest --upgrade --no-interactive 2>/dev/null
  elif command -v apt &>/dev/null; then
    export DEBIAN_FRONTEND="noninteractive"
    apt update -y -qq ; apt upgrade -y -qq
    apt install bash binutils build-essential coreutils curl findutils file g++ git grep jq libc-dev \
-     moreutils patchelf python3 rsync sed sudo strace tar tree xz-utils zstd -y -qq 2>/dev/null
+     moreutils patchelf python3 rsync sed sudo strace tar tree wget xz-utils zstd -y -qq 2>/dev/null
  fi
 ##Check
  yes "y" | sudo bash -c "whoami" &>/dev/null
@@ -78,7 +78,7 @@
          chmod 'a+x' "${HOME}/ix/ix"
          echo '#!/usr/bin/env bash' | sudo tee "/usr/local/bin/ix"
          echo -e "\nc_wd=\"\$(realpath .)\"" | sudo tee -a "/usr/local/bin/ix"
-         echo -e "export PATH=\"\${PATH}:/ix/realm/boot/bin\"" | sudo tee -a "/usr/local/bin/ix"
+         echo -e "export PATH=\"\${PATH}:/ix/realm/root/bin\"" | sudo tee -a "/usr/local/bin/ix"
          echo "cd ~/ix && \\" | sudo tee -a "/usr/local/bin/ix"
          echo "sudo --non-interactive \"$(realpath ${HOME}/ix/ix)\" \$@" | sudo tee -a "/usr/local/bin/ix"
          echo "cd \"\${c_wd}\"" | sudo tee -a "/usr/local/bin/ix"
@@ -125,7 +125,8 @@
    #Install a dummy pkg & Check
     ix run "bin/nano" -- nano --version ||\
      {
-      echo -e "\n[✗] FATAL: 'ix' is probably Broken\n" ; exit 1
+       echo -e "\n[✗] FATAL: 'ix' is probably Broken\n"
+      exit 1
      }
  else
    echo -e "\n[✗] FATAL: 'ix' is NOT Installed\n"
