@@ -11,6 +11,16 @@
  if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
    set -x
  fi
+##SYSTMP
+ if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
+   SYSTMP="$(dirname "$(mktemp -u)" | tr -d '[:space:]')"
+   [[ ! -d "${SYSTMP}" ]] && mkdir -p "${SYSTMP}"
+   export SYSTMP
+ fi
+##Track Time 
+ echo -e "\n==> [+] Started Initiating at :: $(TZ='UTC' date +'%A, %Y-%m-%d (%I:%M:%S %p)') UTC\n"
+ START_TIME="$(date '+%s')"
+ export START_TIME
 #-------------------------------------------------------#
 
 #-------------------------------------------------------#
@@ -28,12 +38,11 @@
    apt update -y -qq ; apt upgrade -y -qq
    apt install bash binutils build-essential coreutils curl findutils file g++ git grep jq libc-dev \
      moreutils patchelf python3 rsync sed sudo strace tar tree xz-utils zstd -y -qq 2>/dev/null
-   echo "root    ALL=(ALL:ALL) ALL" | sudo tee -a "/etc/sudoers"
  fi
 ##Check
- yes "y" | sudo bash -c "whoami" 2>/dev/null
+ yes "y" | sudo bash -c "whoami" &>/dev/null
  hash -r &>/dev/null
- for DEP_CMD in g++ tar sudo xz; do
+ for DEP_CMD in g++ rsync sudo tar xz; do
     case "$(command -v "${DEP_CMD}" 2>/dev/null)" in
         "") echo -e "\n[✗] FATAL: ${DEP_CMD} is NOT INSTALLED\n"
            exit 1 ;;
@@ -97,20 +106,29 @@
        if [[ -d "/ix/trash" ]]; then
          echo -e "\n[BG] Purging '/ix/trash'"
          du -sh "/ix/trash" 2>/dev/null ; echo -e "\n"
-         sudo rm -rf "/ix/trash" &>/dev/null
+         sudo rsync -a --delete --exclude='.*' "/dev/null/" "/ix/trash/" &>/dev/null
+         #sudo rm -rf "/ix/trash" &>/dev/null
+         #sudo mkdir -p "/ix/trash"
+         #sudo chown --recursive "root" "/ix/trash" &>/dev/null
        fi
        sleep 120
-     done  
+     done
    ) &
    bg_pid=$!
    ix mut "bin/ix"
-   echo -e "\n" && ix gc lnk url
-   if [[ -d "/ix" ]] && [[ "$(du -s "/ix" | cut -f1)" -gt 1000 ]]; then
-     du -sh "/ix"
-   else
-     echo -e "\n[✗] FATAL: '/ix' is probably Broken\n"
-     exit 1
-   fi
+   #echo -e "\n" && ix gc lnk url
+   #Check Dir Size
+    if [[ -d "/ix" ]] && [[ "$(du -s "/ix" | cut -f1)" -gt 1000 ]]; then
+      du -sh "/ix"
+    else
+      echo -e "\n[✗] FATAL: '/ix' is probably Broken\n"
+      exit 1
+    fi
+   #Install a dummy pkg & Check
+    ix run "bin/nano" -- nano --version ||\
+     {
+      echo -e "\n[✗] FATAL: 'ix' is probably Broken\n" ; exit 1
+     }
  else
    echo -e "\n[✗] FATAL: 'ix' is NOT Installed\n"
    exit 1
@@ -126,6 +144,14 @@
    sudo mkdir -p "/ix/trash"
    sudo chown --recursive "root" "/ix/trash" &>/dev/null
  fi
+##Calc Time
+ END_TIME="$(date '+%s')"
+ ELAPSED_TIME="$(date -u -d@"$((END_TIME - START_TIME))" "+%H(Hr):%M(Min):%S(Sec)")"
+ echo -e "\n[+] Completed Initiating Stal/IX :: ${ELAPSED_TIME}"
+ echo -e "==> [+] Finished Initiating at :: $(TZ='UTC' date +'%A, %Y-%m-%d (%I:%M:%S %p)') UTC\n"
+##Denote Status
+ echo "INITIALIZED" > "${SYSTMP}/INITIALIZED"
+##Disable Debug? 
  if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
    set -x
  fi
