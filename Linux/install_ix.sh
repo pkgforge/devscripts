@@ -137,6 +137,8 @@
 #-------------------------------------------------------#
 ##Cleanup
  sudo kill -9 "${bg_pid}" 2>/dev/null
+ sudo pkill -9 -f "while true.*ix/trash" 2>/dev/null
+ sudo pkill -9 -f "sleep 120*" 2>/dev/null
  if [[ -d "/ix/trash" ]]; then
    echo -e "\n[BG] Purging '/ix/trash'\n"
    find "/ix/trash" -mindepth 1 -delete &>/dev/null
