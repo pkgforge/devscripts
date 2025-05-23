@@ -69,10 +69,19 @@
 ##Install: https://stal-ix.github.io/IX.html
 #        : https://stal-ix.github.io/IX_standalone
  if [[ -d "${HOME}" ]]; then
-    pushd "${HOME}" &>/dev/null && \
-    sudo rm -rvf "/ix" 2>/dev/null
-    rm -rvf "${HOME}/ix" 2>/dev/null
-    git clone --depth="1" --filter="blob:none" --quiet "${GIT_REPO:-https://github.com/stal-ix/ix}"
+    pushd "${HOME}" &>/dev/null
+   #Purge Previous Install 
+    if [[ "${RESET_ALL}" = "1" ]] || [[ "${RESET_ALL}" = "ON" ]]; then
+      sudo rm -rvf "/ix" 2>/dev/null
+      rm -rvf "${HOME}/ix" 2>/dev/null
+    fi
+   #Reset/Clone Repo 
+    if [[ -d "${HOME}/ix/.git" ]]; then
+      git -C "${HOME}/ix/" reset --hard
+    else
+      git clone --depth="1" --filter="blob:none" --quiet "${GIT_REPO:-https://github.com/stal-ix/ix}"
+    fi
+   #Create Launcher 
     if [[ -d "${HOME}/ix" ]] && [[ "$(du -s "${HOME}/ix" | cut -f1)" -gt 10 ]]; then
        if [[ -s "${HOME}/ix/ix" ]]; then
          chmod 'a+x' "${HOME}/ix/ix"
