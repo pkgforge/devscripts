@@ -78,6 +78,8 @@
    #Reset/Clone Repo 
     if [[ -d "${HOME}/ix/.git" ]]; then
       git -C "${HOME}/ix/" reset --hard
+      git -C "${HOME}/ix/" fetch --all
+      git -C "${HOME}/ix/" reset --hard "origin/$(git -C "${HOME}/ix/" rev-parse --abbrev-ref 'HEAD')"
     else
       git clone --depth="1" --filter="blob:none" --quiet "${GIT_REPO:-https://github.com/stal-ix/ix}"
     fi
