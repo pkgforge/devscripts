@@ -12,7 +12,7 @@ RUN <<EOS
   set +e
   apk update --no-interactive 2>/dev/null
   apk upgrade --latest --no-interactive 2>/dev/null
-  apk add 7zip bash binutils build-base coreutils curl fakeroot findutils file g++ gcompat git grep jq libc-dev linux-headers lld llvm moreutils parted python3 rsync sudo tar tree util-linux wget xz zstd --latest --upgrade --no-interactive
+  apk add 7zip bash binutils build-base coreutils curl fakeroot findutils file g++ gcompat git grep iputils jq libc-dev linux-headers lld llvm moreutils parted python3 rsync sudo tar tree util-linux wget xz zstd --latest --upgrade --no-interactive
   hash -r 2>/dev/null || true
  #Checks
   command -v bash || exit 1
@@ -48,7 +48,7 @@ RUN <<EOS
  #Install
   cd "$(mktemp -d)" >/dev/null 2>&1
   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_ix.sh" -o "./install.sh" && chmod +x "./install.sh"
-  bash "./install.sh"
+  bash "./install.sh" || true
   rm -rf "$(realpath .)" && cd - >/dev/null 2>&1 || true
  #Check
   if [ -z "${SYSTMP+x}" ] || [ -z "${SYSTMP##*[[:space:]]}" ]; then
@@ -67,8 +67,8 @@ RUN <<EOS
  #Configure ENV
   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc" -o "/etc/bash.bashrc"
   ln --symbolic --force "/etc/bash.bashrc" "/root/.bashrc" 2>/dev/null
-  ln --symbolic --force "/etc/bash.bashrc" "/home/alpine/.bashrc" 2>/dev/null
   ln --symbolic --force "/etc/bash.bashrc" "/etc/bash/bashrc" 2>/dev/null
+  true
 EOS
 ENV GIT_ASKPASS="/bin/echo"
 ENV GIT_TERMINAL_PROMPT="0"

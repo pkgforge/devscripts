@@ -23,6 +23,12 @@ RUN <<EOS
   #Install Actual Deps
   packages="bash binutils build-essential coreutils curl findutils file g++ git grep jq libc-dev moreutils patchelf python3 rsync sed sudo strace tar tree wget xz-utils zstd"
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
+  #NetTools
+  packages="dnsutils inetutils-ftp inetutils-ftpd inetutils-inetd inetutils-ping inetutils-syslogd inetutils-tools inetutils-traceroute iproute2 net-tools netcat-traditional"
+  for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
+  packages="iputils-arping iputils-clockdiff iputils-ping iputils-tracepath iproute2"
+  for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
+  setcap 'cap_net_raw+ep' "$(which ping)"
   hash -r 2>/dev/null || true
  #Checks
   command -v bash || exit 1
@@ -58,7 +64,7 @@ RUN <<EOS
  #Install
   cd "$(mktemp -d)" >/dev/null 2>&1
   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_ix.sh" -o "./install.sh" && chmod +x "./install.sh"
-  bash "./install.sh"
+  bash "./install.sh" || true
   rm -rf "$(realpath .)" && cd - >/dev/null 2>&1 || true
  #Check
   if [ -z "${SYSTMP+x}" ] || [ -z "${SYSTMP##*[[:space:]]}" ]; then
@@ -77,10 +83,21 @@ RUN <<EOS
  #Configure ENV
   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/.bashrc" -o "/etc/bash.bashrc"
   ln --symbolic --force "/etc/bash.bashrc" "/root/.bashrc" 2>/dev/null
-  ln --symbolic --force "/etc/bash.bashrc" "/home/alpine/.bashrc" 2>/dev/null
   ln --symbolic --force "/etc/bash.bashrc" "/etc/bash/bashrc" 2>/dev/null
+ #Locale
+  echo "LC_ALL=en_US.UTF-8" | tee -a "/etc/environment"
+  echo "en_US.UTF-8 UTF-8" | tee -a "/etc/locale.gen"
+  echo "LANG=en_US.UTF-8" | tee -a "/etc/locale.conf"
+  locale-gen "en_US.UTF-8"
+ #Dialog
+  echo "debconf debconf/frontend select Noninteractive" | debconf-set-selections
+  debconf-show debconf
+  true
 EOS
 ENV GIT_ASKPASS="/bin/echo"
 ENV GIT_TERMINAL_PROMPT="0"
+ENV LANG="en_US.UTF-8"
+ENV LANGUAGE="en_US:en"
+ENV LC_ALL="en_US.UTF-8"
 #------------------------------------------------------------------------------------#
 #END
