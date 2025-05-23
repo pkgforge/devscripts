@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/alpine-ix
-FROM alpine:edge
+#FROM alpine:edge
+ARG ARCH
+FROM "pkgforge/alpine-ix:${ARCH}"
 ENV GIT_REPO="https://github.com/pg83/ix"
 #ENV GIT_REPO="https://github.com/stal-ix/ix"
 #------------------------------------------------------------------------------------#

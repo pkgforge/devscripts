@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/debian-ix
-FROM debian:unstable
+#FROM debian:unstable
+ARG ARCH
+FROM "pkgforge/debian-ix:${ARCH}"
 ENV GIT_REPO="https://github.com/pg83/ix"
 #ENV GIT_REPO="https://github.com/stal-ix/ix"
 #------------------------------------------------------------------------------------#

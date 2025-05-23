@@ -115,7 +115,7 @@
    pushd "${HOME}/ix" &>/dev/null
    (
      while true; do
-       if [[ -d "/ix/trash" ]]; then
+       if [[ -d "/ix/trash" ]] && [[ "$(du -s "/ix/trash" | cut -f1)" -gt 1000 ]]; then
          echo -e "\n[BG] Purging '/ix/trash'"
          du -sh "/ix/trash" 2>/dev/null ; echo -e "\n"
          find "/ix/trash" -mindepth 1 -delete &>/dev/null
@@ -150,7 +150,7 @@
  sudo kill -9 "${bg_pid}" 2>/dev/null
  sudo pkill -9 -f "while true.*ix/trash" 2>/dev/null
  sudo pkill -9 -f "sleep 120*" 2>/dev/null
- if [[ -d "/ix/trash" ]]; then
+ if [[ -d "/ix/trash" ]] && [[ "$(du -s "/ix/trash" | cut -f1)" -gt 1000 ]]; then
    echo -e "\n[BG] Purging '/ix/trash'\n"
    find "/ix/trash" -mindepth 1 -delete &>/dev/null
  fi
