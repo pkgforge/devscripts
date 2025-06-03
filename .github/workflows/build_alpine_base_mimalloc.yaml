@@ -85,7 +85,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: "/tmp/alpine-base-mimalloc"
-          platforms: "linux/amd64,linux/arm64"
+          platforms: "linux/amd64,linux/arm64,linux/riscv64"
           tags: |
             pkgforge/alpine-base-mimalloc:edge
             pkgforge/alpine-base-mimalloc:${{ env.DOCKER_TAG }}
