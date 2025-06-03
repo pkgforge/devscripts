@@ -465,6 +465,9 @@ jobs:
           - arch: aarch64
             platform: arm64
             runner: ubuntu-24.04-arm
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
           - arch: x86_64
             platform: amd64
             runner: ubuntu-latest
@@ -544,6 +547,9 @@ jobs:
           - arch: aarch64
             platform: arm64
             runner: ubuntu-24.04-arm
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
           - arch: x86_64
             platform: amd64
             runner: ubuntu-latest
