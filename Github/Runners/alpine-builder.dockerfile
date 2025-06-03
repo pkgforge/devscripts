@@ -641,6 +641,9 @@ RUN <<EOS
   apk add rubberband-libs --latest --upgrade --no-interactive 2>/dev/null
   apk add rubberband-static --latest --upgrade --no-interactive 2>/dev/null
   apk add rustup --latest --upgrade --no-interactive 2>/dev/null ; rustup-init -y
+  #https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/rustup/APKBUILD#L8
+  hash -r &>/dev/null
+  command -v cargo || apk add cargo --latest --upgrade --no-interactive 2>/dev/null
   apk add samurai --latest --upgrade --no-interactive 2>/dev/null
   apk add scons --latest --upgrade --no-interactive 2>/dev/null
   apk add screen --latest --upgrade --no-interactive 2>/dev/null
