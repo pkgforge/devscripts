@@ -103,7 +103,7 @@ EOS
 ##Install Docker
 RUN <<EOS
   #Install Docker
-  if [ "$(uname -m)" == "riscv64" ]; then
+  if [ "$(uname -m)" = "riscv64" ]; then
     apt update -y -qq
     apt install "docker.io" -y
   else
