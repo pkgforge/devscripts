@@ -2,8 +2,8 @@
 #------------------------------------------------------------------------------------#
 # Usage: https://github.com/pkgforge/devscripts/blob/main/Github/Runners/README.md
 #
-FROM ubuntu:latest
-#FROM ubuntu:jammy
+#FROM ubuntu:latest
+FROM "ghcr.io/pkgforge/devscripts/ubuntu-builder:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Base Deps
 ENV DEBIAN_FRONTEND="noninteractive"
