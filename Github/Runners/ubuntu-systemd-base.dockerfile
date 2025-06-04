@@ -3,6 +3,7 @@
 # Usage: https://github.com/pkgforge/devscripts/blob/main/Github/Runners/README.md
 #
 #FROM ubuntu:latest
+ARG ARCH
 FROM "ghcr.io/pkgforge/devscripts/ubuntu-builder:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Base Deps
