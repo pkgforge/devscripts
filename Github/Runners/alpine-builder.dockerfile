@@ -803,6 +803,15 @@ RUN <<EOS
   chmod "a+x" "/usr/bin/soar"
  #musl-gcc wrapper
   ln --symbolic "/usr/bin/$(uname -m)-alpine-linux-musl-gcc" "/usr/local/bin/musl-gcc" 2>/dev/null
+ #Zig
+  hash -r &>/dev/null
+  if ! command -v zig >/dev/null 2>&1; then
+    cd "$(mktemp -d)" >/dev/null 2>&1
+    curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_zig.sh" -o "./install_zig.sh"
+    dos2unix --quiet "./install_zig.sh" ; chmod +x "./install_zig.sh"
+    bash "./install_zig.sh" 2>/dev/null || true ; rm -rf "./install_zig.sh"
+  fi
+ #Exit
   true
 EOS
 #------------------------------------------------------------------------------------#
