@@ -103,10 +103,15 @@ EOS
 ##Install Docker
 RUN <<EOS
   #Install Docker
-  rm -rf "/var/lib/apt/lists/"*
-  cd "$(mktemp -d)" >/dev/null 2>&1
-  curl -qfsSL "https://get.docker.com" -o "./get-docker.sh" && sh "./get-docker.sh"
-  cd - >/dev/null 2>&1
+  if [ "$(uname -m)" == "riscv64" ]; then
+    apt update -y -qq
+    apt install "docker.io" -y
+  else
+    rm -rf "/var/lib/apt/lists/"*
+    cd "$(mktemp -d)" >/dev/null 2>&1
+    curl -qfsSL "https://get.docker.com" -o "./get-docker.sh" && sh "./get-docker.sh"
+    cd - >/dev/null 2>&1
+  fi
  #Add runner to docker
   usermod -aG "docker" "runner"
  #Add Docker Completions
