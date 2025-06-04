@@ -137,7 +137,9 @@ RUN <<EOS
   apt update -y
   packages="aria2 automake bc binutils b3sum build-essential ca-certificates ccache diffutils dos2unix findutils gawk lzip jq libtool libtool-bin make musl musl-dev musl-tools p7zip-full rsync texinfo wget xz-utils"
   for pkg in $packages; do apt install -y --ignore-missing "$pkg"; done
-  apt install python3 -y
+  apt install apt-transport-https apt-utils aria2 autoconf automake autopoint b3sum bc binutils bison build-essential byacc ca-certificates ccache clang cmake coreutils devscripts diffutils dos2unix file flex gawk git-lfs gnupg2 imagemagick jq liblz-dev libpcap-dev librust-lzma-sys-dev libsqlite3-dev libtool libtool-bin libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev lm-sensors lzip lzma lzma-dev make moreutils musl musl-dev musl-tools netcat-traditional net-tools p7zip-full patch patchelf pcaputils pciutils pkg-config procps python3-distro python3-netifaces python3-pip python3-venv qemu-user-static rsync scons software-properties-common sqlite3 sqlite3-pcre sqlite3-tools sysfsutils texinfo tree util-linux virt-what wget xcb -y --ignore-missing 2>/dev/null
+  apt install apt-transport-https apt-utils aria2 autoconf automake autopoint b3sum bc binutils bison build-essential byacc ca-certificates ccache clang cmake coreutils devscripts diffutils dos2unix file flex gawk git-lfs gnupg2 imagemagick jq liblz-dev libpcap-dev librust-lzma-sys-dev libsqlite3-dev libtool libtool-bin libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev lm-sensors lzip lzma lzma-dev make moreutils musl musl-dev musl-tools netcat-traditional net-tools p7zip-full patch patchelf pcaputils pciutils pkg-config procps python3-distro python3-netifaces python3-pip python3-venv qemu-user-static rsync scons software-properties-common sqlite3 sqlite3-pcre sqlite3-tools sysfsutils texinfo tree util-linux virt-what wget xcb -y --ignore-missing 2>/dev/null
+  true
 EOS
 #------------------------------------------------------------------------------------#
 
@@ -224,18 +226,18 @@ RUN <<EOS
 EOS
 #------------------------------------------------------------------------------------#
 
-#------------------------------------------------------------------------------------#
-##Install Podman
-RUN <<EOS
-  #Install Podman
-  VERSION="$(grep -oP 'VERSION_ID="\K[^"]+' "/etc/os-release")"
-  echo "deb http://download.opensuse.org/repositories/home:/alvistack/xUbuntu_${VERSION}/ /" | tee "/etc/apt/sources.list.d/home:alvistack.list"
-  curl -fsSL "https://download.opensuse.org/repositories/home:alvistack/xUbuntu_${VERSION}/Release.key" | gpg --dearmor | tee "/etc/apt/trusted.gpg.d/home_alvistack.gpg" >/dev/null
-  apt update -y -qq ; apt install podman -y 2>/dev/null || true
-  apt-get install containernetworking-plugins podman-netavark -y 2>/dev/null || true
-  systemctl enable podman --now 2>/dev/null || true
-EOS
-#------------------------------------------------------------------------------------#
+##------------------------------------------------------------------------------------#
+###Install Podman
+#RUN <<EOS
+#  #Install Podman
+#  VERSION="$(grep -oP 'VERSION_ID="\K[^"]+' "/etc/os-release")"
+#  echo "deb http://download.opensuse.org/repositories/home:/alvistack/xUbuntu_${VERSION}/ /" | tee "/etc/apt/sources.list.d/home:alvistack.list"
+#  curl -fsSL "https://download.opensuse.org/repositories/home:alvistack/xUbuntu_${VERSION}/Release.key" | gpg --dearmor | tee "/etc/apt/trusted.gpg.d/home_alvistack.gpg" >/dev/null
+#  apt update -y -qq ; apt install podman -y 2>/dev/null || true
+#  apt-get install containernetworking-plugins podman-netavark -y 2>/dev/null || true
+#  systemctl enable podman --now 2>/dev/null || true
+#EOS
+##------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
 #Start
