@@ -56,6 +56,8 @@
    ARCH="$(uname -m)" && export ARCH="${ARCH}"
    if [ "${ARCH}" == "aarch64" ]; then
        INSTALL_SRC="https://bin.pkgforge.dev/aarch64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
+   elif [ "${ARCH}" == "riscv64" ]; then
+       INSTALL_SRC="https://bin.pkgforge.dev/riscv64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
    elif [ "${ARCH}" == "x86_64" ]; then
        INSTALL_SRC="https://bin.pkgforge.dev/x86_64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
    fi
