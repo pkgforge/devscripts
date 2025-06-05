@@ -29,7 +29,10 @@ if [[ "$(uname -m | tr -d '[:space:]')" == "riscv64" ]]; then
  #Enable Experimental Features
   sudo mkdir -p "/etc/nix"
   echo "experimental-features = nix-command flakes" | sudo tee -a "/etc/nix/nix.conf"
-  mkdir -p "${HOME}/.config"
+  echo "require-sigs = false" | sudo tee -a "/etc/nix/nix.conf"
+  echo "substituters = https://cache.nixos.org/ https://cache.nichi.co https://cache.ztier.in" | sudo tee -a "/etc/nix/nix.conf"
+  echo "trusted-substituters = https://cache.nixos.org/ https://cache.nichi.co https://cache.ztier.in" | sudo tee -a "/etc/nix/nix.conf"
+  mkdir -p "${HOME}/.config/nix"
   ln -fsv "/etc/nix/nix.conf" "${HOME}/.config/nix/nix.conf"
 else
  ##https://github.com/DeterminateSystems/nix-installer
@@ -53,7 +56,10 @@ else
    export NIXPKGS_ALLOW_UNFREE="1"
    export NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM="1"
   #Update Channels
-   nix --version && nix-channel --list && nix-channel --update
+   nix --version
+   nix-channel --add "https://nixos.org/channels/nixos-unstable" "nixedge"
+   nix-channel --list && nix-channel --update
+   nix registry add "nixpkgs" "github:NixOS/nixpkgs/nixpkgs-unstable" ; nix registry list
   #Seed Local Data 
    nix derivation show "nixpkgs#hello" --impure --refresh --quiet
   #Build Bash (triggers bootstrap)
