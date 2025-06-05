@@ -165,12 +165,14 @@ RUN <<EOS
   #----------------------#
   #Nix
    hash -r &>/dev/null
-   if ! command -v nix >/dev/null 2>&1; then
-     cd "$(mktemp -d)" >/dev/null 2>&1
-     curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_nix.sh" -o "./install_nix.sh"
-     dos2unix --quiet "./install_nix.sh" ; chmod +x "./install_nix.sh"
-     bash "./install_nix.sh" 2>/dev/null || true ; rm -rf "./install_nix.sh"
-   fi
+   sudo -u "runner" bash -c \
+   '
+   pushd "$(mktemp -d)" &>/dev/null
+   curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_nix.sh" -o "./install_nix.sh"
+   dos2unix --quiet "./install_nix.sh" ; chmod +x "./install_nix.sh"
+   bash "./install_nix.sh" || true
+   rm -rf "$(realpath .)" ; popd &>/dev/null
+   ' || true
   #----------------------#
   #patchelf
   curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)/patchelf" -o "/usr/bin/patchelf" && chmod +x "/usr/bin/patchelf"
