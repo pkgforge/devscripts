@@ -21,8 +21,9 @@ case "$(uname -m)" in
     armv6l) ARCH="armv6l" ;;
     armv7l) ARCH="armv6l" ;;
     i?86) ARCH="386" ;;
-    s390x) ARCH="s390x" ;;
     ppc64le) ARCH="ppc64le" ;;
+    riscv64) ARCH="riscv64" ;;
+    s390x) ARCH="s390x" ;;
     x86_64) ARCH="amd64" ;;
     *) echo "[-] Unsupported architecture: $(uname -m)" && exit 1 ;;
 esac
