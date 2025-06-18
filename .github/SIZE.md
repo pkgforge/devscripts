@@ -1,5 +1,5 @@
 ```mathematica
-548K └─┬ main
+552K └─┬ main
 312K   ├─┬ Github
 308K   │ └─┬ Runners
  64K   │   ├─┬ bootstrap
@@ -51,7 +51,7 @@
 4.0K   │ │ ├── setup_apptainer_colab.sh
 4.0K   │ │ └── change_hostname_colab.sh
 8.0K   │ └── remove_upx_info.sh
-100K   ├─┬ Linux
+104K   ├─┬ Linux
  28K   │ ├── install_bins_curl.sh
  12K   │ ├── sshd_config_passwordless
  12K   │ ├── sshd_config
@@ -61,6 +61,7 @@
 4.0K   │ ├── install_zig.sh
 4.0K   │ ├── install_node_x86_64.sh
 4.0K   │ ├── install_nix.sh
+4.0K   │ ├── install_golang.sh
 4.0K   │ ├── gentoo.conf
 4.0K   │ └── DAGU_CRON.md
 8.0K   ├── README.md
