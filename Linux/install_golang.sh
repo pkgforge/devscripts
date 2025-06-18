@@ -38,6 +38,24 @@ done
 
 #-------------------------------------------------------#
 ##Install
+#Check if Go is already installed and remove it
+if command -v go >/dev/null 2>&1; then
+    EXISTING_GO="$(command -v go)"
+    EXISTING_GOROOT="$(go env GOROOT 2>/dev/null || echo "")"
+    echo "[!] Found existing Go installation at: ${EXISTING_GO}"
+    [[ -n "${EXISTING_GOROOT}" ]] && echo "[!] GOROOT: ${EXISTING_GOROOT}"
+    
+    # Remove from common system locations
+    for sys_path in "/usr/local/go" "/usr/go" "/opt/go"; do
+        [[ -d "${sys_path}" ]] && { echo "[!] Removing system Go: ${sys_path}" && sudo rm -rf "${sys_path}"; }
+    done
+    
+    # Remove from user locations
+    [[ -n "${EXISTING_GOROOT}" && -d "${EXISTING_GOROOT}" && "${EXISTING_GOROOT}" != "${GO_DIR}" ]] && {
+        echo "[!] Removing existing GOROOT: ${EXISTING_GOROOT}"
+        rm -rf "${EXISTING_GOROOT}"
+    }
+fi
 #Clean Existing
 [[ -d "${GO_DIR}" ]] && rm -rf "${GO_DIR}"
 [[ -d "${GO_BIN_DIR}" ]] && rm -rf "${GO_BIN_DIR}"
