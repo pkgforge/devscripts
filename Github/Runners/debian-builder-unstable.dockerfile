@@ -163,7 +163,7 @@ RUN <<EOS
   cd "$(mktemp -d)" >/dev/null 2>&1 ; realpath .
   curl -qfsSL "https://sh.rustup.rs" -o "./install.sh"
   dos2unix --quiet "./install.sh" && chmod +x "./install.sh"
-  bash "./install.sh" -y 2>/dev/null || true
+  bash "./install.sh" --no-modify-path -y 2>/dev/null || true
   rm -rf "$(realpath .)" ; cd "${CWD}"
   #----------------------#
   #Zig
