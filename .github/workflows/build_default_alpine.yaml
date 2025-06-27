@@ -161,6 +161,22 @@ jobs:
             ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           push: true
         continue-on-error: true
+
+      - name: Pirnt Manifest (docker.io/pkgforge/alpine:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/alpine:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-alpine-loongarch64:
     name: Push (Alpine loongarch64) --> Docker Hub
@@ -306,5 +322,21 @@ jobs:
             ghcr.io/pkgforge/devscripts/alpine:loongarch64
             ghcr.io/pkgforge/devscripts/alpine:loongarch64-${{ env.DOCKER_TAG }}
           outputs: type=registry,compression=zstd,compression-level=22
+        continue-on-error: true
+
+      - name: Pirnt Manifest (docker.io/pkgforge/alpine:loongarch64)
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/alpine:loongarch64" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/alpine:loongarch64)
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/alpine:loongarch64" 2>/dev/null | jq .
         continue-on-error: true
 #------------------------------------------------------------------------------------#
