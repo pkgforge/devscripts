@@ -176,10 +176,10 @@ jobs:
           platforms: "linux/amd64,linux/arm64,linux/riscv64"
           target: final
           tags: |
-            pkgforge/alpine:edge
-            pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/alpine:edge
-            ghcr.io/pkgforge/devscripts/alpine:edge-${{ env.DOCKER_TAG }}
+            pkgforge/alpine:${{ matrix.arch }}
+            pkgforge/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 
@@ -191,10 +191,10 @@ jobs:
           platforms: "linux/loong64"
           target: final-loong64
           tags: |
-            pkgforge/alpine:edge
-            pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/alpine:edge
-            ghcr.io/pkgforge/devscripts/alpine:edge-${{ env.DOCKER_TAG }}
+            pkgforge/alpine:${{ matrix.arch }}
+            pkgforge/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
           outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
