@@ -17,8 +17,8 @@ defaults:
 permissions:
   contents: read
   packages: write
-#------------------------------------------------------------------------------------#  
-jobs:
+jobs:  
+#------------------------------------------------------------------------------------#
   build-push-alpine:
     name: Push (Alpine ${{ matrix.arch }}) --> Docker Hub
     runs-on: ${{ matrix.runner }}
@@ -28,9 +28,9 @@ jobs:
           - arch: aarch64
             platform: arm64
             runner: ubuntu-24.04-arm
-          - arch: loongarch64
-            platform: loong64
-            runner: ubuntu-latest
+          #- arch: loongarch64
+          #  platform: loong64
+          #  runner: ubuntu-latest
           - arch: riscv64
             platform: riscv64
             runner: ubuntu-latest
@@ -122,26 +122,6 @@ jobs:
           #Copy dockerfiles
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine.dockerfile" "/tmp/DOCKERFILES/alpine.dockerfile"
-          #Download Rootfs
-          if [[ "${{ matrix.platform }}" == "loong64" ]]; then
-           ROOTFS_FILE="$(curl -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/latest-releases.yaml" | grep -oE 'alpine-[^[:space:]"'\'']+\.tar\.gz' | sed 's/[[:space:]]*$//' | sort -u | head -1 | tr -d '"'\''[:space:]')"
-           for i in {1..3}; do
-               if curl -w "(DL) <== %{url}\n" -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/${ROOTFS_FILE}" -o "/tmp/alpine-minirootfs-loongarch64.tar.gz"; then
-                   if tar -tzf "/tmp/alpine-minirootfs-loongarch64.tar.gz" &>/dev/null; then
-                       mv -fv "/tmp/alpine-minirootfs-loongarch64.tar.gz" "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz"
-                       echo "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz" | xargs -I "{}" bash -c \
-                         'printf "\nFile: $(basename {})\n  Type: $(file -b {})\n  B3sum: $(b3sum {} | cut -d" " -f1)\n  SHA256sum: $(sha256sum {} | cut -d" " -f1)\n  Size: $(du -bh {} | cut -f1)\n"'
-                       break
-                   else
-                       echo "Invalid tar archive, retrying... ($i/3)"
-                       rm -fv "/tmp/alpine-minirootfs-loongarch64.tar.gz"
-                   fi
-               else
-                   echo "Download failed, retrying... ($i/3)"
-               fi
-               [[ $i -eq 3 ]] && { echo "Failed after 3 attempts"; exit 1; }
-           done
-          fi
         continue-on-error: false
 
       - name: Set up QEMU
@@ -168,33 +148,163 @@ jobs:
         continue-on-error: true
 
     #https://hub.docker.com/r/pkgforge/alpine
-      - name: Docker Build and Push (alpine - multi-platform)
+      - name: Docker Build and Push (Alpine)
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
-          platforms: "linux/amd64,linux/arm64,linux/riscv64"
-          target: final
+          platforms: "linux/${{ matrix.platform }}"
           tags: |
             pkgforge/alpine:${{ matrix.arch }}
             pkgforge/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
             ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-          outputs: type=registry,compression=zstd,compression-level=22
+          push: true
+        continue-on-error: true
+#------------------------------------------------------------------------------------#
+  build-push-alpine-loongarch64:
+    name: Push (Alpine ${{ matrix.arch }}) --> Docker Hub
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: main
+          filter: "blob:none"
+
+      #- name: Debloat Runner
+      #  run: |
+      #    #Presets
+      #    set +x ; set +e
+      #    #--------------#
+      #    bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+      #  continue-on-error: true
+
+      - name: Install Addons
+        run: |
+          ##Presets
+          set +x ; set +e
+          #-------------#
+          ##Debug?
+          if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+            set -x
+          fi
+          #-------------#
+          #export PARALLEL=1
+          #bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh")
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/local/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ansi2txt" -o "/usr/local/bin/ansi2txt" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2c" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/askalono" -o "/usr/local/bin/askalono" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/bsdtar" -o "/usr/local/bin/bsdtar" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/b3sum" -o "/usr/local/bin/b3sum" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/dasel" -o "/usr/local/bin/dasel" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/eget" -o "/usr/local/bin/eget" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/huggingface-cli" -o "/usr/local/bin/huggingface-cli" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/jq" -o "/usr/local/bin/jq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/oras" -o "/usr/local/bin/oras" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ouch" -o "/usr/local/bin/ouch" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/rsync" -o "/usr/local/bin/rsync" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/trufflehog" -o "/usr/local/bin/trufflehog" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xq" -o "/usr/local/bin/xq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xz" -o "/usr/local/bin/xz" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/yq" -o "/usr/local/bin/yq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/bin/zstd" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/local/bin/zstd" &
+          wait ; echo
+          sudo chmod -v 'a+x' \
+          "/usr/bin/7z" \
+          "/usr/local/bin/7z" \
+          "/usr/local/bin/ansi2txt" \
+          "/usr/local/bin/aria2" \
+          "/usr/local/bin/aria2c" \
+          "/usr/local/bin/askalono" \
+          "/usr/local/bin/bsdtar" \
+          "/usr/local/bin/b3sum" \
+          "/usr/local/bin/dasel" \
+          "/usr/local/bin/eget" \
+          "/usr/local/bin/huggingface-cli" \
+          "/usr/local/bin/jq" \
+          "/usr/local/bin/oras" \
+          "/usr/local/bin/ouch" \
+          "/usr/local/bin/rsync" \
+          "/usr/local/bin/trufflehog" \
+          "/usr/local/bin/xq" \
+          "/usr/local/bin/xz" \
+          "/usr/local/bin/yq" \
+          "/usr/bin/zstd" \
+          "/usr/local/bin/zstd"
         continue-on-error: true
 
-      - name: Docker Build and Push (alpine - loong64)
+      - name: Setup Env
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          #Docker Tags
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
+          #Copy dockerfiles
+          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
+          cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine_loongarch64.dockerfile" "/tmp/DOCKERFILES/alpine.dockerfile"
+          #Download Rootfs
+           ROOTFS_FILE="$(curl -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/latest-releases.yaml" | grep -oE 'alpine-[^[:space:]"'\'']+\.tar\.gz' | sed 's/[[:space:]]*$//' | sort -u | head -1 | tr -d '"'\''[:space:]')"
+           for i in {1..3}; do
+               if curl -w "(DL) <== %{url}\n" -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/${ROOTFS_FILE}" -o "/tmp/alpine-minirootfs-loongarch64.tar.gz"; then
+                   if tar -tzf "/tmp/alpine-minirootfs-loongarch64.tar.gz" &>/dev/null; then
+                       mv -fv "/tmp/alpine-minirootfs-loongarch64.tar.gz" "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz"
+                       echo "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz" | xargs -I "{}" bash -c \
+                         'printf "\nFile: $(basename {})\n  Type: $(file -b {})\n  B3sum: $(b3sum {} | cut -d" " -f1)\n  SHA256sum: $(sha256sum {} | cut -d" " -f1)\n  Size: $(du -bh {} | cut -f1)\n"'
+                       break
+                   else
+                       echo "Invalid tar archive, retrying... ($i/3)"
+                       rm -fv "/tmp/alpine-minirootfs-loongarch64.tar.gz"
+                   fi
+               else
+                   echo "Download failed, retrying... ($i/3)"
+               fi
+               [[ $i -eq 3 ]] && { echo "Failed after 3 attempts"; exit 1; }
+           done
+        continue-on-error: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        continue-on-error: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        continue-on-error: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/alpine
+      - name: Docker Build and Push (alpine - loongarch64)
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
           platforms: "linux/loong64"
-          target: final-loong64
           tags: |
-            pkgforge/alpine:${{ matrix.arch }}
-            pkgforge/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
-            ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            pkgforge/alpine:loongarch64
+            pkgforge/alpine:loongarch64-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine:loongarch64
+            ghcr.io/pkgforge/devscripts/alpine:loongarch64-${{ env.DOCKER_TAG }}
           outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
