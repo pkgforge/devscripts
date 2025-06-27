@@ -190,7 +190,7 @@ jobs:
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
           platforms: "linux/${{ matrix.platform }}"
           build-args: |
-            TARGETARCH="${{ matrix.platform }}"
+            TARGETARCH=${{ matrix.platform }}
           tags: |
             pkgforge/alpine:edge
             pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
