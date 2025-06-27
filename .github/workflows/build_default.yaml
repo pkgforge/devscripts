@@ -189,6 +189,7 @@ jobs:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
           platforms: "linux/${{ matrix.platform }}"
+          target: ${{ matrix.platform == 'loong64' && 'final-loong64' || 'final' }}
           build-args: |
             TARGETARCH=${{ matrix.platform }}
           tags: |

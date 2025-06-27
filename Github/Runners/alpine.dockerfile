@@ -2,17 +2,26 @@
 #------------------------------------------------------------------------------------#
 ARG TARGETARCH=amd64
 
-# Stage for official Alpine images (aarch64, riscv64, x86_64)
-FROM alpine:edge AS official
-RUN apk add --no-cache ca-certificates tzdata
+# Default base stage for most architectures
+FROM alpine:edge AS base-stage
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" != "loong64" ]; then \
+        apk add --no-cache ca-certificates tzdata; \
+    fi
 
-# Stage for loongarch64 using local rootfs file
-FROM scratch AS loongarch64-base
+# Special base for loong64
+FROM scratch AS loong64-base
 ADD /tmp/alpine-minirootfs-loongarch64.tar.gz /
-
-FROM loongarch64-base AS loongarch64
 RUN apk add --no-cache ca-certificates tzdata
 
-# Final stage - select based on architecture
-FROM ${TARGETARCH} AS final
+# Final conditional stage
+FROM base-stage AS final
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "loong64" ]; then \
+        echo "Error: Use loong64-base target for loong64 architecture" && exit 1; \
+    fi
+CMD ["/bin/sh"]
+
+# Dedicated final stage for loong64
+FROM loong64-base AS final-loong64
 CMD ["/bin/sh"]
