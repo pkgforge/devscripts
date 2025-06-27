@@ -18,7 +18,8 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 # Script configuration
-readonly SCRIPT_NAME="$(basename "$0")"
+SCRIPT_NAME="$(basename "$0")"
+readonly SCRIPT_NAME
 readonly PROVISIONER_FILE="/opt/runner/provisioner"
 
 # Function to print colored output
@@ -106,7 +107,7 @@ get_disk_stats() {
     local root_disk
     root_disk="$(df -h / | awk 'NR==2 {print $1}')"
     
-    echo "$(df -h "$root_disk" | awk 'NR==2 {print $1":"$2":"$3":"$5}')"
+    df -h "$root_disk" | awk 'NR==2 {print $1":"$2":"$3":"$5}'
 }
 
 # Function to parse disk stats
@@ -230,10 +231,10 @@ perform_cleanup() {
         {
             local info="${cleanup_jobs[$job]}"
             local desc="${info%%:*}"
-            local paths="${info#*:}"
+            local path_string="${info#*:}"
             
             log "info" "Removing $desc"
-            IFS=':' read -ra path_array <<< "$paths"
+            IFS=':' read -ra path_array <<< "$path_string"
             safe_remove "${path_array[@]}"
         } &
         pids+=($!)
