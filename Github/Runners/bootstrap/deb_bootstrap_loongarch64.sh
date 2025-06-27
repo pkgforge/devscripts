@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Debian LoongArch64 Rootfs Creation Script
 
+# https://wiki.debian.org/LoongArch/sbuildQEMU
+
 set -euo pipefail
 
 # Configuration
@@ -115,6 +117,56 @@ check_root() {
     fi
 }
 
+# Setup GPG keys for Debian ports
+setup_debian_ports_keys() {
+    info "Setting up Debian ports GPG keys..."
+    
+    # Create temporary directory for keys
+    local temp_keyring_dir
+    temp_keyring_dir="$(mktemp -d)"
+    local temp_keyring
+    temp_keyring="${temp_keyring_dir}/debian-ports-keyring.gpg"
+    
+    # First, try to update the existing keyring
+    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y debian-archive-keyring debian-ports-archive-keyring >/dev/null 2>&1; then
+        info "Successfully updated Debian keyrings via apt"
+        rm -rf "$temp_keyring_dir"
+        return 0
+    fi
+    
+    # If apt method fails, try manual key import
+    warn "Apt keyring update failed, trying manual key import..."
+    
+    # Try to download the Debian ports keyring package
+    local ports_keyring_url="https://deb.debian.org/debian-ports/pool/main/d/debian-ports-archive-keyring/debian-ports-archive-keyring_2023.02.01_all.deb"
+    local temp_deb="${temp_keyring_dir}/debian-ports-keyring.deb"
+    
+    if curl -fsSL -o "$temp_deb" "$ports_keyring_url" 2>/dev/null; then
+        info "Downloaded Debian ports keyring package"
+        
+        # Extract and install the keyring
+        cd "$temp_keyring_dir"
+        if ar x "$temp_deb" >/dev/null 2>&1 && tar -xf data.tar.* >/dev/null 2>&1; then
+            if [[ -f "usr/share/keyrings/debian-ports-archive-keyring.gpg" ]]; then
+                sudo cp "usr/share/keyrings/debian-ports-archive-keyring.gpg" "/usr/share/keyrings/" || true
+                info "Installed Debian ports keyring manually"
+            fi
+        fi
+    fi
+    
+    # Clean up
+    rm -rf "$temp_keyring_dir"
+    
+    # Verify we have some keyring available
+    if [[ -f "/usr/share/keyrings/debian-ports-archive-keyring.gpg" ]] || [[ -f "/usr/share/keyrings/debian-archive-keyring.gpg" ]]; then
+        success "Debian keyrings are available"
+        return 0
+    else
+        warn "Could not install Debian ports keyring, will try --no-check-gpg option"
+        return 1
+    fi
+}
+
 # Check if LoongArch64 is available in Debian repositories
 check_loongarch_support() {
     local suite="$1"
@@ -224,19 +276,19 @@ check_requirements() {
     
     local missing_tools=()
     
-    # Essential tools (check debootstrap with sudo since it might only be in /usr/sbin)
+    # Essential tools
     for tool in wget curl tar gzip; do
         if ! command -v "$tool" >/dev/null 2>&1; then
             missing_tools+=("$tool")
         fi
     done
     
-    # Check debootstrap with sudo since it's often only available as root
+    # Check debootstrap
     if ! sudo which debootstrap >/dev/null 2>&1 && ! command -v debootstrap >/dev/null 2>&1; then
         missing_tools+=("debootstrap")
     fi
     
-    # Check if we have bsdtar (better for some archives)
+    # Check if we have bsdtar
     if command -v bsdtar >/dev/null 2>&1; then
         TAR_CMD="bsdtar"
         info "Using bsdtar for better archive handling"
@@ -254,14 +306,14 @@ check_requirements() {
         exit 1
     fi
     
-    # Check available disk space (at least 3GB for Debian)
+    # Check available disk space
     local available_space
     available_space="$(df "${SCRIPT_DIR}" | awk 'NR==2 {print $4}')"
-    if [[ $available_space -lt 3145728 ]]; then # 3GB in KB
+    if [[ $available_space -lt 3145728 ]]; then
         warn "Low disk space detected. At least 3GB recommended for Debian rootfs creation."
     fi
     
-    # Check debootstrap version (use sudo)
+    # Check debootstrap version
     local debootstrap_version
     debootstrap_version="$(sudo debootstrap --version 2>/dev/null | head -1 || echo 'unknown')"
     info "Using debootstrap: $debootstrap_version"
@@ -269,13 +321,12 @@ check_requirements() {
     success "System requirements check completed"
 }
 
-# Setup DNS configuration with reliable public DNS servers
+# Setup DNS configuration
 setup_dns() {
     local chroot_dir="$1"
     
     info "Setting up DNS configuration..."
     
-    # Create a reliable resolv.conf with multiple DNS providers
     sudo tee "${chroot_dir}/etc/resolv.conf" > /dev/null << 'EOF'
 # Reliable public DNS servers
 nameserver 1.1.1.1      # Cloudflare primary
@@ -290,7 +341,7 @@ options attempts:3
 options rotate
 EOF
     
-    info "DNS configuration completed with reliable public DNS servers"
+    info "DNS configuration completed"
 }
 
 # Setup chroot environment
@@ -299,10 +350,8 @@ setup_chroot() {
     
     info "Setting up chroot environment..."
     
-    # Create mount points if they don't exist
     sudo mkdir -p "${chroot_dir}"/{proc,sys,dev/pts}
     
-    # Mount essential filesystems with proper error handling
     if ! mountpoint -q "${chroot_dir}/proc" 2>/dev/null; then
         sudo mount -t proc proc "${chroot_dir}/proc" || error_exit "Failed to mount proc"
     fi
@@ -319,19 +368,17 @@ setup_chroot() {
         sudo mount -t devpts devpts "${chroot_dir}/dev/pts" || error_exit "Failed to mount devpts"
     fi
     
-    # Setup DNS configuration with hardcoded reliable servers
     setup_dns "${chroot_dir}"
     
-    # Prevent services from starting during package installation
+    # Prevent services from starting
     sudo tee "${chroot_dir}/usr/sbin/policy-rc.d" > /dev/null << 'EOF'
 #!/bin/sh
-# Prevent services from starting in chroot
 echo "All runlevel operations denied by policy" >&2
 exit 101
 EOF
     sudo chmod +x "${chroot_dir}/usr/sbin/policy-rc.d"
     
-    # Create a minimal environment file
+    # Create environment file
     sudo tee "${chroot_dir}/etc/environment" > /dev/null << 'EOF'
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 LANG="en_US.UTF-8"
@@ -359,137 +406,128 @@ validate_suite() {
 create_debian_rootfs() {
     info "Creating Debian ${DEBIAN_SUITE} LoongArch64 rootfs..."
     
-    # Validate suite
     validate_suite "$DEBIAN_SUITE"
     
-    # Check LoongArch64 availability
     if ! check_loongarch_support "$DEBIAN_SUITE" "$DEBIAN_MIRROR"; then
         error_exit "LoongArch64 support not available"
     fi
     
+    # Setup GPG keys for Debian ports
+    local use_no_check_gpg=false
+    if ! setup_debian_ports_keys; then
+        warn "Will use --no-check-gpg option due to keyring issues"
+        use_no_check_gpg=true
+    fi
+    
     DEBIAN_ROOT="${WORK_DIR}/debian-rootfs"
     
-    # Clean up any existing work directory
     if [[ -d "${WORK_DIR}" ]]; then
         sudo rm -rf "${WORK_DIR}"
     fi
     
     mkdir -p "${WORK_DIR}"
     
-    # Create initial rootfs with debootstrap
     info "Running debootstrap with mirror: ${DEBIAN_MIRROR}"
     info "This may take 15-30 minutes..."
     
+    # Build debootstrap command with conditional GPG checking
     local debootstrap_cmd=(
         sudo debootstrap
         --arch="${DEBIAN_ARCH}"
         --variant=minbase
         --include="apt-utils,ca-certificates,coreutils,curl,grep,jq,locales,tar,wget,gnupg,lsb-release"
         --exclude="systemd-timesyncd"
+    )
+    
+    # Add GPG option if needed
+    if [[ "$use_no_check_gpg" == "true" ]]; then
+        debootstrap_cmd+=(--no-check-gpg)
+        warn "Using --no-check-gpg option (less secure but necessary for Debian ports)"
+    fi
+    
+    # Add keyring option if available
+    if [[ -f "/usr/share/keyrings/debian-ports-archive-keyring.gpg" ]]; then
+        debootstrap_cmd+=(--keyring=/usr/share/keyrings/debian-ports-archive-keyring.gpg)
+    elif [[ -f "/usr/share/keyrings/debian-archive-keyring.gpg" ]]; then
+        debootstrap_cmd+=(--keyring=/usr/share/keyrings/debian-archive-keyring.gpg)
+    fi
+    
+    # Add remaining arguments
+    debootstrap_cmd+=(
         "${DEBIAN_SUITE}"
         "${DEBIAN_ROOT}"
         "${DEBIAN_MIRROR}"
     )
     
-    # Try the main command first
+    # Try the main command
     if ! retry "${debootstrap_cmd[@]}"; then
-        # If that fails, try with some different approaches
-        warn "Primary debootstrap attempt failed"
+        warn "Primary debootstrap attempt failed, trying with --no-check-gpg..."
         
-        # Try with experimental if we're not already using it
-        if [[ "$DEBIAN_SUITE" != "experimental" ]]; then
-            info "Trying with experimental suite..."
-            local debootstrap_cmd_exp=(
+        # Build fallback command with --no-check-gpg
+        local debootstrap_cmd_fallback=(
+            sudo debootstrap
+            --arch="${DEBIAN_ARCH}"
+            --variant=minbase
+            --include="apt-utils,ca-certificates,coreutils,curl,tar,wget"
+            --no-check-gpg
+            "${DEBIAN_SUITE}"
+            "${DEBIAN_ROOT}"
+            "${DEBIAN_MIRROR}"
+        )
+        
+        if ! retry "${debootstrap_cmd_fallback[@]}"; then
+            # Last resort: minimal packages with no GPG check
+            warn "Trying with minimal package set and no GPG verification..."
+            local debootstrap_cmd_minimal=(
                 sudo debootstrap
                 --arch="${DEBIAN_ARCH}"
                 --variant=minbase
-                --include="apt-utils,ca-certificates,coreutils,curl,tar,wget"
-                "experimental"
-                "${DEBIAN_ROOT}"
-                "${DEBIAN_MIRROR}"
-            )
-            
-            if retry "${debootstrap_cmd_exp[@]}"; then
-                DEBIAN_SUITE="experimental"
-                info "Successfully switched to experimental suite"
-            fi
-        fi
-        
-        # If experimental didn't work, try with different component
-        if [[ ! -d "${DEBIAN_ROOT}/bin" ]]; then
-            info "Trying with main,contrib components..."
-            local debootstrap_cmd_alt=(
-                sudo debootstrap
-                --arch="${DEBIAN_ARCH}"
-                --variant=minbase
-                --components="main,contrib"
-                --include="apt-utils,ca-certificates,coreutils,curl,tar,wget"
+                --no-check-gpg
                 "${DEBIAN_SUITE}"
                 "${DEBIAN_ROOT}"
                 "${DEBIAN_MIRROR}"
             )
             
-            if ! retry "${debootstrap_cmd_alt[@]}"; then
-                # Last resort: try with minimal packages
-                warn "Trying with minimal package set..."
-                local debootstrap_cmd_minimal=(
-                    sudo debootstrap
-                    --arch="${DEBIAN_ARCH}"
-                    --variant=minbase
-                    "${DEBIAN_SUITE}"
-                    "${DEBIAN_ROOT}"
-                    "${DEBIAN_MIRROR}"
-                )
-                
-                if ! retry "${debootstrap_cmd_minimal[@]}"; then
-                    error_exit "Failed to create Debian rootfs with debootstrap after multiple attempts"
-                fi
+            if ! retry "${debootstrap_cmd_minimal[@]}"; then
+                error_exit "Failed to create Debian rootfs with debootstrap after all attempts"
             fi
         fi
     fi
     
-    # Verify that the rootfs was created successfully
+    # Verify rootfs creation
     if [[ ! -d "${DEBIAN_ROOT}" ]] || [[ ! -f "${DEBIAN_ROOT}/etc/debian_version" ]]; then
         error_exit "Debian rootfs creation failed - missing essential files"
     fi
     
-    # Setup chroot environment
     setup_chroot "${DEBIAN_ROOT}"
     
-    # Configure the rootfs
     info "Configuring Debian rootfs..."
     
-    # Set up locale with error handling
+    # Configure locale
     sudo chroot "${DEBIAN_ROOT}" /bin/bash -c "
         set -e
         export DEBIAN_FRONTEND=noninteractive
         export LANG=en_US.UTF-8
         export LC_ALL=C
         
-        # Generate locale
         echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
         locale-gen || echo 'Warning: locale-gen failed'
         echo 'LANG=en_US.UTF-8' > /etc/default/locale
         
-        # Set timezone to UTC
         echo 'UTC' > /etc/timezone
         ln -sf /usr/share/zoneinfo/UTC /etc/localtime || true
     " || warn "Locale configuration partially failed"
     
-    # Update package lists and upgrade with better error handling
+    # Update and install packages
     info "Updating packages and installing essential tools..."
     sudo chroot "${DEBIAN_ROOT}" /bin/bash -c "
         set -e
         export DEBIAN_FRONTEND=noninteractive
         export LANG=en_US.UTF-8
         
-        # Update package lists
         apt update -y
-        
-        # Upgrade existing packages
         apt upgrade -y
         
-        # Install essential packages
         apt install -y --no-install-recommends \
             apt-transport-https \
             ca-certificates \
@@ -498,53 +536,37 @@ create_debian_rootfs() {
             jq \
             lsb-release \
             wget \
-            vim-tiny \
             nano \
             less \
             procps \
             psmisc \
-            iproute2 \
-            iputils-ping \
-            netbase \
             tzdata
             
-        # Update CA certificates
         update-ca-certificates || true
     " || error_exit "Failed to update and install packages"
     
-    # Clean up package cache and temporary files
+    # Clean up
     info "Cleaning up rootfs..."
     sudo chroot "${DEBIAN_ROOT}" /bin/bash -c "
         set -e
         export DEBIAN_FRONTEND=noninteractive
         
-        # Clean package cache
         apt autoremove -y --purge
         apt autoclean
         apt clean
         
-        # Remove package lists (they'll be regenerated when needed)
         rm -rf /var/lib/apt/lists/*
-        
-        # Clean temporary files
         rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
         rm -rf /var/cache/apt/archives/*.deb 2>/dev/null || true
         
-        # Clean logs but keep directories
         find /var/log -type f -name '*.log' -delete 2>/dev/null || true
         find /var/log -type f -name '*.log.*' -delete 2>/dev/null || true
         
-        # Clean bash history
         history -c 2>/dev/null || true
         > /root/.bash_history 2>/dev/null || true
         
-        # Remove policy-rc.d
         rm -f /usr/sbin/policy-rc.d
         
-        # Keep DNS configuration for container use
-        # (Don't remove resolv.conf as it's needed in containers)
-        
-        # Set proper permissions
         chmod 644 /etc/passwd /etc/group /etc/shadow 2>/dev/null || true
         chmod 755 /root /home 2>/dev/null || true
     " || warn "Cleanup partially failed"
@@ -552,35 +574,25 @@ create_debian_rootfs() {
     # Create archive
     info "Creating tar archive: ${OUTPUT_FILE}"
     
-    # Change to the rootfs directory for proper tar creation
     cd "${DEBIAN_ROOT}"
     
-    # Create the tar archive with proper options
     if ! sudo ${TAR_CMD} -cf "${OUTPUT_FILE}" --numeric-owner --exclude='./proc/*' --exclude='./sys/*' --exclude='./dev/pts/*' .; then
         error_exit "Failed to create tar archive"
     fi
     
-    # Set proper ownership of the output file
     sudo chown "$(id -u):$(id -g)" "${OUTPUT_FILE}"
     
-    # Verify the created archive
-    info "Verifying created archive..."
-    if [[ ! -f "${OUTPUT_FILE}" ]]; then
-        error_exit "Output file was not created"
+    # Verify archive
+    if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
+        error_exit "Output file was not created or is empty"
     fi
     
-    if [[ ! -s "${OUTPUT_FILE}" ]]; then
-        error_exit "Output file is empty"
-    fi
-    
-    # Test archive integrity
     if ! ${TAR_CMD} -tf "${OUTPUT_FILE}" >/dev/null 2>&1; then
         error_exit "Created archive is corrupted"
     fi
     
-    local file_size
+    local file_size file_count
     file_size="$(du -h "${OUTPUT_FILE}" | cut -f1)"
-    local file_count
     file_count="$(${TAR_CMD} -tf "${OUTPUT_FILE}" | wc -l)"
     
     success "Debian ${DEBIAN_SUITE} LoongArch64 rootfs created successfully!"
@@ -588,10 +600,9 @@ create_debian_rootfs() {
     success "Size: ${file_size}"
     success "Files: ${file_count}"
     
-    # Display information about the rootfs
+    # Display rootfs info
     info "Rootfs information:"
-    local arch_info
-    local debian_version
+    local arch_info debian_version
     arch_info="$(sudo chroot "${DEBIAN_ROOT}" dpkg --print-architecture 2>/dev/null || echo 'unknown')"
     debian_version="$(sudo chroot "${DEBIAN_ROOT}" cat /etc/debian_version 2>/dev/null || echo 'unknown')"
     
@@ -678,12 +689,11 @@ parse_args() {
         esac
     done
     
-    # Update output file path if suite was changed and output wasn't explicitly set
+    # Update output file path if suite changed
     if [[ "${OUTPUT_FILE}" == "${SCRIPT_DIR}/debian-unstable-loongarch64.tar" ]] && [[ "${DEBIAN_SUITE}" != "unstable" ]]; then
         OUTPUT_FILE="${SCRIPT_DIR}/debian-${DEBIAN_SUITE}-loongarch64.tar"
     fi
     
-    # Validate output file path
     if [[ -e "${OUTPUT_FILE}" ]]; then
         warn "Output file ${OUTPUT_FILE} already exists and will be overwritten"
     fi
@@ -691,7 +701,6 @@ parse_args() {
 
 # Main function
 main() {
-    # Initialize log file
     echo "=== Debian LoongArch64 Rootfs Build Log ===" > "${LOG_FILE}"
     
     info "Starting Debian LoongArch64 rootfs creation..."
@@ -712,7 +721,7 @@ main() {
     info "Build log saved to: ${LOG_FILE}"
 }
 
-# Validate environment before starting
+# Validate environment
 if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
     echo "Error: This script requires Bash 4.0 or later" >&2
     exit 1
