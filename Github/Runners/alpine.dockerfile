@@ -8,6 +8,6 @@ CMD ["/bin/sh"]
 
 # Special stage for loong64
 FROM scratch AS final-loong64
-ADD /tmp/alpine-minirootfs-loongarch64.tar.gz /
+ADD alpine-minirootfs-loongarch64.tar.gz /
 RUN apk add --no-cache ca-certificates tzdata
 CMD ["/bin/sh"]
