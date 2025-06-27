@@ -7,6 +7,7 @@
 #   ./debloat.sh                    # Auto-detect runner environment
 #   ./debloat.sh --force            # Force run regardless of environment
 #   ./debloat.sh --mount /build     # Create optimized build mount at /build
+#   ./debloat.sh --unmount          # Remove LVM mount and restore original setup
 #   ./debloat.sh --help             # Show help
 
 # Colors for output
@@ -60,6 +61,7 @@ USAGE:
 OPTIONS:
     --force                    Force execution regardless of environment detection
     --mount PATH               Create optimized build mount at PATH using LVM
+    --unmount                  Remove LVM mount and restore original setup
     --root-reserve-mb MB       Space to reserve on root filesystem (default: $DEFAULT_ROOT_RESERVE_MB)
     --temp-reserve-mb MB       Space to reserve on temp filesystem (default: $DEFAULT_TEMP_RESERVE_MB)
     --swap-size-mb MB          Swap space to create in MB (default: $DEFAULT_SWAP_SIZE_MB)
@@ -74,6 +76,7 @@ EXAMPLES:
     $SCRIPT_NAME                           # Standard cleanup
     $SCRIPT_NAME --force                   # Force run on any system
     $SCRIPT_NAME --mount /build            # Cleanup + create optimized build mount
+    $SCRIPT_NAME --unmount                 # Remove LVM mount and restore system
     $SCRIPT_NAME --mount /build --remove-docker-images --remove-codeql
     
 WHAT GETS REMOVED:
@@ -93,6 +96,13 @@ MOUNT FEATURE:
     • Recreates swap space efficiently
     • Provides maximum available space for builds
     • Uses ext4 filesystem optimized for build workloads
+
+UNMOUNT FEATURE:
+    When --unmount is used, safely removes LVM setup:
+    • Unmounts build volumes and restores original swap
+    • Removes volume groups and physical volumes
+    • Cleans up loop devices and files
+    • Restores system to pre-mount state
 EOF
 }
 
@@ -247,14 +257,82 @@ EOF
 
 # Function to remove Docker images
 remove_docker_images() {
-    if command -v docker &>/dev/null; then
-        log "info" "Removing Docker images..."
-        sudo docker image prune --all --force &>/dev/null || true
-        sudo docker system prune --all --force &>/dev/null || true
-        log "success" "Docker images removed"
-    else
-        log "info" "Docker not found, skipping Docker cleanup"
-    fi
+    log "info" "Starting comprehensive Docker/Podman cleanup..."
+    
+    for cmd in docker podman; do
+        if ! command -v "$cmd" &>/dev/null; then
+            continue
+        fi
+        
+        log "info" "Cleaning up $cmd..."
+        
+        case "$cmd" in
+            docker)
+                # Stop and remove all containers
+                local containers
+                containers=$($cmd ps -aq 2>/dev/null || true)
+                if [[ -n "$containers" ]]; then
+                    sudo $cmd stop $containers &>/dev/null || true
+                    sudo $cmd rm -f $containers &>/dev/null || true
+                fi
+                
+                # Remove all images
+                local images
+                images=$($cmd images -aq 2>/dev/null || true)
+                if [[ -n "$images" ]]; then
+                    sudo $cmd rmi -f $images &>/dev/null || true
+                fi
+                
+                # Remove all volumes
+                local volumes
+                volumes=$($cmd volume ls -q 2>/dev/null || true)
+                if [[ -n "$volumes" ]]; then
+                    sudo $cmd volume rm $volumes &>/dev/null || true
+                fi
+                
+                # Remove all networks (except default ones)
+                local networks
+                networks=$($cmd network ls -q --filter type=custom 2>/dev/null || true)
+                if [[ -n "$networks" ]]; then
+                    sudo $cmd network rm $networks &>/dev/null || true
+                fi
+                
+                # System-wide cleanup
+                sudo $cmd system prune -af --volumes &>/dev/null || true
+                sudo $cmd builder prune -af &>/dev/null || true
+                
+                # Clean up Docker root directory if possible
+                sudo systemctl stop docker &>/dev/null || true
+                safe_remove /var/lib/docker/tmp /var/lib/docker/overlay2
+                sudo systemctl start docker &>/dev/null || true
+                ;;
+                
+            podman)
+                # Stop and remove all containers
+                sudo $cmd stop --all &>/dev/null || true
+                sudo $cmd rm -af &>/dev/null || true
+                
+                # Remove all images
+                sudo $cmd rmi -af &>/dev/null || true
+                
+                # Remove all volumes
+                sudo $cmd volume rm --all &>/dev/null || true
+                
+                # Remove all pods
+                sudo $cmd pod rm -af &>/dev/null || true
+                
+                # System reset (nuclear option for podman)
+                sudo $cmd system reset -f &>/dev/null || true
+                ;;
+        esac
+        
+        log "success" "$cmd cleanup completed"
+    done
+    
+    # Clean up additional container-related directories
+    safe_remove /var/lib/containerd /var/lib/containers
+    
+    log "success" "Container runtime cleanup completed"
 }
 
 # Function to remove CodeQL
@@ -356,6 +434,75 @@ perform_cleanup() {
     sudo apt clean &>/dev/null || true
     
     unset DEBIAN_FRONTEND
+}
+
+# Function to unmount and cleanup LVM setup
+unmount_build_mount() {
+    local pv_loop_path="$1"
+    local tmp_pv_loop_path="$2"
+    
+    log "mount" "Starting LVM unmount and cleanup process..."
+    
+    # Find and unmount any build volumes
+    local build_mounts
+    build_mounts=$(mount | grep "/dev/mapper/${VG_NAME}-buildlv" | awk '{print $3}' || true)
+    
+    if [[ -n "$build_mounts" ]]; then
+        log "mount" "Unmounting build volumes..."
+        echo "$build_mounts" | while IFS= read -r mount_point; do
+            log "mount" "Unmounting: $mount_point"
+            sudo umount "$mount_point" 2>/dev/null || true
+        done
+    fi
+    
+    # Deactivate swap if it's from our VG
+    if sudo swapon --show | grep -q "${VG_NAME}-swap"; then
+        log "mount" "Deactivating LVM swap..."
+        sudo swapoff "/dev/mapper/${VG_NAME}-swap" 2>/dev/null || true
+    fi
+    
+    # Remove logical volumes
+    if sudo lvs 2>/dev/null | grep -q "$VG_NAME"; then
+        log "mount" "Removing logical volumes..."
+        sudo lvremove -f "/dev/mapper/${VG_NAME}-buildlv" 2>/dev/null || true
+        sudo lvremove -f "/dev/mapper/${VG_NAME}-swap" 2>/dev/null || true
+    fi
+    
+    # Remove volume group
+    if sudo vgs 2>/dev/null | grep -q "$VG_NAME"; then
+        log "mount" "Removing volume group: $VG_NAME"
+        sudo vgremove -f "$VG_NAME" 2>/dev/null || true
+    fi
+    
+    # Find and remove physical volumes / loop devices
+    local loop_devices
+    loop_devices=$(sudo losetup -l | grep -E "(${pv_loop_path}|${tmp_pv_loop_path})" | awk '{print $1}' || true)
+    
+    if [[ -n "$loop_devices" ]]; then
+        log "mount" "Removing loop devices..."
+        echo "$loop_devices" | while IFS= read -r loop_dev; do
+            log "mount" "Removing loop device: $loop_dev"
+            sudo pvremove -f "$loop_dev" 2>/dev/null || true
+            sudo losetup -d "$loop_dev" 2>/dev/null || true
+        done
+    fi
+    
+    # Remove loop files
+    log "mount" "Removing loop files..."
+    safe_remove "$pv_loop_path" "$tmp_pv_loop_path"
+    
+    # Restore original swap if possible
+    log "mount" "Attempting to restore original swap..."
+    if [[ -f /mnt/swapfile ]]; then
+        sudo swapon /mnt/swapfile 2>/dev/null || true
+    elif sudo fallocate -l 2G /mnt/swapfile 2>/dev/null; then
+        sudo chmod 600 /mnt/swapfile
+        sudo mkswap /mnt/swapfile &>/dev/null
+        sudo swapon /mnt/swapfile &>/dev/null || true
+        log "mount" "Created new 2GB swap file at /mnt/swapfile"
+    fi
+    
+    log "success" "LVM unmount and cleanup completed successfully"
 }
 
 # Function to create optimized build mount
@@ -481,6 +628,7 @@ create_build_mount() {
 main() {
     local force=false
     local mount_path=""
+    local unmount=false
     local root_reserve_mb=$DEFAULT_ROOT_RESERVE_MB
     local temp_reserve_mb=$DEFAULT_TEMP_RESERVE_MB
     local swap_size_mb=$DEFAULT_SWAP_SIZE_MB
@@ -502,6 +650,10 @@ main() {
             --mount)
                 mount_path="$2"
                 shift 2
+                ;;
+            --unmount)
+                unmount=true
+                shift
                 ;;
             --root-reserve-mb)
                 root_reserve_mb="$2"
@@ -556,6 +708,14 @@ main() {
     if [[ -n "$mount_path" ]] && [[ ! "$mount_path" =~ ^/ ]]; then
         log "error" "Mount path must be absolute: $mount_path"
         exit 1
+    fi
+    
+    # Handle unmount operation
+    if [[ "$unmount" == "true" ]]; then
+        log "info" "GitHub Actions Runner Debloat Tool - Unmount Mode"
+        unmount_build_mount "$pv_loop_path" "$tmp_pv_loop_path"
+        show_disk_report "=== Final Disk Usage After Unmount ==="
+        exit 0
     fi
     
     # Check if we should run
