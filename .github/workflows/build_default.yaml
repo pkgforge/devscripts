@@ -181,8 +181,8 @@ jobs:
       #      ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
       #      ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
       #    outputs: type=registry,compression=zstd,compression-level=22
+      #  continue-on-error: true
 
-        continue-on-error: true    
       - name: Docker Build and Push (alpine)
         uses: docker/build-push-action@v6
         with:
