@@ -21,7 +21,8 @@ permissions:
 jobs:
   build-push-alpine:
     name: Push (Alpine ${{ matrix.arch }}) --> Docker Hub
-    runs-on: ${{ matrix.runner }}
+    #runs-on: ${{ matrix.runner }}
+    runs-on: "ubuntu-latest"
     strategy:
       matrix:
         include:
@@ -128,7 +129,8 @@ jobs:
            for i in {1..3}; do
                if curl -w "(DL) <== %{url}\n" -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/${ROOTFS_FILE}" -o "/tmp/alpine-minirootfs-loongarch64.tar.gz"; then
                    if tar -tzf "/tmp/alpine-minirootfs-loongarch64.tar.gz" &>/dev/null; then
-                       echo "/tmp/alpine-minirootfs-loongarch64.tar.gz" | xargs -I "{}" bash -c \
+                       mv -fv "/tmp/alpine-minirootfs-loongarch64.tar.gz" "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz"
+                       echo "/tmp/DOCKERFILES/alpine-minirootfs-loongarch64.tar.gz" | xargs -I "{}" bash -c \
                          'printf "\nFile: $(basename {})\n  Type: $(file -b {})\n  B3sum: $(b3sum {} | cut -d" " -f1)\n  SHA256sum: $(sha256sum {} | cut -d" " -f1)\n  Size: $(du -bh {} | cut -f1)\n"'
                        break
                    else
@@ -183,15 +185,30 @@ jobs:
       #    outputs: type=registry,compression=zstd,compression-level=22
       #  continue-on-error: true
 
-      - name: Docker Build and Push (alpine)
+      - name: Docker Build and Push (alpine - multi-platform)
+        if: matrix.platform != 'loong64'
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
-          platforms: "linux/${{ matrix.platform }}"
-          target: ${{ matrix.platform == 'loong64' && 'final-loong64' || 'final' }}
-          build-args: |
-            TARGETARCH=${{ matrix.platform }}
+          platforms: "linux/amd64,linux/arm64,linux/riscv64"
+          target: final
+          tags: |
+            pkgforge/alpine:edge
+            pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine:edge
+            ghcr.io/pkgforge/devscripts/alpine:edge-${{ env.DOCKER_TAG }}
+          outputs: type=registry,compression=zstd,compression-level=22
+        continue-on-error: true
+
+      - name: Docker Build and Push (alpine - loong64)
+        if: matrix.platform == 'loong64'
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/DOCKERFILES/
+          file: "/tmp/DOCKERFILES/alpine.dockerfile"
+          platforms: "linux/loong64"
+          target: final-loong64
           tags: |
             pkgforge/alpine:edge
             pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
