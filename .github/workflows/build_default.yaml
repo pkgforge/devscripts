@@ -150,28 +150,12 @@ jobs:
           password: "${{ secrets.GITHUB_TOKEN }}"
         continue-on-error: true
 
-      - name: Docker Build and Push (alpine - multi-platform)
+      - name: Docker Build and Push (Alpine)
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
-          platforms: "linux/amd64,linux/arm64,linux/riscv64"
-          target: final
-          tags: |
-            pkgforge/alpine:edge
-            pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/alpine:edge
-            ghcr.io/pkgforge/devscripts/alpine:edge-${{ env.DOCKER_TAG }}
-          outputs: type=registry,compression=zstd,compression-level=22
-        continue-on-error: true
-
-      - name: Docker Build and Push (alpine - loong64)
-        uses: docker/build-push-action@v6
-        with:
-          context: /tmp/DOCKERFILES/
-          file: "/tmp/DOCKERFILES/alpine.dockerfile"
-          platforms: "linux/loong64"
-          target: final-loong64
+          platforms: "linux/amd64,linux/arm64,linux/loong64,linux/riscv64"
           tags: |
             pkgforge/alpine:edge
             pkgforge/alpine:edge-${{ env.DOCKER_TAG }}
