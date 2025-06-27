@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
-FROM debian:unstable
+#FROM ghcr.io/pkgforge/devscripts/debian:loongarch64
+FROM docker.io/pkgforge/debian:loongarch64
 ENV GIT_ASKPASS="/bin/echo"
 ENV GIT_TERMINAL_PROMPT="0"
 ENV DEBIAN_FRONTEND="noninteractive"

@@ -1,0 +1,324 @@
+name: 🐬 Build Debian Base Images DockerHub 🐬
+#REF: https://docs.docker.com/build/ci/github-actions/multi-platform/
+#SECRETS: DOCKERHUB_USERNAME || DOCKERHUB_TOKEN
+#URL: https://hub.docker.com/u/pkgforge
+
+#------------------------------------------------------------------------------------#
+on:
+  #push:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 08 * * 3"  # 08:30 PM UTC Thu (02:15 AM NPT Thu Midnight)
+  #  - cron: "*/30 * * * *"  # Every 30 Mins
+defaults:
+  run:
+    shell: bash
+    working-directory: /tmp
+permissions:
+  contents: read
+  packages: write
+jobs:  
+#------------------------------------------------------------------------------------#
+  build-push-debian:
+    name: Push (Debian ${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: arm64
+            runner: ubuntu-24.04-arm
+          #- arch: loongarch64
+          #  platform: loong64
+          #  runner: ubuntu-latest
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
+          - arch: x86_64
+            platform: amd64
+            runner: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: main
+          filter: "blob:none"
+
+      #- name: Debloat Runner
+      #  run: |
+      #    #Presets
+      #    set +x ; set +e
+      #    #--------------#
+      #    bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+      #  continue-on-error: true
+
+      - name: Install Addons
+        run: |
+          ##Presets
+          set +x ; set +e
+          #-------------#
+          ##Debug?
+          if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+            set -x
+          fi
+          #-------------#
+          #export PARALLEL=1
+          #bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh")
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/local/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ansi2txt" -o "/usr/local/bin/ansi2txt" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2c" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/askalono" -o "/usr/local/bin/askalono" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/bsdtar" -o "/usr/local/bin/bsdtar" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/b3sum" -o "/usr/local/bin/b3sum" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/dasel" -o "/usr/local/bin/dasel" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/eget" -o "/usr/local/bin/eget" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/huggingface-cli" -o "/usr/local/bin/huggingface-cli" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/jq" -o "/usr/local/bin/jq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/oras" -o "/usr/local/bin/oras" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ouch" -o "/usr/local/bin/ouch" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/rsync" -o "/usr/local/bin/rsync" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/trufflehog" -o "/usr/local/bin/trufflehog" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xq" -o "/usr/local/bin/xq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xz" -o "/usr/local/bin/xz" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/yq" -o "/usr/local/bin/yq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/bin/zstd" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/local/bin/zstd" &
+          wait ; echo
+          sudo chmod -v 'a+x' \
+          "/usr/bin/7z" \
+          "/usr/local/bin/7z" \
+          "/usr/local/bin/ansi2txt" \
+          "/usr/local/bin/aria2" \
+          "/usr/local/bin/aria2c" \
+          "/usr/local/bin/askalono" \
+          "/usr/local/bin/bsdtar" \
+          "/usr/local/bin/b3sum" \
+          "/usr/local/bin/dasel" \
+          "/usr/local/bin/eget" \
+          "/usr/local/bin/huggingface-cli" \
+          "/usr/local/bin/jq" \
+          "/usr/local/bin/oras" \
+          "/usr/local/bin/ouch" \
+          "/usr/local/bin/rsync" \
+          "/usr/local/bin/trufflehog" \
+          "/usr/local/bin/xq" \
+          "/usr/local/bin/xz" \
+          "/usr/local/bin/yq" \
+          "/usr/bin/zstd" \
+          "/usr/local/bin/zstd"
+        continue-on-error: true
+
+      - name: Setup Env
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          #Docker Tags
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
+          #Copy dockerfiles
+          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
+          cp "${GITHUB_WORKSPACE}/main/Github/Runners/debian.dockerfile" "/tmp/DOCKERFILES/debian.dockerfile"
+        continue-on-error: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        continue-on-error: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        continue-on-error: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/debian
+      - name: Docker Build and Push (Debian)
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/DOCKERFILES/
+          file: "/tmp/DOCKERFILES/debian.dockerfile"
+          platforms: "linux/${{ matrix.platform }}"
+          tags: |
+            pkgforge/debian:${{ matrix.arch }}
+            pkgforge/debian:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+          push: true
+        continue-on-error: true
+
+      - name: Pirnt Manifest (docker.io/pkgforge/debian:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/debian:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+#------------------------------------------------------------------------------------#
+  build-push-debian-loongarch64:
+    name: Push (Debian loongarch64) --> Docker Hub
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: main
+          filter: "blob:none"
+
+      #- name: Debloat Runner
+      #  run: |
+      #    #Presets
+      #    set +x ; set +e
+      #    #--------------#
+      #    bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+      #  continue-on-error: true
+
+      - name: Install Addons
+        run: |
+          ##Presets
+          set +x ; set +e
+          #-------------#
+          ##Debug?
+          if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+            set -x
+          fi
+          #-------------#
+          #export PARALLEL=1
+          #bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh")
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/local/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ansi2txt" -o "/usr/local/bin/ansi2txt" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2c" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/askalono" -o "/usr/local/bin/askalono" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/bsdtar" -o "/usr/local/bin/bsdtar" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/b3sum" -o "/usr/local/bin/b3sum" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/dasel" -o "/usr/local/bin/dasel" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/eget" -o "/usr/local/bin/eget" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/huggingface-cli" -o "/usr/local/bin/huggingface-cli" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/jq" -o "/usr/local/bin/jq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/oras" -o "/usr/local/bin/oras" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ouch" -o "/usr/local/bin/ouch" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/rsync" -o "/usr/local/bin/rsync" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/trufflehog" -o "/usr/local/bin/trufflehog" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xq" -o "/usr/local/bin/xq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xz" -o "/usr/local/bin/xz" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/yq" -o "/usr/local/bin/yq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/bin/zstd" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/local/bin/zstd" &
+          wait ; echo
+          sudo chmod -v 'a+x' \
+          "/usr/bin/7z" \
+          "/usr/local/bin/7z" \
+          "/usr/local/bin/ansi2txt" \
+          "/usr/local/bin/aria2" \
+          "/usr/local/bin/aria2c" \
+          "/usr/local/bin/askalono" \
+          "/usr/local/bin/bsdtar" \
+          "/usr/local/bin/b3sum" \
+          "/usr/local/bin/dasel" \
+          "/usr/local/bin/eget" \
+          "/usr/local/bin/huggingface-cli" \
+          "/usr/local/bin/jq" \
+          "/usr/local/bin/oras" \
+          "/usr/local/bin/ouch" \
+          "/usr/local/bin/rsync" \
+          "/usr/local/bin/trufflehog" \
+          "/usr/local/bin/xq" \
+          "/usr/local/bin/xz" \
+          "/usr/local/bin/yq" \
+          "/usr/bin/zstd" \
+          "/usr/local/bin/zstd"
+        continue-on-error: true
+
+      - name: Setup Env
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          #Docker Tags
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
+          #Copy dockerfiles
+          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
+          cp "${GITHUB_WORKSPACE}/main/Github/Runners/debian_loongarch64.dockerfile" "/tmp/DOCKERFILES/debian.dockerfile"
+        continue-on-error: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        continue-on-error: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        continue-on-error: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/debian
+      - name: Docker Build and Push (debian - loongarch64)
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/DOCKERFILES/
+          file: "/tmp/DOCKERFILES/debian.dockerfile"
+          platforms: "linux/loong64"
+          tags: |
+            pkgforge/debian:loongarch64
+            pkgforge/debian:loongarch64-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/debian:loongarch64
+            ghcr.io/pkgforge/devscripts/debian:loongarch64-${{ env.DOCKER_TAG }}
+          outputs: type=registry,compression=zstd,compression-level=22
+        continue-on-error: true
+
+      - name: Pirnt Manifest (docker.io/pkgforge/debian:loongarch64)
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/debian:loongarch64" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/debian:loongarch64)
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/debian:loongarch64" 2>/dev/null | jq .
+        continue-on-error: true
+#------------------------------------------------------------------------------------#
