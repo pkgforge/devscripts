@@ -50,7 +50,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -122,7 +122,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #
 #      - name: Setup Env
@@ -197,7 +197,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #
 #      - name: Setup Env
@@ -277,7 +277,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -362,7 +362,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -446,7 +446,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -519,7 +519,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -592,7 +592,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -665,7 +665,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -738,7 +738,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
 
       - name: Setup Env
@@ -810,7 +810,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
         
       - name: Setup Env
@@ -891,7 +891,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #  
 #      - name: Setup Env
@@ -971,7 +971,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #  
 #      - name: Setup Env
@@ -1051,7 +1051,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #  
 #      - name: Setup Env
@@ -1173,7 +1173,7 @@ jobs:
 #          #Presets
 #          set +x ; set +e
 #          #--------------#
-#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/debloat_ubuntu.sh")
+#          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
 #        continue-on-error: true
 #  
 #      - name: Setup Env (${{ matrix.base_img }} ==> ${{ matrix.target_img }})

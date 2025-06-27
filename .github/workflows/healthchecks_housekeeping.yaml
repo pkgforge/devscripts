@@ -22,7 +22,7 @@ jobs:
           #Presets
           set +x ; set +e
           #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh")
+          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
         continue-on-error: true
         
       - name: Checkout repository
