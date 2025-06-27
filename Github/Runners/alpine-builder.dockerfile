@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/alpine-builder
-FROM alpine:edge
+#FROM alpine:edge
+ARG ARCH
+FROM "ghcr.io/pkgforge/devscripts/alpine:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Bad Deps
 RUN <<EOS

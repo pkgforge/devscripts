@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 #https://hub.docker.com/r/pkgforge/debian-builder-unstable
-FROM debian:unstable
+#FROM debian:unstable
+ARG ARCH
+FROM "ghcr.io/pkgforge/devscripts/debian:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Base Deps
 ENV DEBIAN_FRONTEND="noninteractive"

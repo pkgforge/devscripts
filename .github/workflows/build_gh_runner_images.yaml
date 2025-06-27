@@ -20,8 +20,23 @@ permissions:
 #------------------------------------------------------------------------------------#  
 jobs:
   build-push-docker-alpine:
-    name: Push (Alpine) --> Docker Hub
-    runs-on: ubuntu-latest
+    name: Push (Alpine:${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: arm64
+            runner: ubuntu-24.04-arm
+          - arch: loongarch64
+            platform: loong64
+            runner: ubuntu-latest
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
+          - arch: x86_64
+            platform: amd64
+            runner: ubuntu-latest
     
     steps:
       - name: Checkout repository
@@ -73,20 +88,22 @@ jobs:
           username: "${{ github.actor }}"
           password: "${{ secrets.GITHUB_TOKEN }}"
         continue-on-error: true
-
+          
     #https://hub.docker.com/r/pkgforge/alpine-builder
-      - name: Docker Build and Push (alpine-builder)
+      - name: Docker Build and Push (alpine-builder:${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine-builder.dockerfile"
-          platforms: "linux/amd64,linux/arm64,linux/riscv64"
+          platforms: "linux/${{ matrix.platform }}"
+          build-args: |
+            ARCH=${{ matrix.arch }}
           tags: |
-            pkgforge/alpine-builder:latest
-            pkgforge/alpine-builder:latest-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/alpine-builder:latest
-            ghcr.io/pkgforge/devscripts/alpine-builder:latest-${{ env.DOCKER_TAG }}
-          push: true  
+            pkgforge/alpine-builder:${{ matrix.arch }}
+            pkgforge/alpine-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine-builder:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/alpine-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
 #  build-push-docker-alpine-mimalloc-edge:
