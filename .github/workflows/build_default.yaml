@@ -20,24 +20,8 @@ permissions:
 #------------------------------------------------------------------------------------#  
 jobs:
   build-push-alpine:
-    name: Push (Alpine ${{ matrix.arch }}) --> Docker Hub
-    #runs-on: ${{ matrix.runner }}
+    name: Push (Alpine) --> Docker Hub
     runs-on: "ubuntu-latest"
-    strategy:
-      matrix:
-        include:
-          - arch: aarch64
-            platform: arm64
-            runner: ubuntu-24.04-arm
-          - arch: loongarch64
-            platform: loong64
-            runner: ubuntu-latest
-          - arch: riscv64
-            platform: riscv64
-            runner: ubuntu-latest
-          - arch: x86_64
-            platform: amd64
-            runner: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -124,7 +108,6 @@ jobs:
           mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
           cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine.dockerfile" "/tmp/DOCKERFILES/alpine.dockerfile"
           #Download Rootfs
-          if [[ "${{ matrix.platform }}" == "loong64" ]]; then
            ROOTFS_FILE="$(curl -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/latest-releases.yaml" | grep -oE 'alpine-[^[:space:]"'\'']+\.tar\.gz' | sed 's/[[:space:]]*$//' | sort -u | head -1 | tr -d '"'\''[:space:]')"
            for i in {1..3}; do
                if curl -w "(DL) <== %{url}\n" -qfsSL "https://dl-cdn.alpinelinux.org/alpine/edge/releases/loongarch64/${ROOTFS_FILE}" -o "/tmp/alpine-minirootfs-loongarch64.tar.gz"; then
@@ -142,7 +125,6 @@ jobs:
                fi
                [[ $i -eq 3 ]] && { echo "Failed after 3 attempts"; exit 1; }
            done
-          fi
         continue-on-error: false
 
       - name: Set up QEMU
@@ -168,25 +150,7 @@ jobs:
           password: "${{ secrets.GITHUB_TOKEN }}"
         continue-on-error: true
 
-    #https://hub.docker.com/r/pkgforge/alpine
-      #- name: Docker Build and Push (alpine)
-      #  uses: docker/build-push-action@v6
-      #  with:
-      #    context: /tmp/DOCKERFILES/
-      #    file: "/tmp/DOCKERFILES/alpine.dockerfile"
-      #    platforms: "linux/${{ matrix.platform }}"
-      #    build-args: |
-      #      TARGETARCH="${{ matrix.platform }}"
-      #    tags: |
-      #      pkgforge/alpine:${{ matrix.arch }}
-      #      pkgforge/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-      #      ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}
-      #      ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-      #    outputs: type=registry,compression=zstd,compression-level=22
-      #  continue-on-error: true
-
       - name: Docker Build and Push (alpine - multi-platform)
-        if: matrix.platform != 'loong64'
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
@@ -202,7 +166,6 @@ jobs:
         continue-on-error: true
 
       - name: Docker Build and Push (alpine - loong64)
-        if: matrix.platform == 'loong64'
         uses: docker/build-push-action@v6
         with:
           context: /tmp/DOCKERFILES/
