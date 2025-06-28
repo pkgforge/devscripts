@@ -2,8 +2,6 @@
 # rbuilder - A minimal alternative to cross-rs/cross
 # Usage: rbuilder [+toolchain] <cargo-subcommand> [options...]
 
-set -e
-
 # Constants
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
@@ -60,25 +58,23 @@ log_verbose() {
     echo -e "${BLUE}[VERBOSE]${NC} $*" >&2
 }
 
+log_verbose_date() {
+    if [[ "${RBUILDER_VERBOSE:-0}" != "1" ]]; then
+        return 0
+    fi
+    echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $*" >&2
+}
+
 # Cleanup function
 cleanup() {
     local exit_code=$?
-    
-    if [[ -n "${CONTAINER_ID:-}" ]]; then
-        log_verbose "Cleaning up container: ${CONTAINER_ID}"
-        if [[ -n "${USE_SUDO:-}" ]]; then
-            ${USE_SUDO} ${CONTAINER_ENGINE} rm -f "${CONTAINER_ID}" &>/dev/null || true
-        else
-            ${CONTAINER_ENGINE} rm -f "${CONTAINER_ID}" &>/dev/null || true
-        fi
-    fi
-    
+    bash -c 'pgrep cargo | sudo kill -9 2>/dev/null' 2>/dev/null
+    bash -c 'sudo pgrep cargo | xargs sudo kill -9 2>/dev/null' 2>/dev/null
     # Fix permissions on mounted directories
     if [[ -n "${ARTIFACT_DIR:-}" && -d "${ARTIFACT_DIR}" ]]; then
         log_verbose "Fixing permissions on artifact directory: ${ARTIFACT_DIR}"
         sudo chown -R "$(id -u):$(id -g)" "${ARTIFACT_DIR}" 2>/dev/null || true
     fi
-    
     if [[ -n "${WORKSPACE_DIR:-}" && -d "${WORKSPACE_DIR}" ]]; then
         log_verbose "Fixing permissions on workspace: ${WORKSPACE_DIR}"
         sudo chown -R "$(id -u):$(id -g)" "${WORKSPACE_DIR}" 2>/dev/null || true
@@ -88,7 +84,7 @@ cleanup() {
 }
 
 # Set up signal handlers
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
 
 # Help function
 show_help() {
@@ -336,9 +332,38 @@ parse_artifact_dir() {
             return 1
         fi
         
-        log_verbose "Artifact directory: ${ARTIFACT_DIR}"
+        log_info "Artifact directory: ${ARTIFACT_DIR}"
     fi
     return 0
+}
+
+# Update cargo args with the final target
+update_cargo_target_arg() {
+    local i
+    local target_updated=0
+    
+    # Find and update existing --target argument
+    for ((i=0; i<${#CARGO_ARGS[@]}; i++)); do
+        if [[ "${CARGO_ARGS[i]}" == "--target" ]]; then
+            if ((i+1 < ${#CARGO_ARGS[@]})); then
+                CARGO_ARGS[i+1]="${RUST_TARGET}"
+                target_updated=1
+                break
+            fi
+        elif [[ "${CARGO_ARGS[i]}" =~ ^--target=(.+)$ ]]; then
+            CARGO_ARGS[i]="--target=${RUST_TARGET}"
+            target_updated=1
+            break
+        fi
+    done
+    
+    # Add --target if not present and not default
+    if [[ "${target_updated}" -eq 0 ]]; then
+        CARGO_ARGS+=("--target" "${RUST_TARGET}")
+        log_info "Added --target=${RUST_TARGET} to cargo args"
+    else
+        log_info "Updated --target=${RUST_TARGET} in cargo args"
+    fi
 }
 
 # Generate container setup script
@@ -518,8 +543,12 @@ else
     rustup target add "\${RUST_TARGET}" || { echo "ERROR: Failed to add target \${RUST_TARGET}" >&2; exit 1; }
 fi
 
+# Re:Set RUST_TARGET
 readonly CONTAINER_RUSTFLAGS=${escaped_rustflags}
 echo "Final Rust target: \${RUST_TARGET}"
+if [[ "\${RUST_TARGET}" == *"riscv64"* ]]; then
+    echo "FINAL_RUST_TARGET=\${RUST_TARGET}" > "/tmp/rust_target_export"
+fi
 
 # Handle RUSTFLAGS setup
 if [[ "\${CONTAINER_RBUILD_STATIC}" == "1" ]]; then
@@ -679,6 +708,8 @@ detect_resources() {
 
 # Run container
 run_container() {
+    local container_name
+    container_name="rbuilder-$(date +%s)-$$"
     local setup_script
     setup_script="$(generate_setup_script)"
     
@@ -707,6 +738,7 @@ run_container() {
     
     container_cmd+=(
         "${CONTAINER_ENGINE}" "run"
+        "--name=${container_name}"
         "--rm"
         "--platform=${CONTAINER_PLATFORM}"
         "--workdir=${DEFAULT_WORKSPACE}"
@@ -737,6 +769,47 @@ run_container() {
     
     log_verbose "Container command: ${container_cmd[*]}"
     
+    # Create a temporary container to extract the final target for riscv64
+    if [[ "${RUST_TARGET}" == *"riscv64"* ]]; then
+        log_verbose "Detecting final RISC-V target..."
+        
+        local temp_cmd=()
+        if [[ -n "${USE_SUDO}" ]]; then
+            temp_cmd+=("${USE_SUDO}")
+        fi
+        
+        temp_cmd+=(
+            "${CONTAINER_ENGINE}" "run" "--rm"
+            "--platform=${CONTAINER_PLATFORM}"
+            "--workdir=${DEFAULT_WORKSPACE}"
+            "${MOUNT_ARGS[@]}"
+            "${CONTAINER_IMAGE}"
+            "bash" "-c" "set -e; ${setup_script} && cat '/tmp/rust_target_export' 2>/dev/null || true"
+        )
+        
+        local temp_output
+        if temp_output=$("${temp_cmd[@]}" 2>/dev/null); then
+            if [[ "${temp_output}" =~ FINAL_RUST_TARGET=(.+) ]]; then
+                local final_target="${BASH_REMATCH[1]}"
+                if [[ "${final_target}" != "${RUST_TARGET}" ]]; then
+                    RUST_TARGET="${final_target}"
+                    log_info "Updated RUST_TARGET to: ${RUST_TARGET}"
+                    update_cargo_target_arg
+                    
+                    # Rebuild the final command with updated target
+                    final_cmd="set -e; ${setup_script}"
+                    final_cmd+=" && exec cargo"
+                    for arg in "${CARGO_ARGS[@]}"; do
+                        final_cmd+=" $(printf '%q' "${arg}")"
+                    done
+                    container_cmd[${#container_cmd[@]}-1]="${final_cmd}"
+                fi
+            fi
+        fi
+    fi
+
+    log_info "Cargo Args (Final): ${CARGO_ARGS[*]}"
+
     # Execute the container
     if ! "${container_cmd[@]}"; then
         log_error "Container execution failed"
@@ -782,7 +855,7 @@ parse_args() {
         return 1
     fi
     
-    log_verbose "Cargo args: ${CARGO_ARGS[*]}"
+    log_info "Cargo args: ${CARGO_ARGS[*]}"
     return 0
 }
 
@@ -820,6 +893,11 @@ main() {
     
     # Parse artifact directory
     if ! parse_artifact_dir; then
+        exit 1
+    fi
+
+    #Add Update Target
+    if ! update_cargo_target_arg; then
         exit 1
     fi
     
