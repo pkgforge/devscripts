@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# bash <(curl -qfsSL 'https://github.com/pkgforge/devscripts/raw/refs/heads/main/Linux/rbuilder.sh')
 # rbuilder - A minimal alternative to cross-rs/cross
 # Usage: rbuilder [+toolchain] <cargo-subcommand> [options...]
 
@@ -599,7 +600,12 @@ elif [[ -n "\${CONTAINER_RUSTFLAGS}" ]]; then
 else
     echo "No custom RUSTFLAGS specified"
 fi
-
+export CARGO_BUILD_JOBS="\$(nproc)"
+export CARGO_INCREMENTAL="1"
+export CARGO_NET_RETRY="10"
+export CARGO_NET_TIMEOUT="300"
+export RUST_BACKTRACE="0"
+export CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse"
 echo "=== Container Setup Complete ==="
 echo "Running cargo command..."
 echo ""
@@ -743,10 +749,17 @@ run_container() {
         "--platform=${CONTAINER_PLATFORM}"
         "--workdir=${DEFAULT_WORKSPACE}"
         "--cpus=$(nproc)"
-        "--memory=$(calculate_memory_limit)"
-        "--shm-size=1g"
-        "--ulimit=nofile=65536:65536"
-       "--security-opt=seccomp=unconfined"
+        "--dns=1.1.1.1"
+        "--dns=8.8.8.8"
+        "--ipc=host"
+        "--log-driver=none"
+        "--memory-swappiness=1"
+        "--oom-kill-disable=true"
+        "--security-opt=seccomp=unconfined"
+        "--shm-size=2g"
+        "--ulimit=memlock=-1:-1"
+        "--ulimit=nofile=1048576:1048576"
+        "--ulimit=nproc=32768:32768"
     )
     
     # Add mount arguments
