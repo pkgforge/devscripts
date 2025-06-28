@@ -183,19 +183,37 @@ detect_container_engine() {
     return 0
 }
 
-# Check prerequisites
-check_prerequisites() {
-    # Check for qemu (for cross-platform emulation)
-    if ! command_exists qemu-user-static && ! command_exists qemu-aarch64-static; then
+# Check QEMU/binfmt
+check_qemu_binfmt() {
+    local cross_qemu=0
+
+    # Check if binfmt_misc is mounted and QEMU handlers are enabled
+    if [[ -d "/proc/sys/fs/binfmt_misc" ]]; then
+        if grep -qi 'enabled' "/proc/sys/fs/binfmt_misc/qemu-arm" 2>/dev/null || \
+           grep -qi 'enabled' "/proc/sys/fs/binfmt_misc/qemu-aarch64" 2>/dev/null; then
+            log_info "QEMU binfmt_misc handlers are registered and enabled"
+            cross_qemu=1
+        fi
+    fi
+
+    # Fallback: check for qemu-user-static binaries in PATH
+    if [[ "${cross_qemu}" -eq 0 ]]; then
+        if command_exists qemu-user-static &>/dev/null || \
+           command_exists qemu-aarch64-static &>/dev/null; then
+            log_info "QEMU user-static binaries found in PATH"
+            cross_qemu=1
+        fi
+    fi
+
+    if [[ "${cross_qemu}" -eq 0 ]]; then
         log_error "QEMU user emulation not found. Cross-platform builds may fail."
         log_error "Install with:   sudo apt-get install qemu-user-static (Debian/Ubuntu)"
         log_error "                sudo pacman -S qemu-user-static (Arch)"
         log_error "Github Actions: https://github.com/docker/setup-qemu-action"
         echo ""
         return 1
-    else
-        log_verbose "QEMU user emulation available"
     fi
+    return 0
 }
 
 # Get the default RUST TARGET
@@ -478,6 +496,12 @@ if [[ "\${CONTAINER_RUST_TARGET}" == *"riscv64"* ]]; then
             }
         fi
     fi
+
+    # Remove any occurrences of '-C link-self-contained=yes'
+    if [[ -n "\${CONTAINER_RUSTFLAGS}" ]]; then
+      CONTAINER_RUSTFLAGS_TMP="\$(echo "\${CONTAINER_RUSTFLAGS}" | sed -E 's/-C[[:space:]]+link-self-contained[[:space:]]*=[[:space:]]*yes//g' | xargs)"
+      export CONTAINER_RUSTFLAGS="\${CONTAINER_RUSTFLAGS_TMP}"
+    fi
 else
     echo "Standard toolchain setup for target: \${CONTAINER_RUST_TARGET}"
     export RUST_TARGET="\${CONTAINER_RUST_TARGET}"
@@ -506,8 +530,8 @@ if [[ "\${CONTAINER_RBUILD_STATIC}" == "1" ]]; then
     rust_flags+=("-C" "target-feature=+crt-static")
     rust_flags+=("-C" "default-linker-libraries=yes")
     
-    # Only add link-self-contained for non-GNU targets
-    if [[ "\${RUST_TARGET}" != *"gnu"* ]]; then
+    # Only add link-self-contained for non-GNU/custom targets
+    if [[ "\${RUST_TARGET}" != *"gnu"* && "\${RUST_TARGET}" != *"alpine"* ]]; then
         rust_flags+=("-C" "link-self-contained=yes")
     fi
     
@@ -683,9 +707,9 @@ main() {
         exit 1
     fi
     
-    # Check prerequisites
-    check_prerequisites
-    #if ! check_prerequisites; then
+    # Check QEMU Binfmt
+    check_qemu_binfmt
+    #if ! check_qemu_binfmt; then
     #    exit 1
     #fi
 
