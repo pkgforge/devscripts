@@ -22,7 +22,6 @@ declare -g ARTIFACT_DIR=""
 declare -g CONTAINER_ID=""
 declare -a CARGO_ARGS=()
 declare -a MOUNT_ARGS=()
-declare -a ENV_ARGS=()
 
 # Color codes for output
 readonly RED='\033[0;31m'
@@ -371,7 +370,7 @@ readonly CONTAINER_WORKSPACE=${escaped_workspace}
 readonly CONTAINER_RUST_TARGET=${escaped_rust_target}
 readonly CONTAINER_TOOLCHAIN=${escaped_toolchain}
 readonly CONTAINER_RBUILD_STATIC=${escaped_rbuild_static}
-readonly CONTAINER_RUSTFLAGS=${escaped_rustflags}
+CONTAINER_RUSTFLAGS=${escaped_rustflags}
 
 # Sanity checks for required variables
 if [[ -z "\${CONTAINER_RUST_TARGET}" ]]; then
@@ -519,6 +518,7 @@ else
     rustup target add "\${RUST_TARGET}" || { echo "ERROR: Failed to add target \${RUST_TARGET}" >&2; exit 1; }
 fi
 
+readonly CONTAINER_RUSTFLAGS=${escaped_rustflags}
 echo "Final Rust target: \${RUST_TARGET}"
 
 # Handle RUSTFLAGS setup
@@ -557,11 +557,16 @@ if [[ "\${CONTAINER_RBUILD_STATIC}" == "1" ]]; then
     
     # Convert array to space-separated string
     export RUSTFLAGS="\${rust_flags[*]}"
-    echo "Static build RUSTFLAGS: \${RUSTFLAGS}"
-    
+    echo "Static build RUSTFLAGS: \${RUSTFLAGS}"    
 elif [[ -n "\${CONTAINER_RUSTFLAGS}" ]]; then
-    export RUSTFLAGS="\${CONTAINER_RUSTFLAGS}"
-    echo "Using provided RUSTFLAGS: \${RUSTFLAGS}"
+    if echo "\${RUST_TARGET}" | grep -Eqi "alpine|gnu"; then
+        RUSTFLAGS_TMP="\$(echo "\${CONTAINER_RUSTFLAGS}" | sed -E 's/-C[[:space:]]+link-self-contained[[:space:]]*=[[:space:]]*yes//g' | xargs)"
+        export RUSTFLAGS="\${RUSTFLAGS_TMP}"
+        echo "Using RUSTFLAGS (Provided + Sanitized): \${RUSTFLAGS}"
+    else
+        export RUSTFLAGS="\${CONTAINER_RUSTFLAGS}"
+        echo "Using RUSTFLAGS (Provided): \${RUSTFLAGS}"
+    fi
 else
     echo "No custom RUSTFLAGS specified"
 fi
@@ -591,6 +596,84 @@ pull_image() {
         log_error "Failed to pull container image: ${CONTAINER_IMAGE}"
         return 1
     fi
+    return 0
+}
+
+# Get total memory in bytes with multiple fallbacks
+get_total_memory_bytes() {
+    local memory_bytes=0
+    
+    # Method 1: Try /proc/meminfo (most reliable on Linux)
+    if [[ -r "/proc/meminfo" ]]; then
+        # Extract MemTotal, handle various whitespace patterns
+        memory_bytes="$(awk '/^[[:space:]]*MemTotal[[:space:]]*:/ {
+            # Remove all non-digit characters except for the number
+            gsub(/[^0-9]/, "", $2); 
+            print $2 * 1024
+        }' /proc/meminfo 2>/dev/null)"
+    fi
+    
+    # Method 2: Fallback to free command if /proc/meminfo failed
+    if [[ -z "${memory_bytes}" || "${memory_bytes}" -eq 0 ]]; then
+        # Use free with bytes, handle various output formats
+        memory_bytes="$(free -b 2>/dev/null | awk '
+            /^[[:space:]]*Mem[[:space:]]*:/ { 
+                gsub(/[^0-9]/, "", $2); 
+                if ($2 > 0) print $2 
+            }
+            /^[[:space:]]*Memory[[:space:]]*:/ { 
+                gsub(/[^0-9]/, "", $2); 
+                if ($2 > 0) print $2 
+            }
+        ')"
+    fi
+    
+    # Method 3: Try alternative free output parsing
+    if [[ -z "${memory_bytes}" || "${memory_bytes}" -eq 0 ]]; then
+        memory_bytes="$(free 2>/dev/null | awk '
+            NR==2 { 
+                gsub(/[^0-9]/, "", $2); 
+                if ($2 > 0) print $2 * 1024 
+            }
+        ')"
+    fi
+    
+    # Method 4: macOS fallback using sysctl
+    if [[ -z "${memory_bytes}" || "${memory_bytes}" -eq 0 ]] && command -v sysctl >/dev/null 2>&1; then
+        memory_bytes="$(sysctl -n 'hw.memsize' 2>/dev/null)"
+    fi
+    
+    # Validation: ensure we got a reasonable memory value (at least 100MB)
+    if [[ -n "${memory_bytes}" && "${memory_bytes}" -gt 104857600 ]]; then
+        echo "${memory_bytes}"
+    else
+        # Ultimate fallback: assume 2GB if all methods fail
+        echo "2147483648"
+    fi
+}
+
+# Function to calculate 80% of memory with proper formatting
+calculate_memory_limit() {
+    local total_memory
+    total_memory="$(get_total_memory_bytes)"
+    
+    # Calculate 80% and format appropriately
+    local memory_limit
+    memory_limit="$(printf "%.0f" "$(echo "$total_memory * 0.8" | bc 2>/dev/null || echo "$total_memory * 8 / 10" | awk '{print int($1)}')")"
+    
+    echo "${memory_limit}"
+}
+
+# Detect available resources
+detect_resources() {
+    local available_cpus available_memory
+    
+    available_cpus="$(nproc 2>/dev/null || echo '1')"
+    available_memory="$(calculate_memory_limit)"
+    
+    log_verbose "Available CPUs: ${available_cpus}"
+    log_verbose "Available memory: $((available_memory / 1024 / 1024))MB"
+    
     return 0
 }
 
@@ -627,6 +710,11 @@ run_container() {
         "--rm"
         "--platform=${CONTAINER_PLATFORM}"
         "--workdir=${DEFAULT_WORKSPACE}"
+        "--cpus=$(nproc)"
+        "--memory=$(calculate_memory_limit)"
+        "--shm-size=1g"
+        "--ulimit=nofile=65536:65536"
+       "--security-opt=seccomp=unconfined"
     )
     
     # Add mount arguments
@@ -721,8 +809,10 @@ main() {
     # Detect container engine
     if ! detect_container_engine; then
         exit 1
+    else
+      detect_resources
     fi
-    
+
     # Determine target and container image
     if ! determine_target_and_image; then
         exit 1
