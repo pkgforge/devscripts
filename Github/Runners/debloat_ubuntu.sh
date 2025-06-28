@@ -4,6 +4,7 @@
 # Can free up to 40GB+ of space and create unified build volumes using LVM
 #
 # Usage:
+#   bash <(curl -qfsSL 'https://github.com/pkgforge/devscripts/raw/refs/heads/main/Github/Runners/debloat_ubuntu.sh')
 #   ./debloat.sh                    # Auto-detect runner environment
 #   ./debloat.sh --force            # Force run regardless of environment
 #   ./debloat.sh --mount /build     # Create optimized build mount at /build
