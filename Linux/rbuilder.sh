@@ -2,7 +2,7 @@
 # rbuilder - A minimal alternative to cross-rs/cross
 # Usage: rbuilder [+toolchain] <cargo-subcommand> [options...]
 
-set -euo pipefail
+set -e
 
 # Constants
 SCRIPT_NAME="$(basename "$0")"
@@ -33,7 +33,9 @@ readonly NC='\033[0m' # No Color
 
 # Logging functions
 log_info() {
-    [[ "${RBUILDER_QUIET:-0}" == "1" ]] && return 0
+    if [[ "${RBUILDER_QUIET:-0}" == "1" ]]; then
+        return 0
+    fi
     echo -e "${BLUE}[INFO]${NC} $*" >&2
 }
 
@@ -46,12 +48,16 @@ log_error() {
 }
 
 log_success() {
-    [[ "${RBUILDER_QUIET:-0}" == "1" ]] && return 0
+    if [[ "${RBUILDER_QUIET:-0}" == "1" ]]; then
+        return 0
+    fi
     echo -e "${GREEN}[SUCCESS]${NC} $*" >&2
 }
 
 log_verbose() {
-    [[ "${RBUILDER_VERBOSE:-0}" == "1" ]] || return 0
+    if [[ "${RBUILDER_VERBOSE:-0}" != "1" ]]; then
+        return 0
+    fi
     echo -e "${BLUE}[VERBOSE]${NC} $*" >&2
 }
 
@@ -59,19 +65,25 @@ log_verbose() {
 cleanup() {
     local exit_code=$?
     
-    if [[ -n "${CONTAINER_ID}" ]]; then
+    if [[ -n "${CONTAINER_ID:-}" ]]; then
         log_verbose "Cleaning up container: ${CONTAINER_ID}"
-        ${USE_SUDO} ${CONTAINER_ENGINE} rm -f "${CONTAINER_ID}" &>/dev/null || true
+        if [[ -n "${USE_SUDO:-}" ]]; then
+            ${USE_SUDO} ${CONTAINER_ENGINE} rm -f "${CONTAINER_ID}" &>/dev/null || true
+        else
+            ${CONTAINER_ENGINE} rm -f "${CONTAINER_ID}" &>/dev/null || true
+        fi
     fi
     
     # Fix permissions on mounted directories
-    if [[ -n "${ARTIFACT_DIR}" && -d "${ARTIFACT_DIR}" ]]; then
+    if [[ -n "${ARTIFACT_DIR:-}" && -d "${ARTIFACT_DIR}" ]]; then
         log_verbose "Fixing permissions on artifact directory: ${ARTIFACT_DIR}"
         sudo chown -R "$(id -u):$(id -g)" "${ARTIFACT_DIR}" 2>/dev/null || true
     fi
     
-    log_verbose "Fixing permissions on workspace: ${WORKSPACE_DIR}"
-    sudo chown -R "$(id -u):$(id -g)" "${WORKSPACE_DIR}" 2>/dev/null || true
+    if [[ -n "${WORKSPACE_DIR:-}" && -d "${WORKSPACE_DIR}" ]]; then
+        log_verbose "Fixing permissions on workspace: ${WORKSPACE_DIR}"
+        sudo chown -R "$(id -u):$(id -g)" "${WORKSPACE_DIR}" 2>/dev/null || true
+    fi
     
     exit ${exit_code}
 }
@@ -96,24 +108,51 @@ ENVIRONMENT VARIABLES:
     RBUILD_STATIC=1         Enable static linking optimizations
     RBUILDER_QUIET=1        Quiet mode (suppress rbuilder output)
     RBUILDER_VERBOSE=1      Verbose mode (show detailed output)
-    RUSTFLAGS              Custom RUSTFLAGS (passed through to container)
+    RUSTFLAGS               Custom RUSTFLAGS (passed through to container)
 
 SUPPORTED TARGETS:
-    x86_64-unknown-linux-musl    (Alpine x86_64)
-    x86_64-unknown-linux-gnu     (Debian x86_64)
-    aarch64-unknown-linux-musl   (Alpine aarch64)
-    aarch64-unknown-linux-gnu    (Debian aarch64)
-    riscv64gc-unknown-linux-musl (Alpine riscv64)
-    riscv64gc-unknown-linux-gnu  (Debian riscv64)
-    loongarch64-unknown-linux-musl (Alpine loongarch64)
-    loongarch64-unknown-linux-gnu  (Debian loongarch64)
-
+    aarch64-unknown-linux-musl      (Alpine aarch64)
+    aarch64-unknown-linux-gnu       (Debian aarch64)
+    loongarch64-unknown-linux-musl  (Alpine loongarch64)
+    loongarch64-unknown-linux-gnu   (Debian loongarch64)
+    riscv64gc-unknown-linux-musl    (Alpine riscv64)
+    riscv64gc-unknown-linux-gnu     (Debian riscv64)
+    x86_64-unknown-linux-musl       (Alpine x86_64)
+    x86_64-unknown-linux-gnu        (Debian x86_64)
 EOF
 }
 
 # Check if command exists
 command_exists() {
+    if [[ -z "${1:-}" ]]; then
+        return 1
+    fi
     command -v "$1" &>/dev/null
+}
+
+# Check if current directory contains a Rust project
+check_rust_project() {
+    local current_dir="${PWD}"
+    
+    # Check for Cargo.toml in current directory or parent directories
+    while [[ "${current_dir}" != "/" ]]; do
+        if [[ -f "${current_dir}/Cargo.toml" ]]; then
+            WORKSPACE_DIR="${current_dir}"
+            log_verbose "Found Rust project at: ${WORKSPACE_DIR}"
+            return 0
+        fi
+        current_dir="$(dirname "${current_dir}")"
+    done
+    
+    # Also check for other Rust project indicators
+    if [[ -f "${PWD}/Cargo.lock" ]] || [[ -d "${PWD}/src" ]] || [[ -f "${PWD}/rust-toolchain" ]] || [[ -f "${PWD}/rust-toolchain.toml" ]]; then
+        log_verbose "Found Rust project indicators in current directory"
+        return 0
+    fi
+    
+    log_error "No Rust project found in current directory or parent directories"
+    log_error "Expected to find Cargo.toml, Cargo.lock, src/ directory, or rust-toolchain file"
+    return 1
 }
 
 # Detect container engine
@@ -126,7 +165,7 @@ detect_container_engine() {
         log_verbose "Found Podman"
     else
         log_error "Neither Docker nor Podman found. Please install one of them."
-        exit 1
+        return 1
     fi
     
     # Test if we can run without sudo
@@ -138,20 +177,43 @@ detect_container_engine() {
         log_verbose "Container engine requires sudo"
     else
         log_error "Cannot run ${CONTAINER_ENGINE} with or without sudo"
-        exit 1
+        return 1
     fi
+    
+    return 0
 }
 
 # Check prerequisites
 check_prerequisites() {
     # Check for qemu (for cross-platform emulation)
     if ! command_exists qemu-user-static && ! command_exists qemu-aarch64-static; then
-        log_warn "QEMU user emulation not found. Cross-platform builds may fail."
-        log_warn "Install with: sudo apt-get install qemu-user-static (Debian/Ubuntu)"
-        log_warn "              sudo pacman -S qemu-user-static (Arch)"
+        log_error "QEMU user emulation not found. Cross-platform builds may fail."
+        log_error "Install with:   sudo apt-get install qemu-user-static (Debian/Ubuntu)"
+        log_error "                sudo pacman -S qemu-user-static (Arch)"
+        log_error "Github Actions: https://github.com/docker/setup-qemu-action"
+        echo ""
+        return 1
     else
         log_verbose "QEMU user emulation available"
     fi
+}
+
+# Get the default RUST TARGET
+get_default_rust_target() {
+    local ARCH OS LIBC
+    ARCH="$(uname -m)"
+    OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+
+    [[ "${ARCH}" == "riscv64" ]] && ARCH="riscv64gc"
+
+    if ldd --version 2>&1 | grep -qi 'musl'; then
+        LIBC="musl"
+    else
+        LIBC="gnu"
+    fi
+
+    RUST_TARGET="${ARCH}-unknown-${OS}-${LIBC}"
+    log_info "No target specified, defaulting to: ${RUST_TARGET}"
 }
 
 # Determine target and container image
@@ -172,7 +234,8 @@ determine_target_and_image() {
     
     # Default target if not specified
     if [[ -z "${RUST_TARGET}" ]]; then
-        RUST_TARGET="aarch64-unknown-linux-musl"
+        get_default_rust_target &>/dev/null
+        [[ -z "${RUST_TARGET}" ]] && RUST_TARGET="x86_64-unknown-linux-musl"
         log_info "No target specified, defaulting to: ${RUST_TARGET}"
     fi
     
@@ -213,13 +276,14 @@ determine_target_and_image() {
         *)
             log_error "Unsupported target: ${RUST_TARGET}"
             log_error "Supported targets: x86_64-unknown-linux-{musl,gnu}, aarch64-unknown-linux-{musl,gnu}, riscv64gc-unknown-linux-{musl,gnu}, loongarch64-unknown-linux-{musl,gnu}"
-            exit 1
+            return 1
             ;;
     esac
     
     log_verbose "Target: ${RUST_TARGET}"
     log_verbose "Container: ${CONTAINER_IMAGE}"
     log_verbose "Platform: ${CONTAINER_PLATFORM}"
+    return 0
 }
 
 # Parse artifact directory
@@ -244,146 +308,277 @@ parse_artifact_dir() {
         fi
         
         # Create directory if it doesn't exist
-        mkdir -p "${ARTIFACT_DIR}"
+        if ! mkdir -p "${ARTIFACT_DIR}"; then
+            log_error "Failed to create artifact directory: ${ARTIFACT_DIR}"
+            return 1
+        fi
         
         # Check if writable
         if [[ ! -w "${ARTIFACT_DIR}" ]]; then
             log_error "Artifact directory is not writable: ${ARTIFACT_DIR}"
-            exit 1
+            return 1
         fi
         
         log_verbose "Artifact directory: ${ARTIFACT_DIR}"
     fi
+    return 0
 }
 
 # Generate container setup script
+# This function creates a script that will run inside the container
+# All variables must be properly escaped to avoid host environment pollution
 generate_setup_script() {
-    cat << 'EOF'
+    # Use printf with %q to properly escape and quote the values
+    local escaped_workspace
+    local escaped_rust_target
+    local escaped_toolchain
+    local escaped_rbuild_static
+    local escaped_rustflags
+    
+    escaped_workspace=$(printf '%q' "${DEFAULT_WORKSPACE}")
+    escaped_rust_target=$(printf '%q' "${RUST_TARGET}")
+    escaped_toolchain=$(printf '%q' "${TOOLCHAIN}")
+    escaped_rbuild_static=$(printf '%q' "${RBUILD_STATIC:-0}")
+    escaped_rustflags=$(printf '%q' "${RUSTFLAGS:-}")
+    
+    cat << EOF
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
-# Try to set env
-if [[ -n "${HOME}" && -f "${HOME}/.bashrc" ]]; then
-    source "${HOME}/.bashrc"
-elif [[ -f ~/.bashrc ]]; then
-    source ~/.bashrc
-fi
-hash -r &>/dev/null
-if ! command -v cargo &>/dev/null; then
-    if [[ -n "${HOME}" && -f "${HOME}/.cargo/env" ]]; then
-        source "${HOME}/.cargo/env"
-    elif [[ -f ~/.cargo/env ]]; then
-        source ~/.cargo/env
-    fi
-fi
-hash -r &>/dev/null
+# Container setup script - all variables are properly isolated from host
+echo "=== Container Setup Script Starting ==="
 
-# Check required tools
+# Define constants inside the container
+readonly CONTAINER_WORKSPACE=${escaped_workspace}
+readonly CONTAINER_RUST_TARGET=${escaped_rust_target}
+readonly CONTAINER_TOOLCHAIN=${escaped_toolchain}
+readonly CONTAINER_RBUILD_STATIC=${escaped_rbuild_static}
+readonly CONTAINER_RUSTFLAGS=${escaped_rustflags}
+
+# Sanity checks for required variables
+if [[ -z "\${CONTAINER_RUST_TARGET}" ]]; then
+    echo "ERROR: RUST_TARGET not set" >&2
+    exit 1
+fi
+
+if [[ -z "\${CONTAINER_TOOLCHAIN}" ]]; then
+    echo "ERROR: TOOLCHAIN not set" >&2
+    exit 1
+fi
+
+if [[ -z "\${CONTAINER_WORKSPACE}" ]]; then
+    echo "ERROR: WORKSPACE not set" >&2
+    exit 1
+fi
+
+echo "Container configuration:"
+echo "  Workspace: \${CONTAINER_WORKSPACE}"
+echo "  Rust Target: \${CONTAINER_RUST_TARGET}"
+echo "  Toolchain: \${CONTAINER_TOOLCHAIN}"
+echo "  Static Build: \${CONTAINER_RBUILD_STATIC}"
+echo "  Custom RUSTFLAGS: \${CONTAINER_RUSTFLAGS}"
+
+# Source environment files if they exist
+if [[ -f /etc/profile ]]; then
+    source /etc/profile 2>/dev/null || true
+fi
+
+if [[ -f ~/.profile ]]; then
+    source ~/.profile 2>/dev/null || true
+fi
+
+if [[ -f ~/.bashrc ]]; then
+    source ~/.bashrc 2>/dev/null || true
+fi
+
+# Refresh command hash table
+hash -r 2>/dev/null || true
+
+# Change to workspace directory
+echo "Changing to workspace directory: \${CONTAINER_WORKSPACE}"
+if ! cd "\${CONTAINER_WORKSPACE}"; then
+    echo "ERROR: Failed to change to workspace directory: \${CONTAINER_WORKSPACE}" >&2
+    exit 1
+fi
+
+# Verify we're in the right place
+if [[ ! -f "Cargo.toml" ]]; then
+    echo "ERROR: Cargo.toml not found in workspace directory: \${CONTAINER_WORKSPACE}" >&2
+    echo "Current directory: \$(pwd)" >&2
+    echo "Directory contents:" >&2
+    ls -la . >&2 || true
+    exit 1
+fi
+
+echo "Successfully positioned in workspace: \$(pwd)"
+
+# Source Rust environment if available
+if [[ -f ~/.cargo/env ]]; then
+    source ~/.cargo/env 2>/dev/null || true
+fi
+
+# Refresh hash table again after sourcing cargo env
+hash -r 2>/dev/null || true
+
+# Tool checking function
 check_tool() {
-    if ! command -v "$1" &>/dev/null; then
-        echo "ERROR: $1 not found in container" >&2
-        exit 1
+    local tool_name="\$1"
+    if [[ -z "\${tool_name}" ]]; then
+        echo "ERROR: check_tool called without argument" >&2
+        return 1
     fi
+    
+    if ! command -v "\${tool_name}" &>/dev/null; then
+        echo "ERROR: \${tool_name} not found in container" >&2
+        echo "PATH: \${PATH}" >&2
+        return 1
+    fi
+    
+    echo "  \${tool_name}: \$(command -v "\${tool_name}")"
+    return 0
 }
 
 echo "Checking required tools..."
-check_tool clang
-check_tool cargo
-check_tool rustc
+check_tool clang || exit 1
+check_tool cargo || exit 1
+check_tool rustc || exit 1
 
-# Skip rustup check for riscv64 targets
-if [[ "${RUST_TARGET}" != *"riscv64"* ]]; then
-    check_tool rustup
+# Skip rustup check for riscv64 targets as they might not have it
+if [[ "\${CONTAINER_RUST_TARGET}" != *"riscv64"* ]]; then
+    check_tool rustup || exit 1
 fi
 
 echo "Tool versions:"
-rustc --version
-cargo --version
+rustc --version 2>/dev/null || { echo "ERROR: rustc version check failed" >&2; exit 1; }
+cargo --version 2>/dev/null || { echo "ERROR: cargo version check failed" >&2; exit 1; }
 
 # Handle toolchain and target setup
-if [[ "${RUST_TARGET}" == *"riscv64"* ]]; then
-    # Special handling for riscv64
-    if [[ "$(uname -m | tr -d '[:space:]')" == "riscv64" ]]; then
-        DETECTED_TARGET="$(rustc -Vv 2>/dev/null | sed -n "s/^[[:space:]]*host[[:space:]]*:[[:space:]]*//p" | grep -i "riscv" | tr -d "[:space:]")"
-        if [[ -n "${DETECTED_TARGET//[[:space:]]/}" ]]; then
-            export RUST_TARGET="${DETECTED_TARGET}"
-            echo "Detected RISC-V target: ${RUST_TARGET}"
+if [[ "\${CONTAINER_RUST_TARGET}" == *"riscv64"* ]]; then
+    echo "Special handling for riscv64 target..."
+    
+    # Check if we're on a native riscv64 system
+    detected_arch="\$(uname -m 2>/dev/null | tr -d '[:space:]')"
+    if [[ "\${detected_arch}" == "riscv64" ]]; then
+        echo "Running on native riscv64 system"
+        detected_target="\$(rustc -Vv 2>/dev/null | sed -n 's/^[[:space:]]*host[[:space:]]*:[[:space:]]*//p' | grep -i "riscv" | tr -d "[:space:]")"
+        if [[ -n "\${detected_target}" ]]; then
+            export RUST_TARGET="\${detected_target}"
+            echo "Detected RISC-V target: \${RUST_TARGET}"
         else
-            echo "Failed to detect RISC-V target:"
-            rustc -Vv
-            exit 1
+            echo "Failed to detect RISC-V target, using configured target: \${CONTAINER_RUST_TARGET}"
+            export RUST_TARGET="\${CONTAINER_RUST_TARGET}"
         fi
     else
-        export RUST_TARGET="$(uname -m)-unknown-linux-musl"
-        rustup target add "${RUST_TARGET}"
+        echo "Cross-compiling to riscv64 from \${detected_arch}"
+        export RUST_TARGET="\${CONTAINER_RUST_TARGET}"
+        if command -v rustup &>/dev/null; then
+            echo "Adding target: \${RUST_TARGET}"
+            rustup target add "\${RUST_TARGET}" || {
+                echo "WARNING: Failed to add target \${RUST_TARGET}, continuing anyway..." >&2
+            }
+        fi
     fi
 else
-    # Standard toolchain setup
-    if [[ "${TOOLCHAIN}" == "nightly" ]]; then
-        rustup default nightly
+    echo "Standard toolchain setup for target: \${CONTAINER_RUST_TARGET}"
+    export RUST_TARGET="\${CONTAINER_RUST_TARGET}"
+    
+    # Set up toolchain
+    if [[ "\${CONTAINER_TOOLCHAIN}" == "nightly" ]]; then
+        echo "Setting up nightly toolchain..."
+        rustup default nightly || { echo "ERROR: Failed to set nightly toolchain" >&2; exit 1; }
     else
-        rustup default stable
+        echo "Setting up stable toolchain..."
+        rustup default stable || { echo "ERROR: Failed to set stable toolchain" >&2; exit 1; }
     fi
-    rustup target add "${RUST_TARGET}"
+    
+    echo "Adding target: \${RUST_TARGET}"
+    rustup target add "\${RUST_TARGET}" || { echo "ERROR: Failed to add target \${RUST_TARGET}" >&2; exit 1; }
 fi
 
-# Export RUST_TARGET
-export RUST_TARGET
+echo "Final Rust target: \${RUST_TARGET}"
 
-# Handle RUSTFLAGS
-if [[ "${RBUILD_STATIC:-0}" == "1" ]]; then
+# Handle RUSTFLAGS setup
+if [[ "\${CONTAINER_RBUILD_STATIC}" == "1" ]]; then
     echo "Setting up static linking flags..."
     
-    RUST_FLAGS=()
-    RUST_FLAGS+=("-C target-feature=+crt-static")
-    RUST_FLAGS+=("-C default-linker-libraries=yes")
+    # Build RUSTFLAGS array
+    declare -a rust_flags=()
+    rust_flags+=("-C" "target-feature=+crt-static")
+    rust_flags+=("-C" "default-linker-libraries=yes")
     
-    if ! echo "${RUST_TARGET}" | grep -Eqiv "alpine|gnu"; then
-        RUST_FLAGS+=("-C link-self-contained=yes")
+    # Only add link-self-contained for non-GNU targets
+    if [[ "\${RUST_TARGET}" != *"gnu"* ]]; then
+        rust_flags+=("-C" "link-self-contained=yes")
     fi
     
-    RUST_FLAGS+=("-C prefer-dynamic=no")
-    RUST_FLAGS+=("-C embed-bitcode=yes")
-    RUST_FLAGS+=("-C lto=yes")
-    RUST_FLAGS+=("-C opt-level=z")
-    RUST_FLAGS+=("-C debuginfo=none")
-    RUST_FLAGS+=("-C strip=symbols")
-    RUST_FLAGS+=("-C linker=clang")
+    rust_flags+=("-C" "prefer-dynamic=no")
+    rust_flags+=("-C" "embed-bitcode=yes")
+    rust_flags+=("-C" "lto=yes")
+    rust_flags+=("-C" "opt-level=z")
+    rust_flags+=("-C" "debuginfo=none")
+    rust_flags+=("-C" "strip=symbols")
+    rust_flags+=("-C" "linker=clang")
     
     # Add mold linker if available
     if command -v mold &>/dev/null; then
-        RUST_FLAGS+=("-C link-arg=-fuse-ld=$(which mold)")
+        mold_path="\$(command -v mold)"
+        rust_flags+=("-C" "link-arg=-fuse-ld=\${mold_path}")
+        echo "Using mold linker: \${mold_path}"
     fi
     
-    RUST_FLAGS+=("-C link-arg=-Wl,--Bstatic")
-    RUST_FLAGS+=("-C link-arg=-Wl,--static")
-    RUST_FLAGS+=("-C link-arg=-Wl,-S")
-    RUST_FLAGS+=("-C link-arg=-Wl,--build-id=none")
+    rust_flags+=("-C" "link-arg=-Wl,--Bstatic")
+    rust_flags+=("-C" "link-arg=-Wl,--static")
+    rust_flags+=("-C" "link-arg=-Wl,-S")
+    rust_flags+=("-C" "link-arg=-Wl,--build-id=none")
     
-    export RUSTFLAGS="${RUST_FLAGS[*]}"
-    echo "RUSTFLAGS: ${RUSTFLAGS}"
-elif [[ -n "${RUSTFLAGS:-}" ]]; then
-    export RUSTFLAGS
-    echo "Using provided RUSTFLAGS: ${RUSTFLAGS}"
+    # Convert array to space-separated string
+    export RUSTFLAGS="\${rust_flags[*]}"
+    echo "Static build RUSTFLAGS: \${RUSTFLAGS}"
+    
+elif [[ -n "\${CONTAINER_RUSTFLAGS}" ]]; then
+    export RUSTFLAGS="\${CONTAINER_RUSTFLAGS}"
+    echo "Using provided RUSTFLAGS: \${RUSTFLAGS}"
+else
+    echo "No custom RUSTFLAGS specified"
 fi
 
-echo "Setup complete. Running cargo command..."
+echo "=== Container Setup Complete ==="
+echo "Running cargo command..."
+echo ""
 EOF
 }
 
 # Pull container image
 pull_image() {
-    log_info "Pulling container image: ${CONTAINER_IMAGE}"
-    if ! ${USE_SUDO} ${CONTAINER_ENGINE} pull --platform="${CONTAINER_PLATFORM}" "${CONTAINER_IMAGE}"; then
-        log_error "Failed to pull container image: ${CONTAINER_IMAGE}"
-        exit 1
+    if [[ -z "${CONTAINER_IMAGE}" ]]; then
+        log_error "Container image not set"
+        return 1
     fi
+    
+    log_info "Pulling container image: ${CONTAINER_IMAGE}"
+    
+    local pull_cmd=()
+    if [[ -n "${USE_SUDO}" ]]; then
+        pull_cmd+=("${USE_SUDO}")
+    fi
+    pull_cmd+=("${CONTAINER_ENGINE}" "pull" "--platform=${CONTAINER_PLATFORM}" "${CONTAINER_IMAGE}")
+    
+    if ! "${pull_cmd[@]}"; then
+        log_error "Failed to pull container image: ${CONTAINER_IMAGE}"
+        return 1
+    fi
+    return 0
 }
 
 # Run container
 run_container() {
     local setup_script
     setup_script="$(generate_setup_script)"
+    
+    if [[ -z "${setup_script}" ]]; then
+        log_error "Failed to generate setup script"
+        return 1
+    fi
     
     # Prepare mount arguments
     MOUNT_ARGS+=("-v" "${WORKSPACE_DIR}:${DEFAULT_WORKSPACE}")
@@ -392,35 +587,52 @@ run_container() {
         MOUNT_ARGS+=("-v" "${ARTIFACT_DIR}:${ARTIFACT_DIR}")
     fi
     
-    # Prepare environment arguments
-    ENV_ARGS+=("-e" "RUST_TARGET=${RUST_TARGET}")
-    ENV_ARGS+=("-e" "TOOLCHAIN=${TOOLCHAIN}")
-    ENV_ARGS+=("-e" "RBUILD_STATIC=${RBUILD_STATIC:-0}")
-    
-    if [[ -n "${RUSTFLAGS:-}" ]]; then
-        ENV_ARGS+=("-e" "RUSTFLAGS=${RUSTFLAGS}")
-    fi
+    # Prepare environment arguments - only pass what's absolutely necessary
+    # The setup script will handle all the configuration internally
     
     # Create and run container
     log_info "Starting container..."
     
-    local container_cmd=(
-        ${USE_SUDO} ${CONTAINER_ENGINE} run
-        --rm
-        --platform="${CONTAINER_PLATFORM}"
-        --workdir="${DEFAULT_WORKSPACE}"
-        "${MOUNT_ARGS[@]}"
-        "${ENV_ARGS[@]}"
-        "${CONTAINER_IMAGE}"
-        bash -c "${setup_script} && cargo ${CARGO_ARGS[*]}"
+    local container_cmd=()
+    if [[ -n "${USE_SUDO}" ]]; then
+        container_cmd+=("${USE_SUDO}")
+    fi
+    
+    container_cmd+=(
+        "${CONTAINER_ENGINE}" "run"
+        "--rm"
+        "--platform=${CONTAINER_PLATFORM}"
+        "--workdir=${DEFAULT_WORKSPACE}"
     )
+    
+    # Add mount arguments
+    container_cmd+=("${MOUNT_ARGS[@]}")
+    
+    # Add image and command
+    container_cmd+=("${CONTAINER_IMAGE}")
+    
+    # Build the final command that combines setup and cargo execution
+    local final_cmd="set -e; ${setup_script}"
+    final_cmd+=" && exec cargo"
+    
+    # Add each cargo argument properly quoted
+    local arg
+    for arg in "${CARGO_ARGS[@]}"; do
+        final_cmd+=" $(printf '%q' "${arg}")"
+    done
+    
+    container_cmd+=("bash" "-c" "${final_cmd}")
     
     log_verbose "Container command: ${container_cmd[*]}"
     
     # Execute the container
-    "${container_cmd[@]}"
+    if ! "${container_cmd[@]}"; then
+        log_error "Container execution failed"
+        return 1
+    fi
     
     log_success "Build completed successfully!"
+    return 0
 }
 
 # Parse command line arguments
@@ -455,10 +667,11 @@ parse_args() {
     if [[ ${#CARGO_ARGS[@]} -eq 0 ]]; then
         log_error "No cargo subcommand specified"
         show_help
-        exit 1
+        return 1
     fi
     
     log_verbose "Cargo args: ${CARGO_ARGS[*]}"
+    return 0
 }
 
 # Main function
@@ -466,26 +679,50 @@ main() {
     log_info "Starting ${SCRIPT_NAME} v${VERSION}"
     
     # Parse arguments
-    parse_args "$@"
+    if ! parse_args "$@"; then
+        exit 1
+    fi
     
     # Check prerequisites
     check_prerequisites
+    #if ! check_prerequisites; then
+    #    exit 1
+    #fi
+
+    # Check if we're in a Rust project
+    if ! check_rust_project; then
+        exit 1
+    fi
     
     # Detect container engine
-    detect_container_engine
+    if ! detect_container_engine; then
+        exit 1
+    fi
     
     # Determine target and container image
-    determine_target_and_image
+    if ! determine_target_and_image; then
+        exit 1
+    fi
     
     # Parse artifact directory
-    parse_artifact_dir
+    if ! parse_artifact_dir; then
+        exit 1
+    fi
     
     # Pull container image
-    pull_image
+    if ! pull_image; then
+        exit 1
+    fi
     
     # Run the build
-    run_container
+    if ! run_container; then
+        exit 1
+    fi
+    
+    return 0
 }
 
 # Run main function with all arguments
-main "$@"
+if ! main "$@"; then
+    exit 1
+fi
