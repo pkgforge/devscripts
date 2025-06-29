@@ -84,21 +84,21 @@ log_warn() {
 
 log_info() { 
     if [[ $QUIET != true ]]; then
-        echo -e "${GREEN}[INFO]${RESET} $*"
+        echo -e "${GREEN}[INFO]${RESET} $*" >&2
     fi
     return 0
 }
 
 log_debug() { 
     if [[ $VERBOSE == true ]]; then
-        echo -e "${BLUE}[DEBUG]${RESET} $*"
+        echo -e "${BLUE}[DEBUG]${RESET} $*" >&2
     fi
     return 0
 }
 
 log_success() { 
     if [[ $QUIET != true ]]; then
-        echo -e "${GREEN}[SUCCESS]${RESET} $*"
+        echo -e "${GREEN}[SUCCESS]${RESET} $*" >&2
     fi
     return 0
 }
