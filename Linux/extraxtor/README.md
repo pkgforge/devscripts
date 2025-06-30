@@ -32,7 +32,7 @@ GLOBAL OPTIONS:
 
 ### 🛠️ Building
 ```bash
-curl -qfsSL 'https://github.com/pkgforge/devscripts/raw/refs/heads/main/Linux/extraxtor/main.go'
+curl -qfsSL 'https://github.com/pkgforge/devscripts/raw/refs/heads/main/Linux/extraxtor/main.go' -o "./main.go"
 go mod init "github.com/pkgforge/devscripts/extraxtor"
 go mod tidy -v
 
