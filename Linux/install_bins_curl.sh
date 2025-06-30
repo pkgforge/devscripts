@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
+#-------------------------------------------------------------------------------#
 ##Requires: coreutils + curl
-
 ##Usage
 # bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Linux/install_bins_curl.sh")
 ##Vars
 # INSTALL_DIR="/tmp" "${other vars}" bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Linux/install_bins_curl.sh")
+#-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
 if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
@@ -21,7 +22,51 @@ fi
 declare -a PARALLEL_PIDS=()
 declare -A INSTALL_STATUS=()
 MAX_PARALLEL_JOBS=${MAX_PARALLEL_JOBS:-10}
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
+# Signal handling for immediate exit
+cleanup_on_exit() {
+    local exit_code=${1:-130}
+    #echo -e "\n[!] Interrupted! Cleaning up background processes..."
+    
+    # Kill all background jobs from this script
+    if [[ ${#PARALLEL_PIDS[@]} -gt 0 ]]; then
+        echo "[!] Terminating ${#PARALLEL_PIDS[@]} background jobs..."
+        for pid in "${PARALLEL_PIDS[@]}"; do
+            if kill -0 "${pid}" 2>/dev/null; then
+                kill -TERM "${pid}" 2>/dev/null || true
+            fi
+        done
+        
+        # Give processes a moment to terminate gracefully
+        sleep 0.5
+        
+        # Force kill any remaining processes
+        for pid in "${PARALLEL_PIDS[@]}"; do
+            if kill -0 "${pid}" 2>/dev/null; then
+                kill -KILL "${pid}" 2>/dev/null || true
+            fi
+        done
+    fi
+    
+    # Clean up temporary files
+    rm -f "/tmp/symlinks_$$" 2>/dev/null || true
+    rm -f "/tmp/install_dirs_$$.lock" 2>/dev/null || true
+    
+    # Kill any curl processes that might be hanging
+    pkill -f "curl.*bin\.pkgforge\.dev" 2>/dev/null || true
+    
+    #echo "[!] Cleanup completed. Exiting..."
+    exit ${exit_code}
+}
+
+# Set up signal traps
+trap 'cleanup_on_exit 130' SIGINT SIGTERM
+trap 'cleanup_on_exit 1' EXIT
+#-------------------------------------------------------------------------------#
+
+#-------------------------------------------------------------------------------#
 # Setup directories and permissions
 setup_dirs() {
     # Check if running as root or have passwordless sudo
@@ -81,7 +126,9 @@ setup_dirs() {
     ) 200>"${temp_lock}"
     rm -f "${temp_lock}" 2>/dev/null || true
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Setup source URL based on architecture
 setup_source() {
     if [[ -z ${INSTALL_SRC:-} ]]; then
@@ -101,7 +148,9 @@ setup_source() {
         echo -e "\n[+] Using Bins from (Specified) :: ${INSTALL_SRC}\n"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Setup parallel execution strategy
 setup_strategy() {
     if [[ ${PARALLEL:-0} == "1" ]]; then
@@ -112,7 +161,9 @@ setup_strategy() {
         echo -e "\n[+] Installing in Sequential (Slow) Mode [Re Run : export PARALLEL=1 for Speed]\n"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Wait for background jobs to complete and manage job limit
 wait_for_jobs() {
     local max_jobs=${1:-${MAX_PARALLEL_JOBS}}
@@ -133,23 +184,37 @@ wait_for_jobs() {
         fi
     done
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Wait for all background jobs to complete
 wait_all_jobs() {
     echo "[+] Waiting for all downloads to complete..."
     for pid in "${PARALLEL_PIDS[@]}"; do
+        # Check if we're being interrupted
+        if ! kill -0 "${pid}" 2>/dev/null; then
+            continue
+        fi
         wait "${pid}" 2>/dev/null || true
     done
     PARALLEL_PIDS=()
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Install binary to single location
 install_bin() {
     local src_name="${1}"
     local dest_dir="${2}"
     local dest_name="${3:-${1}}"
     
-    if eval "${INSTALL_PRE}" "${INSTALL_SRC}/${src_name}" -o "${dest_dir}/${dest_name}"; then
+    # Add timeout to curl commands to prevent hanging
+    local install_cmd="${INSTALL_PRE}"
+    if [[ ! ${install_cmd} =~ timeout ]]; then
+        install_cmd="timeout -k 30s 120s ${install_cmd}"
+    fi
+    
+    if eval "${install_cmd}" "${INSTALL_SRC}/${src_name}" -o "${dest_dir}/${dest_name}"; then
         eval "${INSTALL_POST}" "${dest_dir}/${dest_name}"
         INSTALL_STATUS["${src_name}"]="success"
         return 0
@@ -159,7 +224,9 @@ install_bin() {
         return 1
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Parallel wrapper for install_bin
 install_bin_parallel() {
     local src_name="${1}"
@@ -169,14 +236,19 @@ install_bin_parallel() {
     if [[ ${USE_PARALLEL} == "1" ]]; then
         wait_for_jobs "${MAX_PARALLEL_JOBS}"
         (
+            # Set up signal handling in subshell
+            trap 'exit 130' SIGINT SIGTERM
             install_bin "${src_name}" "${dest_dir}" "${dest_name}"
         ) &
-        PARALLEL_PIDS+=($!)
+        local bg_pid=$!
+        PARALLEL_PIDS+=("${bg_pid}")
     else
         install_bin "${src_name}" "${dest_dir}" "${dest_name}"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Create symlink for binary (with file existence check)
 symlink_bin() {
     local target_path="${1}"
@@ -204,7 +276,9 @@ symlink_bin() {
         return 1
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Install binary to multiple locations with symlinks
 install_bin_multi() {
     local src_name="${1}"
@@ -221,7 +295,9 @@ install_bin_multi() {
         echo "${INSTALL_DIR}/${dest_name}:${INSTALL_DIR_LOCALH}/${dest_name}" >> "/tmp/symlinks_$$"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Create all symlinks after downloads complete
 create_symlinks() {
     if [[ -f "/tmp/symlinks_$$" ]]; then
@@ -235,7 +311,9 @@ create_symlinks() {
         rm -f "/tmp/symlinks_$$"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Main installation function
 install_all_bins() {
     local bins=(
@@ -400,7 +478,9 @@ install_all_bins() {
         echo -e "\n[!] Failed to install: ${failed_list[*]}"
     fi
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Main execution
 main() {
     setup_dirs
@@ -450,7 +530,15 @@ main() {
     
     # Cleanup
     rm -f "/tmp/symlinks_$$" 2>/dev/null || true
+    
+    # Remove the EXIT trap since we completed successfully
+    trap - EXIT
 }
+#-------------------------------------------------------------------------------#
 
+#-------------------------------------------------------------------------------#
 # Execute main function
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
+#-------------------------------------------------------------------------------#
