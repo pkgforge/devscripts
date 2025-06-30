@@ -8,289 +8,449 @@
 # INSTALL_DIR="/tmp" "${other vars}" bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Linux/install_bins_curl.sh")
 
 #-------------------------------------------------------------------------------#
-##Setup ENV & Sanity Checks
- set +e ; set -x
-#Check curl 
- if ! command -v curl &> /dev/null; then
-     echo -e "\n[-] FATAL: Install Curl (https://bin.pkgforge.dev/$(uname -m)/curl)\n"
-   exit 1
- fi
-#Check install dirs & sudo
- if [ -z "${INSTALL_DIR}" ]; then 
-   if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
-     export INSTALL_DIR="/usr/local/bin"
-     export INSTALL_DIR_ROOT="/usr/bin"
-     export INSTALL_DIR_LOCALH="${HOME}/.local/bin"
-     export INSTALL_PRE="sudo curl -w \"(DL) <== %{url}\n\" -qfsSL"
-     export INSTALL_POST="sudo chmod +x"
-     sudo mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
-     sudo chmod 777 -R "${HOME}/.local"
-     echo -e "\n[+] Setting Install Dir (ROOT) :: ${INSTALL_DIR}\n"
-   else
-     export INSTALL_DIR="$HOME/bin"
-     export INSTALL_DIR_ROOT="$HOME/bin"
-     export INSTALL_DIR_LOCALH="${HOME}/.local/bin"
-     export INSTALL_PRE="timeout -k 1m 5m curl -w \"(DL) <== %{url}\n\" -qfsSL"
-     export INSTALL_POST="chmod +x"
-     mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
-     echo -e "\n[+] Setting Install Dir (USERSPACE) :: ${INSTALL_DIR}\n"
-   fi
- else
-   if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
-     export INSTALL_DIR_ROOT="/usr/bin"
-     export INSTALL_DIR_LOCALH="${HOME}/.local/bin"
-     export INSTALL_PRE="sudo curl -w \"(DL) <== %{url}\n\" -qfsSL"
-     export INSTALL_POST="sudo chmod +x"
-     sudo mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
-     sudo chmod 777 -R "${HOME}/.local"
-   else
-     export INSTALL_DIR_ROOT="$HOME/bin"
-     export INSTALL_DIR_LOCALH="${HOME}/.local/bin"
-     export INSTALL_PRE="curl -qfsSL"
-     export INSTALL_POST="chmod +x"
-     mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
-   fi
- fi
-#check install src
- if [ -z "${INSTALL_SRC}" ]; then
-   ARCH="$(uname -m)" && export ARCH="${ARCH}"
-   if [ "${ARCH}" == "aarch64" ]; then
-       INSTALL_SRC="https://bin.pkgforge.dev/aarch64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
-   elif [ "${ARCH}" == "riscv64" ]; then
-       INSTALL_SRC="https://bin.pkgforge.dev/riscv64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
-   elif [ "${ARCH}" == "x86_64" ]; then
-       INSTALL_SRC="https://bin.pkgforge.dev/x86_64-Linux" ; export INSTALL_SRC="${INSTALL_SRC}"
-   fi
-   echo -e "\n[+] Fetching Bins from (Default) :: ${INSTALL_SRC}\n"
- else
-   echo -e "\n[+] Using Bins from (Specified) :: ${INSTALL_SRC}\n"
- fi
-#check for parallel
- if [[ "${PARALLEL}" == "1" ]]; then
-     INSTALL_STRATEGY='&' ; export INSTALL_STRATEGY="${INSTALL_STRATEGY}"
-     echo -e "\n[+] Installing in Parallel (Faast) Mode [Re Run : export PARALLEL=0 if Fails]\n"
- else
-     INSTALL_STRATEGY='' ; export INSTALL_STRATEGY="${INSTALL_STRATEGY}"
-     echo -e "\n[+] Installing in Sequence (Slow) Mode [Re Run : export PARALLEL=1 for Speed]\n"
- fi
-#Get size
-INSTALL_DIR_SIZE_PRE="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_SIZE_PRE="${INSTALL_DIR_SIZE_PRE}"
-#-------------------------------------------------------------------------------# 
+if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+  set -x
+fi
+# Dependency check
+if ! command -v curl &>/dev/null; then
+    echo -e "\n[-] FATAL: Install Curl (https://bin.pkgforge.dev/$(uname -m)/curl)\n"
+    exit 1
+fi
 
-#-------------------------------------------------------------------------------#
-##Fetch
-#7z  : https://www.7-zip.org/
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/7z" -o "${INSTALL_DIR}/7z" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/7z" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/7z" -o "${INSTALL_DIR_ROOT}/7z" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/7z" "${INSTALL_STRATEGY}"
-#action-lint
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/actionlint" -o "${INSTALL_DIR}/actionlint" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/actionlint" "${INSTALL_STRATEGY}"
-#anew
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/anew" -o "${INSTALL_DIR}/anew" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/anew" "${INSTALL_STRATEGY}"
-#anew-rs : https://github.com/zer0yu/anew
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/anew-rs" -o "${INSTALL_DIR}/anew-rs" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/anew-rs" "${INSTALL_STRATEGY}"
-#ansi2html: https://github.com/kilobyte/colorized-logs
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ansi2html" -o "${INSTALL_DIR}/ansi2html" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ansi2html" "${INSTALL_STRATEGY}"
-#ansi2txt: https://github.com/kilobyte/colorized-logs
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ansi2txt" -o "${INSTALL_DIR}/ansi2txt" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ansi2txt" "${INSTALL_STRATEGY}"
-#archey: https://github.com/HorlogeSkynet/archey4
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/archey" -o "${INSTALL_DIR}/archey" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/archey" "${INSTALL_STRATEGY}"
-#aria2c
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/aria2" -o "${INSTALL_DIR}/aria2" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/aria2" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/aria2" -o "${INSTALL_DIR}/aria2c" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/aria2c" "${INSTALL_STRATEGY}"
-#askalono: https://github.com/jpeddicord/askalono
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/askalono" -o "${INSTALL_DIR}/askalono" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/askalono" "${INSTALL_STRATEGY}"
-#bsdtar
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/bsdtar" -o "${INSTALL_DIR}/bsdtar" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/bsdtar" "${INSTALL_STRATEGY}"
-#b3sum : https://github.com/BLAKE3-team/BLAKE3
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/b3sum" -o "${INSTALL_DIR}/b3sum" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/b3sum" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/b3sum" -o "${INSTALL_DIR_ROOT}/b3sum" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/b3sum" "${INSTALL_STRATEGY}"
-#bita: https://github.com/oll3/bita
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/bita" -o "${INSTALL_DIR}/bita" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/bita" "${INSTALL_STRATEGY}"
-#btop: https://github.com/aristocratos/btop
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/btop" -o "${INSTALL_DIR}/btop" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/btop" "${INSTALL_STRATEGY}"
-#chafa: https://github.com/hpjansson/chafa
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/chafa" -o "${INSTALL_DIR}/chafa" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/chafa" "${INSTALL_STRATEGY}"
-#cloudflared: https://github.com/cloudflare/cloudflared
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/cloudflared" -o "${INSTALL_DIR}/cloudflared" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/cloudflared" "${INSTALL_STRATEGY}"
-#croc : https://github.com/schollz/croc
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/croc" -o "${INSTALL_DIR}/croc" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/croc" "${INSTALL_STRATEGY}"
-#csvtk
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/csvtk" -o "${INSTALL_DIR}/csvtk" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/csvtk" "${INSTALL_STRATEGY}"
-#cutlines: https://github.com/pkgforge/devscripts/tree/main/cutlines
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/cutlines" -o "${INSTALL_DIR}/cutlines" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/cutlines" "${INSTALL_STRATEGY}"
-#dbin:https://github.com/xplshn/dbin
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dbin" -o "${INSTALL_DIR}/dbin" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dbin" "${INSTALL_STRATEGY}"
-#dasel: https://github.com/TomWright/dasel
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dasel" -o "${INSTALL_DIR}/dasel" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dasel" "${INSTALL_STRATEGY}"
-#delta
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/delta" -o "${INSTALL_DIR}/delta" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/delta" "${INSTALL_STRATEGY}"
-#dirstat-rs
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ds" -o "${INSTALL_DIR}/ds" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ds" "${INSTALL_STRATEGY}"
-#dos2unix: https://dos2unix.sourceforge.io
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dos2unix" -o "${INSTALL_DIR}/dos2unix" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dos2unix" "${INSTALL_STRATEGY}"
-#duf
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/duf" -o "${INSTALL_DIR}/duf" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/duf" "${INSTALL_STRATEGY}"
-#duplicut
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/duplicut" -o "${INSTALL_DIR}/duplicut" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/duplicut" "${INSTALL_STRATEGY}"
-#dust
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dust" -o "${INSTALL_DIR}/dust" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dust" "${INSTALL_STRATEGY}"
-#dwarfs-tools
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dwarfs-tools" -o "${INSTALL_DIR}/dwarfs" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dwarfs" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dwarfs-tools" -o "${INSTALL_DIR}/mkdwarfs" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/mkdwarfs" "${INSTALL_STRATEGY}"
-#dysk
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dysk" -o "${INSTALL_DIR}/dysk" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dysk" "${INSTALL_STRATEGY}"
-#dust
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/dust" -o "${INSTALL_DIR}/dust" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/dust" "${INSTALL_STRATEGY}"
-#eget
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/eget" -o "${INSTALL_DIR}/eget" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/eget" "${INSTALL_STRATEGY}"
-#epoch : https://github.com/sj14/epoch
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/epoch" -o "${INSTALL_DIR}/epoch" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/epoch" "${INSTALL_STRATEGY}"
-#faketty : https://github.com/dtolnay/faketty
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/faketty" -o "${INSTALL_DIR}/faketty" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/faketty" &
-#fastfetch : https://github.com/fastfetch-cli/fastfetch
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/fastfetch" -o "${INSTALL_DIR}/fastfetch" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/fastfetch" & 
-#freeze
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/freeze" -o "${INSTALL_DIR}/freeze" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/freeze" "${INSTALL_STRATEGY}"
-#fusermount
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/fusermount3" -o "${INSTALL_DIR}/fusermount" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/fusermount" "${INSTALL_STRATEGY}"
-#gdu : https://github.com/dundee/gdu
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/gdu" -o "${INSTALL_DIR}/gdu" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/gdu" "${INSTALL_STRATEGY}"
-#gh : https://github.com/cli/cli
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/gh" -o "${INSTALL_DIR}/gh" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/gh" "${INSTALL_STRATEGY}"
-#gitleaks: https://github.com/gitleaks/gitleaks
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/gitleaks" -o "${INSTALL_DIR}/gitleaks" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/gitleaks" "${INSTALL_STRATEGY}"
-#git-sizer
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/git-sizer" -o "${INSTALL_DIR}/git-sizer" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/git-sizer" "${INSTALL_STRATEGY}"
-#glab : https://gitlab.com/gitlab-org/cli
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/glab" -o "${INSTALL_DIR}/glab" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/glab" "${INSTALL_STRATEGY}"
-#glow
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/glow" -o "${INSTALL_DIR}/glow" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/glow" "${INSTALL_STRATEGY}"
-#httpx : https://github.com/projectdiscovery/httpx
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/httpx" -o "${INSTALL_DIR}/httpx" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/httpx" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/httpx" -o "${INSTALL_DIR_ROOT}/httpx" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/httpx" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/httpx" -o "${INSTALL_DIR_LOCALH}/httpx" 2>/dev/null && eval "${INSTALL_POST}" "${INSTALL_DIR_LOCALH}/httpx" 2>/dev/null "${INSTALL_STRATEGY}"
-#huggingface-cli: https://github.com/huggingface/huggingface_hub
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/huggingface-cli" -o "${INSTALL_DIR}/huggingface-cli" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/huggingface-cli" "${INSTALL_STRATEGY}"
-#husarnet: https://github.com/husarnet/husarnet
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/husarnet" -o "${INSTALL_DIR}/husarnet" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/husarnet" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/husarnet-daemon" -o "${INSTALL_DIR}/husarnet-daemon" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/husarnet-daemon" "${INSTALL_STRATEGY}"
-#imgcat : https://github.com/danielgatis/imgcat
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/imgcat" -o "${INSTALL_DIR}/imgcat" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/imgcat" "${INSTALL_STRATEGY}"
-#imagemagick : https://github.com/ImageMagick/ImageMagick
- #eval "${INSTALL_PRE}" "${INSTALL_SRC}/magick_appbundle.no_strip" -o "${INSTALL_DIR}/magick" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/magick" "${INSTALL_STRATEGY}"
- #eval "${INSTALL_PRE}" "${INSTALL_SRC}/magick_appbundle.no_strip" -o "${INSTALL_DIR_ROOT}/magick" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/magick" "${INSTALL_STRATEGY}"
-#jc : https://github.com/kellyjonbrazil/jc
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/jc" -o "${INSTALL_DIR}/jc" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/jc" "${INSTALL_STRATEGY}"
-#jq : https://github.com/jqlang/jq
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/jq" -o "${INSTALL_DIR}/jq" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/jq" "${INSTALL_STRATEGY}"
-#logdy: https://github.com/logdyhq/logdy-core
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/logdy" -o "${INSTALL_DIR}/logdy" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/logdy" "${INSTALL_STRATEGY}"
-#micro
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/micro" -o "${INSTALL_DIR}/micro" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/micro" "${INSTALL_STRATEGY}"
-#miniserve: https://github.com/svenstaro/miniserve
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/miniserve" -o "${INSTALL_DIR}/miniserve" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/miniserve" "${INSTALL_STRATEGY}"
-#minisgn: https://github.com/jedisct1/minisign
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/minisign" -o "${INSTALL_DIR}/minisign" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/minisign" "${INSTALL_STRATEGY}"
-#ncdu : https://dev.yorhel.nl/ncdu
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ncdu" -o "${INSTALL_DIR}/ncdu" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ncdu" "${INSTALL_STRATEGY}"
-#notify: https://github.com/projectdiscovery/notify
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/notify" -o "${INSTALL_DIR}/notify" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/notify" "${INSTALL_STRATEGY}"
-#ouch : https://github.com/ouch-org/ouch
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ouch" -o "${INSTALL_DIR}/ouch" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ouch" "${INSTALL_STRATEGY}"
-#oras : https://github.com/oras-project/oras
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/oras" -o "${INSTALL_DIR}/oras" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/oras" "${INSTALL_STRATEGY}"
-#pipetty: https://github.com/kilobyte/colorized-logs
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/pipetty" -o "${INSTALL_DIR}/pipetty" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/pipetty" "${INSTALL_STRATEGY}"
-#pixterm: https://github.com/eliukblau/pixterm
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/pixterm" -o "${INSTALL_DIR}/pixterm" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/pixterm" "${INSTALL_STRATEGY}"
-#qsv: https://github.com/dathere/qsv
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/qsv" -o "${INSTALL_DIR}/qsv" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/qsv" "${INSTALL_STRATEGY}"
-#rclone
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/rclone" -o "${INSTALL_DIR}/rclone" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/rclone" "${INSTALL_STRATEGY}"
-#ripgrep : 
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ripgrep" -o "${INSTALL_DIR}/ripgrep" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ripgrep" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ripgrep" -o "${INSTALL_DIR}/rg" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/rg" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/rga" -o "${INSTALL_DIR}/rga" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/rga" "${INSTALL_STRATEGY}"
-#rsync : https://github.com/RsyncProject/rsync
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/rsync" -o "${INSTALL_DIR}/rsync" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/rsync" "${INSTALL_STRATEGY}"
-#script
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/script" -o "${INSTALL_DIR}/script" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/script" "${INSTALL_STRATEGY}"
-#[shellcheck]
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/shellcheck" -o "${INSTALL_DIR}/shellcheck" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/shellcheck" "${INSTALL_STRATEGY}" 
-#soar
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/soar" -o "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/soar" "${INSTALL_STRATEGY}"
-#speedtest-go : https://github.com/showwin/speedtest-go
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/speedtest-go" -o "${INSTALL_DIR}/speedtest-go" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/speedtest-go" "${INSTALL_STRATEGY}"
-#sstrip
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/sstrip" -o "${INSTALL_DIR}/sstrip" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/sstrip" "${INSTALL_STRATEGY}"
-#strace
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/strace" -o "${INSTALL_DIR}/strace" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/strace" "${INSTALL_STRATEGY}"
-#sttr: https://github.com/abhimanyu003/sttr
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/sttr" -o "${INSTALL_DIR}/sttr" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/sttr" "${INSTALL_STRATEGY}"
-#tailscale : https://github.com/tailscale/tailscale
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tailscale" -o "${INSTALL_DIR}/tailscale" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tailscale" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tailscaled" -o "${INSTALL_DIR}/tailscaled" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tailscaled" "${INSTALL_STRATEGY}"
-#taplo: https://github.com/tamasfe/taplo
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/taplo" -o "${INSTALL_DIR}/taplo" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/taplo" "${INSTALL_STRATEGY}"
-#tealdeer: https://github.com/tealdeer-rs/tealdeer
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tldr" -o "${INSTALL_DIR}/tldr" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tldr" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tldr" -o "${INSTALL_DIR}/tealdeer" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tealdeer" "${INSTALL_STRATEGY}"
-#tmux
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tmux" -o "${INSTALL_DIR}/tmux" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tmux" "${INSTALL_STRATEGY}"
-#tok
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/tok" -o "${INSTALL_DIR}/tok" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/tok" "${INSTALL_STRATEGY}"
-#trufflehog : https://github.com/trufflesecurity/trufflehog
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/trufflehog" -o "${INSTALL_DIR}/trufflehog" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/trufflehog" "${INSTALL_STRATEGY}"
-#trurl : https://github.com/curl/trurl
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/trurl" -o "${INSTALL_DIR}/trurl" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/trurl" "${INSTALL_STRATEGY}"
-#ulexec
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/ulexec" -o "${INSTALL_DIR}/ulexec" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/ulexec" "${INSTALL_STRATEGY}"
-#unfurl : https://github.com/tomnomnom/unfurl 
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/unfurl" -o "${INSTALL_DIR}/unfurl" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/unfurl" "${INSTALL_STRATEGY}"
-#upx : https://github.com/upx/upx
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/upx" -o "${INSTALL_DIR}/upx" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/upx" "${INSTALL_STRATEGY}"
-#validtoml
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/validtoml" -o "${INSTALL_DIR}/validtoml" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/validtoml" "${INSTALL_STRATEGY}"
-#wget
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/wget" -o "${INSTALL_DIR}/wget" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/wget" "${INSTALL_STRATEGY}"
-#wget2
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/wget2" -o "${INSTALL_DIR}/wget2" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/wget2" "${INSTALL_STRATEGY}"
-#wormhole-rs: https://github.com/magic-wormhole/magic-wormhole.rs
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/wormhole-rs" -o "${INSTALL_DIR}/wormhole-rs" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/wormhole-rs" "${INSTALL_STRATEGY}"
-#xq: https://github.com/sibprogrammer/xq
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/xq" -o "${INSTALL_DIR}/xq" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/xq" "${INSTALL_STRATEGY}"
-#xz:
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/xz" -o "${INSTALL_DIR}/xz" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/xz" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/unxz" -o "${INSTALL_DIR}/unxz" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/unxz" "${INSTALL_STRATEGY}"
-#Yq
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/yq" -o "${INSTALL_DIR}/yq" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/yq" "${INSTALL_STRATEGY}"
-#Yj
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/yj" -o "${INSTALL_DIR}/yj" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/yj" "${INSTALL_STRATEGY}"
-#Zapper: https://github.com/hackerschoice/zapper
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zapper" -o "${INSTALL_DIR}/zapper" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zapper" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zapper-stealth" -o "${INSTALL_DIR}/zproccer" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zproccer" "${INSTALL_STRATEGY}"
-#Zerotier: https://github.com/zerotier/ZeroTierOne
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zerotier-cli" -o "${INSTALL_DIR}/zerotier-cli" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zerotier-cli" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zerotier-idtool" -o "${INSTALL_DIR}/zerotier-idtool" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zerotier-idtool" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zerotier-one" -o "${INSTALL_DIR}/zerotier-one" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zerotier-one" "${INSTALL_STRATEGY}"
-#zstd: https://github.com/facebook/zstd
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zstd" -o "${INSTALL_DIR}/zstd" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR}/zstd" "${INSTALL_STRATEGY}"
- eval "${INSTALL_PRE}" "${INSTALL_SRC}/zstd" -o "${INSTALL_DIR_ROOT}/zstd" "${INSTALL_STRATEGY}" && eval "${INSTALL_POST}" "${INSTALL_DIR_ROOT}/zstd" "${INSTALL_STRATEGY}"
-#-------------------------------------------------------------------------------#
-set +x ; echo
-wait ; reset >/dev/null 2>&1 ; echo
-#Fix Perms
-if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
-   sudo chmod 777 -R "${HOME}/.local"
-fi
-#Check $PATH
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* || ":$PATH:" != *":$INSTALL_DIR_ROOT:"* || ":$PATH:" != *":$INSTALL_DIR_LOCALH:"* ]]; then
- echo -e "\n[!] Adjust your \"\$PATH\" to include: [ ${INSTALL_DIR_ROOT} ${INSTALL_DIR} ${INSTALL_DIR_LOCALH} ]"
- echo -e "[!] Current \"\$PATH\" : [ ${PATH} ]\n"
-fi
-#Print Stats
-INSTALL_DIR_SIZE_POST="$(du -sh ${INSTALL_DIR} | cut -f1)" && export INSTALL_DIR_SIZE_POST="${INSTALL_DIR_SIZE_POST}"
-echo -e "\n[+] Disk Size (${INSTALL_DIR}) :: ${INSTALL_DIR_SIZE_PRE} --> ${INSTALL_DIR_SIZE_POST}\n"
-#Cleanup & Exit
-unset ARCH INSTALL_DIR INSTALL_DIR_ROOT INSTALL_DIR_SIZE_PRE INSTALL_DIR_SIZE_POST INSTALL_PRE INSTALL_POST INSTALL_SRC
-###END###
+# Global variables for parallel execution
+declare -a PARALLEL_PIDS=()
+declare -A INSTALL_STATUS=()
+MAX_PARALLEL_JOBS=${MAX_PARALLEL_JOBS:-10}
+
+# Setup directories and permissions
+setup_dirs() {
+    # Check if running as root or have passwordless sudo
+     if [[ $(id -u) -eq 0 ]] || (command -v sudo &>/dev/null && sudo -n true 2>/dev/null); then
+         # System-wide installation
+         INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+         INSTALL_DIR_ROOT="/usr/bin"
+         INSTALL_PRE="${INSTALL_PRE:-sudo curl -qfsSL}"
+         INSTALL_POST="${INSTALL_POST:-sudo chmod +x}"
+         SYMLINK_CMD="${SYMLINK_CMD:-sudo ln -fsv}"
+         echo -e "\n[+] Setting Install Dir (ROOT) :: ${INSTALL_DIR}\n"
+     else
+         # User-space installation
+         INSTALL_DIR="${INSTALL_DIR:-${HOME}/bin}"
+         INSTALL_DIR_ROOT="${HOME}/bin"
+         INSTALL_PRE="${INSTALL_PRE:-timeout -k 1m 5m curl -qfsSL}"
+         INSTALL_POST="${INSTALL_POST:-chmod +x}"
+         SYMLINK_CMD="${SYMLINK_CMD:-ln -fsv}"
+         echo -e "\n[+] Setting Install Dir (USERSPACE) :: ${INSTALL_DIR}\n"
+     fi
+     
+     # If running as root, strip sudo from commands
+     if [[ $(id -u) -eq 0 ]]; then
+         INSTALL_PRE="${INSTALL_PRE/sudo /}"
+         INSTALL_POST="${INSTALL_POST/sudo /}"
+         SYMLINK_CMD="${SYMLINK_CMD/sudo /}"
+     fi
+     
+    # Verify directories are writable (create if needed)
+     for dir in "$INSTALL_DIR" "$INSTALL_DIR_ROOT"; do
+         if [[ ! -d "$dir" ]]; then
+             if ! mkdir -p "$dir" 2>/dev/null; then
+                 echo "[-] ERROR: Cannot create directory: $dir"
+                 exit 1
+             fi
+         fi
+         
+         if [[ ! -w "$dir" ]]; then
+             echo "[-] ERROR: Directory not writable: $dir"
+             echo "    Try running with appropriate permissions or set INSTALL_DIR manually"
+             exit 1
+         fi
+     done
+    
+    INSTALL_DIR_LOCALH="${HOME}/.local/bin"
+    
+    # Create directories with proper locking to prevent race conditions
+    local temp_lock="/tmp/install_dirs_$$.lock"
+    (
+        flock -x 200
+        if [[ ${INSTALL_PRE} == sudo* ]]; then
+            sudo mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
+            sudo chmod 777 -R "${HOME}/.local" 2>/dev/null || true
+        else
+            mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
+        fi
+    ) 200>"${temp_lock}"
+    rm -f "${temp_lock}" 2>/dev/null || true
+}
+
+# Setup source URL based on architecture
+setup_source() {
+    if [[ -z ${INSTALL_SRC:-} ]]; then
+        local arch
+        arch=$(uname -m)
+        case ${arch} in
+            aarch64) INSTALL_SRC="https://bin.pkgforge.dev/aarch64-Linux" ;;
+            riscv64) INSTALL_SRC="https://bin.pkgforge.dev/riscv64-Linux" ;;
+            x86_64)  INSTALL_SRC="https://bin.pkgforge.dev/x86_64-Linux" ;;
+            *) 
+                echo "[-] Unsupported architecture: ${arch}"
+                exit 1
+                ;;
+        esac
+        echo -e "\n[+] Fetching Bins from (Default) :: ${INSTALL_SRC}\n"
+    else
+        echo -e "\n[+] Using Bins from (Specified) :: ${INSTALL_SRC}\n"
+    fi
+}
+
+# Setup parallel execution strategy
+setup_strategy() {
+    if [[ ${PARALLEL:-0} == "1" ]]; then
+        USE_PARALLEL=1
+        echo -e "\n[+] Installing in Parallel (Fast) Mode [Max ${MAX_PARALLEL_JOBS} concurrent jobs]\n"
+    else
+        USE_PARALLEL=0
+        echo -e "\n[+] Installing in Sequential (Slow) Mode [Re Run : export PARALLEL=1 for Speed]\n"
+    fi
+}
+
+# Wait for background jobs to complete and manage job limit
+wait_for_jobs() {
+    local max_jobs=${1:-${MAX_PARALLEL_JOBS}}
+    
+    while [[ ${#PARALLEL_PIDS[@]} -ge ${max_jobs} ]]; do
+        local new_pids=()
+        for pid in "${PARALLEL_PIDS[@]}"; do
+            if kill -0 "${pid}" 2>/dev/null; then
+                new_pids+=("${pid}")
+            else
+                wait "${pid}" 2>/dev/null || true
+            fi
+        done
+        PARALLEL_PIDS=("${new_pids[@]}")
+        
+        if [[ ${#PARALLEL_PIDS[@]} -ge ${max_jobs} ]]; then
+            sleep 0.1
+        fi
+    done
+}
+
+# Wait for all background jobs to complete
+wait_all_jobs() {
+    echo "[+] Waiting for all downloads to complete..."
+    for pid in "${PARALLEL_PIDS[@]}"; do
+        wait "${pid}" 2>/dev/null || true
+    done
+    PARALLEL_PIDS=()
+}
+
+# Install binary to single location
+install_bin() {
+    local src_name="${1}"
+    local dest_dir="${2}"
+    local dest_name="${3:-${1}}"
+    
+    if eval "${INSTALL_PRE}" "${INSTALL_SRC}/${src_name}" -o "${dest_dir}/${dest_name}"; then
+        eval "${INSTALL_POST}" "${dest_dir}/${dest_name}"
+        INSTALL_STATUS["${src_name}"]="success"
+        return 0
+    else
+        echo "[-] Failed to install ${src_name} to ${dest_dir}/${dest_name}"
+        INSTALL_STATUS["${src_name}"]="failed"
+        return 1
+    fi
+}
+
+# Parallel wrapper for install_bin
+install_bin_parallel() {
+    local src_name="${1}"
+    local dest_dir="${2}"
+    local dest_name="${3:-${1}}"
+    
+    if [[ ${USE_PARALLEL} == "1" ]]; then
+        wait_for_jobs "${MAX_PARALLEL_JOBS}"
+        (
+            install_bin "${src_name}" "${dest_dir}" "${dest_name}"
+        ) &
+        PARALLEL_PIDS+=($!)
+    else
+        install_bin "${src_name}" "${dest_dir}" "${dest_name}"
+    fi
+}
+
+# Create symlink for binary (with file existence check)
+symlink_bin() {
+    local target_path="${1}"
+    local dest_dir="${2}"
+    local link_name="${3}"
+    
+    # Wait a bit for file to be available if running in parallel
+    if [[ ${USE_PARALLEL} == "1" ]]; then
+        local attempts=0
+        while [[ ! -f "${target_path}" && ${attempts} -lt 30 ]]; do
+            sleep 0.1
+            ((attempts++))
+        done
+    fi
+    
+    if [[ -f "${target_path}" ]]; then
+        if [[ "${target_path}" != "${dest_dir}/${link_name}" ]]; then
+           eval "${SYMLINK_CMD}" "${target_path}" "${dest_dir}/${link_name}" 2>/dev/null || {
+               echo "[-] Warning: Failed to create symlink ${dest_dir}/${link_name} -> ${target_path}"
+               return 1
+           }
+        fi
+    else
+        echo "[-] Warning: Target ${target_path} does not exist for symlink ${link_name}"
+        return 1
+    fi
+}
+
+# Install binary to multiple locations with symlinks
+install_bin_multi() {
+    local src_name="${1}"
+    local dest_name="${2:-${1}}"
+    local localh_flag="${3:-}"
+    
+    # Install to primary location
+    install_bin_parallel "${src_name}" "${INSTALL_DIR}" "${dest_name}"
+    
+    # Store symlink creation for later (after all downloads complete)
+    echo "${INSTALL_DIR}/${dest_name}:${INSTALL_DIR_ROOT}/${dest_name}" >> "/tmp/symlinks_$$"
+    
+    if [[ ${localh_flag} == "localh" ]]; then
+        echo "${INSTALL_DIR}/${dest_name}:${INSTALL_DIR_LOCALH}/${dest_name}" >> "/tmp/symlinks_$$"
+    fi
+}
+
+# Create all symlinks after downloads complete
+create_symlinks() {
+    if [[ -f "/tmp/symlinks_$$" ]]; then
+        echo "[+] Creating symlinks..."
+        while IFS=':' read -r target_path link_path; do
+            local dest_dir dest_name
+            dest_dir=$(dirname "${link_path}")
+            dest_name=$(basename "${link_path}")
+            symlink_bin "${target_path}" "${dest_dir}" "${dest_name}"
+        done < "/tmp/symlinks_$$"
+        rm -f "/tmp/symlinks_$$"
+    fi
+}
+
+# Main installation function
+install_all_bins() {
+    local bins=(
+        # Format: "source_name" or "source_name:dest_name" or "source_name=multi" or "source_name=multi+localh"
+        "7z=multi"
+        "actionlint"
+        "anew"
+        "anew-rs"
+        "ansi2html"
+        "ansi2txt"
+        "archey"
+        "aria2:aria2c"
+        "askalono"
+        "bsdtar"
+        "b3sum=multi"
+        "bita"
+        "btop"
+        "chafa"
+        "cloudflared"
+        "croc"
+        "csvtk"
+        "cutlines"
+        "dbin"
+        "dasel"
+        "delta"
+        "ds"
+        "dos2unix"
+        "duf"
+        "duplicut"
+        "dust"
+        "dwarfs-tools:dwarfs"
+        "dwarfs-tools:mkdwarfs"
+        "dysk"
+        "eget"
+        "epoch"
+        "faketty"
+        "fastfetch"
+        "freeze"
+        "fusermount3:fusermount"
+        "gdu"
+        "gh"
+        "gitleaks"
+        "git-sizer"
+        "glab"
+        "glow"
+        "httpx=multi+localh"
+        "huggingface-cli"
+        "husarnet"
+        "husarnet-daemon"
+        "imgcat"
+        "jc"
+        "jq"
+        "logdy"
+        "micro"
+        "miniserve"
+        "minisign"
+        "ncdu"
+        "notify"
+        "ouch"
+        "oras"
+        "pipetty"
+        "pixterm"
+        "qsv"
+        "rclone"
+        "ripgrep:rg"
+        "rga"
+        "rsync"
+        "script"
+        "shellcheck"
+        "soar"
+        "speedtest-go"
+        "sstrip"
+        "strace"
+        "sttr"
+        "tailscale"
+        "tailscaled"
+        "taplo"
+        "tldr"
+        "tldr:tealdeer"
+        "tmux"
+        "tok"
+        "trufflehog"
+        "trurl"
+        "ulexec"
+        "unfurl"
+        "upx"
+        "validtoml"
+        "wget"
+        "wget2"
+        "wormhole-rs"
+        "xq"
+        "xz"
+        "unxz"
+        "yq"
+        "yj"
+        "zapper"
+        "zapper-stealth:zproccer"
+        "zerotier-cli"
+        "zerotier-idtool"
+        "zerotier-one"
+        "zstd=multi"
+    )
+    
+    # Initialize symlinks file
+    rm -f "/tmp/symlinks_$$"
+    
+    for bin_spec in "${bins[@]}"; do
+        local src_name dest_name multi_flag localh_flag=""
+        
+        # Parse the specification
+        if [[ ${bin_spec} == *"=multi"* ]]; then
+            # Multi-location install
+            multi_flag="multi"
+            if [[ ${bin_spec} == *"+localh"* ]]; then
+                localh_flag="localh"
+                src_name="${bin_spec%=multi+localh}"
+            else
+                src_name="${bin_spec%=multi}"
+            fi
+            dest_name="${src_name}"
+        elif [[ ${bin_spec} == *":"* ]]; then
+            # Symlink case
+            IFS=':' read -ra parts <<< "${bin_spec}"
+            src_name="${parts[0]}"
+            dest_name="${parts[1]}"
+        else
+            # Simple case
+            src_name="${bin_spec}"
+            dest_name="${bin_spec}"
+        fi
+        
+        echo "[+] Installing: ${src_name} -> ${dest_name}"
+        
+        if [[ ${multi_flag} == "multi" ]]; then
+            install_bin_multi "${src_name}" "${dest_name}" "${localh_flag}"
+        elif [[ ${src_name} != "${dest_name}" ]]; then
+            # This is a symlink case - install first, then queue symlink
+            install_bin_parallel "${src_name}" "${INSTALL_DIR}" "${src_name}"
+            echo "${INSTALL_DIR}/${src_name}:${INSTALL_DIR}/${dest_name}" >> "/tmp/symlinks_$$"
+        else
+            install_bin_parallel "${src_name}" "${INSTALL_DIR}" "${dest_name}"
+        fi
+    done
+    
+    # Wait for all downloads to complete
+    if [[ ${USE_PARALLEL} == "1" ]]; then
+        wait_all_jobs
+    fi
+    
+    # Create all symlinks after downloads complete
+    create_symlinks
+    
+    # Report failed installations
+    local failed_list=()
+    for bin_name in "${!INSTALL_STATUS[@]}"; do
+        if [[ ${INSTALL_STATUS[${bin_name}]} == "failed" ]]; then
+            failed_list+=("${bin_name}")
+        fi
+    done
+    
+    if [[ ${#failed_list[@]} -gt 0 ]]; then
+        echo -e "\n[!] Failed to install: ${failed_list[*]}"
+    fi
+}
+
+# Main execution
+main() {
+    setup_dirs
+    setup_source  
+    setup_strategy
+    
+    local pre_size
+    pre_size=$(du -sh "${INSTALL_DIR}" 2>/dev/null | cut -f1)
+    
+    install_all_bins
+    
+    set +x; echo
+    
+    # Clean up any remaining background processes
+    if [[ ${USE_PARALLEL} == "1" ]]; then
+        wait_all_jobs
+    fi
+    
+    reset >/dev/null 2>&1; echo
+    
+    # Fix permissions
+    if [[ ${INSTALL_PRE} == sudo* ]]; then
+        sudo chmod 777 -R "${HOME}/.local" 2>/dev/null || true
+    fi
+    
+    # Check PATH
+    local path_dirs=("${INSTALL_DIR_ROOT}" "${INSTALL_DIR}" "${INSTALL_DIR_LOCALH}")
+    local missing_paths=()
+    
+    for dir in "${path_dirs[@]}"; do
+        if [[ ":${PATH}:" != *":${dir}:"* ]]; then
+            missing_paths+=("${dir}")
+        fi
+    done
+    
+    if [[ ${#missing_paths[@]} -gt 0 ]]; then
+        echo -e "\n[!] Adjust your \"\$PATH\" to include: [ ${missing_paths[*]} ]"
+        echo -e "[!] Current \"\$PATH\" : [ ${PATH} ]\n"
+    fi
+    
+    # Print stats
+    local post_size
+    post_size=$(du -sh "${INSTALL_DIR}" 2>/dev/null | cut -f1)
+    echo -e "\n[+] Disk Size (${INSTALL_DIR}) :: ${pre_size:-0K} --> ${post_size:-0K}\n"
+    
+    echo -e "[+] Installation completed!"
+    
+    # Cleanup
+    rm -f "/tmp/symlinks_$$" 2>/dev/null || true
+}
+
+# Execute main function
+main "$@"
