@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	Version        = "2.0.1"
+	Version        = "0.0.1"
 	MaxConcurrency = 4
 	BufferSize     = 64 * 1024 // 64KB buffer for file operations
 )
@@ -156,7 +156,7 @@ func (e *Extractor) cyan(text string) string  { return e.logger.cyan(text) }
 func (e *Extractor) yellow(text string) string { return e.logger.yellow(text) }
 func (e *Extractor) blue(text string) string   { return e.logger.blue(text) }
 
-// ValidateInputs performs comprehensive input validation with better error handling
+// Input validation
 func (e *Extractor) ValidateInputs() error {
 	if e.config.InputFile == "" {
 		return fmt.Errorf("input file is required")
@@ -188,7 +188,7 @@ func (e *Extractor) ValidateInputs() error {
 		return fmt.Errorf("input file is empty: %s", e.config.InputFile)
 	}
 
-	// Handle output directory with better validation
+	// Handle output directory
 	if e.config.OutputDir == "" {
 		e.config.OutputDir = "."
 	}
@@ -224,7 +224,7 @@ func (e *Extractor) ValidateInputs() error {
 	return nil
 }
 
-// isDirEmpty checks if a directory is empty with better error handling
+// isDirEmpty checks if a directory is empty
 func (e *Extractor) isDirEmpty(dir string) (bool, error) {
 	f, err := os.Open(dir)
 	if err != nil {
@@ -272,7 +272,7 @@ func (e *Extractor) DetectAndValidateArchive(ctx context.Context) (archives.Form
 	return format, nil
 }
 
-// ExtractArchive performs extraction with improved error handling and progress tracking
+// ExtractArchive performs extraction with progress tracking
 func (e *Extractor) ExtractArchive(ctx context.Context, format archives.Format) error {
 	if err := os.MkdirAll(e.config.OutputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
@@ -831,19 +831,18 @@ func main() {
 		Name:    "extraxtor",
 		Usage:   "Archive Extractor with Intelligent Directory Flattening",
 		Version: Version,
-		Authors: []any{"Rewritten in Go"},
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "input", Aliases: []string{"i"}, Usage: "Input archive file"},
 			&cli.StringFlag{Name: "output", Aliases: []string{"o"}, Usage: "Output directory (default: current directory)"},
 			&cli.BoolFlag{Name: "force", Aliases: []string{"f"}, Usage: "Force extraction, overwrite existing files"},
 			&cli.BoolFlag{Name: "quiet", Aliases: []string{"q"}, Usage: "Suppress all output except errors"},
-			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Usage: "Enable debug output"}, // Changed from verbose to debug
+			&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Usage: "Enable debug output"},
 			&cli.BoolFlag{Name: "no-flatten", Aliases: []string{"n"}, Usage: "Don't flatten nested single directories"},
 			&cli.BoolFlag{Name: "tree", Aliases: []string{"t"}, Usage: "Show tree output after extraction"},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 			config := &Config{
-				Verbose:     c.Bool("debug"), // Use debug instead of verbose
+				Verbose:     c.Bool("debug"),
 				Quiet:       c.Bool("quiet"),
 				Force:       c.Bool("force"),
 				Flatten:     !c.Bool("no-flatten"),
@@ -912,6 +911,41 @@ func inspectArchive(ctx context.Context, archivePath string, jsonOutput, treeOut
 		return fmt.Errorf("unsupported archive format for inspection")
 	}
 
+	if err := func() error {
+    defer func() {
+            if r := recover(); r != nil {
+                // Silently ignore archives that don't support listing
+            }
+        }()
+        
+        // Test if we can actually list the archive
+        testHandler := func(ctx context.Context, f archives.FileInfo) error {
+            return nil
+        }
+        
+        return extractor.Extract(ctx, input, testHandler)
+    }(); err != nil {
+        if treeOutput {
+            fmt.Printf("Tree view not supported for this archive format\n")
+            return nil
+        }
+        return fmt.Errorf("archive format does not support content listing: %w", err)
+    }
+    
+    // Reset file pointer for actual processing
+    file.Close()
+    file, err = os.Open(archivePath)
+    if err != nil {
+        return fmt.Errorf("failed to reopen archive: %w", err)
+    }
+    defer file.Close()
+    
+    format, input, err = archives.Identify(ctx, archivePath, file)
+    if err != nil {
+        return fmt.Errorf("failed to re-identify archive format: %w", err)
+    }
+    extractor = format.(archives.Extractor)
+
 	var entries []FileEntry
 	var totalSize int64
 	var fileCount, dirCount int
@@ -958,13 +992,75 @@ func inspectArchive(ctx context.Context, archivePath string, jsonOutput, treeOut
 		})
 	}
 
-	if treeOutput {
-		for _, entry := range entries {
-			prefix := map[bool]string{true: "📁 ", false: "📄 "}[entry.IsDir]
-			fmt.Printf("%s%s\n", prefix, entry.Name)
-		}
-		return nil
-	}
+    if treeOutput {
+        fmt.Printf("Archive: %s\n", filepath.Base(archivePath))
+        
+        // Build tree structure
+        tree := make(map[string][]string)
+        dirs := make(map[string]bool)
+        
+        for _, entry := range entries {
+            parts := strings.Split(entry.Name, string(filepath.Separator))
+            for i := 0; i < len(parts); i++ {
+                path := strings.Join(parts[:i+1], string(filepath.Separator))
+                parent := ""
+                if i > 0 {
+                    parent = strings.Join(parts[:i], string(filepath.Separator))
+                }
+                
+                if entry.IsDir || i < len(parts)-1 {
+                    dirs[path] = true
+                }
+                
+                if parent != "" {
+                    tree[parent] = append(tree[parent], parts[i])
+                } else if i == 0 {
+                    tree[""] = append(tree[""], parts[i])
+                }
+            }
+        }
+        
+        // Remove duplicates and sort
+        for k := range tree {
+            unique := make(map[string]bool)
+            for _, v := range tree[k] {
+                unique[v] = true
+            }
+            tree[k] = make([]string, 0, len(unique))
+            for v := range unique {
+                tree[k] = append(tree[k], v)
+            }
+            sort.Strings(tree[k])
+        }
+        
+        // Print tree
+        var printTree func(path string, depth int)
+        printTree = func(path string, depth int) {
+            children := tree[path]
+            for i, child := range children {
+                indent := strings.Repeat("  ", depth)
+                connector := "├── "
+                if i == len(children)-1 {
+                    connector = "└── "
+                }
+                
+                childPath := child
+                if path != "" {
+                    childPath = path + string(filepath.Separator) + child
+                }
+                
+                if dirs[childPath] {
+                    fmt.Printf("%s%s📁 %s/\n", indent, connector, child)
+                    printTree(childPath, depth+1)
+                } else {
+                    fmt.Printf("%s%s📄 %s\n", indent, connector, child)
+                }
+            }
+        }
+        
+        printTree("", 0)
+        return nil
+    }
 
 	if verbose {
 		fmt.Printf("Archive: %s (%d files, %d directories, %s total)\n\n",
