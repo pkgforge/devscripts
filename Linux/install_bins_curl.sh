@@ -22,6 +22,8 @@ fi
 declare -a PARALLEL_PIDS=()
 declare -A INSTALL_STATUS=()
 MAX_PARALLEL_JOBS=${MAX_PARALLEL_JOBS:-10}
+# Global sudo usage flag
+USE_SUDO=0
 #-------------------------------------------------------------------------------#
 
 #-------------------------------------------------------------------------------#
@@ -77,6 +79,7 @@ setup_dirs() {
          INSTALL_PRE="${INSTALL_PRE:-sudo curl -qfsSL}"
          INSTALL_POST="${INSTALL_POST:-sudo chmod +x}"
          SYMLINK_CMD="${SYMLINK_CMD:-sudo ln -fsv}"
+         USE_SUDO=1
          echo -e "\n[+] Setting Install Dir (ROOT) :: ${INSTALL_DIR}\n"
      else
          # User-space installation
@@ -85,29 +88,50 @@ setup_dirs() {
          INSTALL_PRE="${INSTALL_PRE:-timeout -k 1m 5m curl -qfsSL}"
          INSTALL_POST="${INSTALL_POST:-chmod +x}"
          SYMLINK_CMD="${SYMLINK_CMD:-ln -fsv}"
+         USE_SUDO=0
          echo -e "\n[+] Setting Install Dir (USERSPACE) :: ${INSTALL_DIR}\n"
      fi
      
-     # If running as root, strip sudo from commands
+     # If running as root, strip sudo from commands but keep USE_SUDO flag
      if [[ $(id -u) -eq 0 ]]; then
          INSTALL_PRE="${INSTALL_PRE/sudo /}"
          INSTALL_POST="${INSTALL_POST/sudo /}"
          SYMLINK_CMD="${SYMLINK_CMD/sudo /}"
+         USE_SUDO=0  # Running as root, no need for sudo
      fi
      
     # Verify directories are writable (create if needed)
      for dir in "$INSTALL_DIR" "$INSTALL_DIR_ROOT"; do
          if [[ ! -d "$dir" ]]; then
-             if ! mkdir -p "$dir" 2>/dev/null; then
-                 echo "[-] ERROR: Cannot create directory: $dir"
-                 exit 1
+             if [[ $USE_SUDO -eq 1 ]]; then
+                 if ! sudo mkdir -p "$dir" 2>/dev/null; then
+                     echo "[-] ERROR: Cannot create directory: $dir"
+                     exit 1
+                 fi
+             else
+                 if ! mkdir -p "$dir" 2>/dev/null; then
+                     echo "[-] ERROR: Cannot create directory: $dir"
+                     exit 1
+                 fi
              fi
          fi
          
-         if [[ ! -w "$dir" ]]; then
-             echo "[-] ERROR: Directory not writable: $dir"
-             echo "    Try running with appropriate permissions or set INSTALL_DIR manually"
-             exit 1
+         # Test writability with appropriate permissions
+         local test_file="${dir}/.write_test_$$"
+         if [[ $USE_SUDO -eq 1 ]]; then
+             if ! sudo touch "$test_file" 2>/dev/null; then
+                 echo "[-] ERROR: Directory not writable: $dir"
+                 echo "    Try running with appropriate permissions or set INSTALL_DIR manually"
+                 exit 1
+             fi
+             sudo rm -f "$test_file" 2>/dev/null || true
+         else
+             if ! touch "$test_file" 2>/dev/null; then
+                 echo "[-] ERROR: Directory not writable: $dir"
+                 echo "    Try running with appropriate permissions or set INSTALL_DIR manually"
+                 exit 1
+             fi
+             rm -f "$test_file" 2>/dev/null || true
          fi
      done
     
@@ -117,7 +141,7 @@ setup_dirs() {
     local temp_lock="/tmp/install_dirs_$$.lock"
     (
         flock -x 200
-        if [[ ${INSTALL_PRE} == sudo* ]]; then
+        if [[ $USE_SUDO -eq 1 ]]; then
             sudo mkdir -p "${INSTALL_DIR}" "${INSTALL_DIR_ROOT}" "${INSTALL_DIR_LOCALH}"
             sudo chmod 777 -R "${HOME}/.local" 2>/dev/null || true
         else
@@ -502,7 +526,7 @@ main() {
     reset >/dev/null 2>&1; echo
     
     # Fix permissions
-    if [[ ${INSTALL_PRE} == sudo* ]]; then
+    if [[ $USE_SUDO -eq 1 ]]; then
         sudo chmod 777 -R "${HOME}/.local" 2>/dev/null || true
     fi
     
