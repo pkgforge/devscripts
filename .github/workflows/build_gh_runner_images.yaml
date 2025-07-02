@@ -722,7 +722,7 @@ jobs:
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/riscv64-ubuntu.dockerfile"
-          platforms: "linux/amd64"
+          platforms: "linux/riscv64"
           tags: |
             pkgforge/gh-runner-riscv64-ubuntu:latest
             pkgforge/gh-runner-riscv64-ubuntu:${{ env.DOCKER_TAG }}
