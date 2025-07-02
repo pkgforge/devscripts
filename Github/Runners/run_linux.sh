@@ -234,8 +234,9 @@ set_configuration() {
     #Export for consistency with original script
     export PODMAN_CONTAINER_NAME="${CONTAINER_NAME}"
     export PODMAN_CONTAINER_IMAGE="${CONTAINER_IMAGE}"
-    export PODMAN_ENV_FILE="$(realpath ${ENV_FILE})"
-    export PODMAN_LOG_FILE="$(realpath ${LOG_FILE})"
+    PODMAN_ENV_FILE="$(realpath "${ENV_FILE}")"
+    PODMAN_LOG_FILE="$(realpath "${LOG_FILE}")"
+    export PODMAN_ENV_FILE PODMAN_LOG_FILE
     export PODMAN_PULL_POLICY="${PULL_POLICY}"
 }
 #Check and configure sudo requirements
@@ -321,13 +322,19 @@ show_configuration() {
 }
 #Cleanup function
 cleanup_containers() {
-    log_info "Cleaning up existing containers..."
-    ${PODMAN_SUDO} podman stop "${CONTAINER_NAME}" &>/dev/null
-    ${PODMAN_SUDO} podman rm "${CONTAINER_NAME}" --force &>/dev/null
+    if [[ "${ACTION}" == "cleanup" && "${CONTAINER_NAME}" == "${DEFAULT_CONTAINER_NAME}" ]]; then
+        log_error "Container name must be explicitly specified when using --cleanup"
+        log_error "Use: $0 --cleanup --name YOUR_CONTAINER_NAME"
+        exit 1
+    fi
     
-    if [[ "$ACTION" == "cleanup" ]]; then
+    log_info "Cleaning up existing containers..."
+    ${PODMAN_SUDO} podman stop "${CONTAINER_NAME}" &>/dev/null || true
+    ${PODMAN_SUDO} podman rm "${CONTAINER_NAME}" --force &>/dev/null || true
+    
+    if [[ "${ACTION}" == "cleanup" ]]; then
         log_info "Removing container image..."
-        ${PODMAN_SUDO} podman rmi "${CONTAINER_IMAGE}" --force &>/dev/null
+        ${PODMAN_SUDO} podman rmi "${CONTAINER_IMAGE}" --force &>/dev/null || true
         log_info "Cleanup completed"
         exit 0
     fi
@@ -335,15 +342,19 @@ cleanup_containers() {
 #Stop containers
 stop_containers() {
     log_info "Stopping running containers..."
-    ${PODMAN_SUDO} podman stop "$(${PODMAN_SUDO} podman ps -aqf name=${CONTAINER_NAME})" &>/dev/null &
-    wait
-    ${PODMAN_SUDO} podman stop "$(${PODMAN_SUDO} podman ps -aqf name=${CONTAINER_NAME})" &>/dev/null && sleep 5
+    local container_ids
+    container_ids="$(${PODMAN_SUDO} podman ps -aqf name="${CONTAINER_NAME}" 2>/dev/null || true)"
+    if [[ -n "${container_ids}" ]]; then
+        ${PODMAN_SUDO} podman stop ${container_ids} &>/dev/null &
+        wait
+        ${PODMAN_SUDO} podman stop ${container_ids} &>/dev/null && sleep 5
+    fi
     log_info "Containers stopped"
 }
 #Show logs
 show_logs() {
     local container_id
-    container_id="$(${PODMAN_SUDO} podman ps -qf name=${CONTAINER_NAME})"
+    container_id="$(${PODMAN_SUDO} podman ps -qf name="${CONTAINER_NAME}")"
     
     if [[ -z "${container_id}" ]]; then
         log_error "No running container found with name: ${CONTAINER_NAME}"
@@ -394,7 +405,7 @@ run_container() {
     pull_image
     
     #Create required directories
-    ${PODMAN_SUDO} mkdir -p "${DEFAULT_CONTAINER_TMP_VOLUME}" 2>/dev/null
+    ${PODMAN_SUDO} mkdir -p "${DEFAULT_CONTAINER_TMP_VOLUME}" 2>/dev/null || true
     if [[ ! -d "${DEFAULT_CONTAINER_TMP_VOLUME}" || ! -w "${DEFAULT_CONTAINER_TMP_VOLUME}" ]]; then
         mkdir -p "${FALLBACK_CONTAINER_TMP_VOLUME}" 2>/dev/null
         if [[ ! -d "${FALLBACK_CONTAINER_TMP_VOLUME}" || ! -w "${FALLBACK_CONTAINER_TMP_VOLUME}" ]]; then
@@ -437,7 +448,7 @@ run_container() {
     
     #Get container details
     local container_id
-    container_id="$(${PODMAN_SUDO} podman ps -qf name=${CONTAINER_NAME})"
+    container_id="$(${PODMAN_SUDO} podman ps -qf name="${CONTAINER_NAME}")"
     export PODMAN_ID="${container_id}"
     
     if [[ -z "${container_id}" ]]; then
@@ -447,7 +458,7 @@ run_container() {
     fi
     
     local log_path
-    log_path="$(${PODMAN_SUDO} podman inspect --format='{{.HostConfig.LogConfig.Path}}' ${CONTAINER_NAME} 2>/dev/null || echo "N/A")"
+    log_path="$(${PODMAN_SUDO} podman inspect --format='{{.HostConfig.LogConfig.Path}}' "${CONTAINER_NAME}" 2>/dev/null || echo "N/A")"
     export PODMAN_LOGPATH="${log_path}"
     
     log_info "Container started successfully"
@@ -464,7 +475,16 @@ run_container() {
     #Monitor runner process
     log_info "Monitoring runner process..."
     while true; do
-        if ! pgrep -f "/usr/local/bin/manager.sh" > /dev/null; then
+        # Check if container is still running first
+        if ! ${PODMAN_SUDO} podman ps -q --filter "id=${container_id}" | grep -qi "${container_id}"; then
+            log_warn "Container has stopped"
+            break
+        fi
+        
+        # Check if manager process is running inside container
+        local process_check
+        process_check="$(${PODMAN_SUDO} podman exec "${container_id}" ps aux 2>/dev/null | grep -c "/usr/local/bin/manager.sh" || echo "0")"
+        if [[ "${process_check}" -eq 0 ]]; then
             log_warn "Runner process has stopped"
             if [[ "${VERBOSE}" == "1" ]]; then
                 cat "${LOG_FILE}"
@@ -472,7 +492,7 @@ run_container() {
             ${PODMAN_SUDO} podman stop "${container_id}" --ignore
             break
         fi
-        sleep 5
+        sleep 12
     done
     
     log_info "Runner completed"
