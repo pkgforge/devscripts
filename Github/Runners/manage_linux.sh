@@ -45,7 +45,7 @@ fi
 ##Start Docker
 #Check for kernel modules
 sudo systemctl stop docker 2>/dev/null
-mkdir -p "/var/lib/docker.bk"
+sudo mkdir -p "/var/lib/docker.bk"
 sudo cp -au "/var/lib/docker/." "/var/lib/docker.bk"
 sudo modprobe -n -q "fuse"
 fuse_overlayfs_status=$?
