@@ -114,7 +114,7 @@ jobs:
           set +x ; set +e
           #-------------#
           OUT_FILE="${{ matrix.file }}"
-          if [[ "${{ matrix.image }}" == "riscv64-Linux"]]; then
+          if [[ "${{ matrix.image }}" == "riscv64-Linux" ]]; then
              SRC_REPO="dkurt/github_actions_riscv"
           else
              SRC_REPO="actions/runner"
