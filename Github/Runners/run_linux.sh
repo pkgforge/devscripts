@@ -17,6 +17,9 @@ if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
 fi
 export USER HOME SYSTMP
 pushd "${HOME}" &>/dev/null || exit 1
+#Global variables for signal handling
+CONTAINER_ID=""
+CLEANUP_DONE=0
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
@@ -53,6 +56,46 @@ log_debug() {
     if [[ "${DEBUG:-0}" == "1" ]]; then
         echo -e "${CYAN}[DEBUG]${NC} $1"
     fi
+}
+#------------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------------#
+#Signal handling functions
+cleanup_on_exit() {
+    if [[ "${CLEANUP_DONE}" == "1" ]]; then
+        return
+    fi
+    CLEANUP_DONE=1
+    
+    log_warn "Received exit signal, cleaning up..."
+    
+    if [[ -n "${CONTAINER_ID}" ]]; then
+        log_info "Stopping container: ${CONTAINER_ID}"
+        ${PODMAN_SUDO} podman stop "${CONTAINER_ID}" --time 10 &>/dev/null || true
+        
+        log_info "Removing container: ${CONTAINER_ID}"
+        ${PODMAN_SUDO} podman rm "${CONTAINER_ID}" --force &>/dev/null || true
+    fi
+    
+    #Clean up any containers with our name
+    local cleanup_containers
+    cleanup_containers="$(${PODMAN_SUDO} podman ps -aq --filter "name=${CONTAINER_NAME}" 2>/dev/null || true)"
+    if [[ -n "${cleanup_containers}" ]]; then
+        log_info "Cleaning up remaining containers with name: ${CONTAINER_NAME}"
+        echo "${cleanup_containers}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null || true
+        echo "${cleanup_containers}" | xargs -r ${PODMAN_SUDO} podman rm --force &>/dev/null || true
+    fi
+    
+    log_info "Cleanup completed"
+}
+
+setup_signal_handlers() {
+    #Set up signal handlers for graceful shutdown
+    trap cleanup_on_exit EXIT
+    trap 'log_warn "Received SIGINT (Ctrl+C)"; cleanup_on_exit; exit 130' INT
+    trap 'log_warn "Received SIGTERM"; cleanup_on_exit; exit 143' TERM
+    trap 'log_warn "Received SIGHUP"; cleanup_on_exit; exit 129' HUP
+    trap 'log_warn "Received SIGQUIT"; cleanup_on_exit; exit 131' QUIT
 }
 #------------------------------------------------------------------------------------#
 
@@ -118,6 +161,8 @@ NOTES:
     - Requires Podman to be installed and configured
     - May require passwordless sudo if Podman needs elevated privileges
     - Environment variables are overridden by command-line arguments
+    - Script will run continuously and monitor the container until stopped
+    - Use Ctrl+C or send SIGTERM to gracefully stop the container and exit
     - For more information: https://github.com/pkgforge/devscripts/blob/main/Github/Runners/README.md
 
 EOF
@@ -393,6 +438,18 @@ pull_image() {
             ;;
     esac
 }
+
+#Check if container is still running
+is_container_running() {
+    local container_id="$1"
+    [[ -n "${container_id}" ]] && ${PODMAN_SUDO} podman ps -q --filter "id=${container_id}" | grep -q "${container_id}"
+}
+
+#Check if manager process is running inside container
+is_manager_running() {
+    local container_id="$1"
+    [[ -n "${container_id}" ]] && ${PODMAN_SUDO} podman exec "${container_id}" ps aux 2>/dev/null | grep -q "/usr/local/bin/manager.sh"
+}
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
@@ -447,11 +504,10 @@ run_container() {
     sleep 30
     
     #Get container details
-    local container_id
-    container_id="$(${PODMAN_SUDO} podman ps -qf name="${CONTAINER_NAME}")"
-    export PODMAN_ID="${container_id}"
+    CONTAINER_ID="$(${PODMAN_SUDO} podman ps -qf name="${CONTAINER_NAME}")"
+    export PODMAN_ID="${CONTAINER_ID}"
     
-    if [[ -z "${container_id}" ]]; then
+    if [[ -z "${CONTAINER_ID}" ]]; then
         log_error "Container failed to start. Check logs: ${LOG_FILE}"
         cat "${LOG_FILE}"
         exit 1
@@ -462,46 +518,61 @@ run_container() {
     export PODMAN_LOGPATH="${log_path}"
     
     log_info "Container started successfully"
-    log_info "Container ID: ${container_id}"
+    log_info "Container ID: ${CONTAINER_ID}"
     log_info "Container Log Path: ${log_path}"
     log_info "Script Log File: ${LOG_FILE}"
     
     #Execute runner manager
     log_info "Executing runner manager..."
-    ${PODMAN_SUDO} podman exec --user "runner" --env-file="${ENV_FILE}" "${container_id}" "/usr/local/bin/manager.sh" >> "${LOG_FILE}" 2>&1 &
+    ${PODMAN_SUDO} podman exec --user "runner" --env-file="${ENV_FILE}" "${CONTAINER_ID}" "/usr/local/bin/manager.sh" >> "${LOG_FILE}" 2>&1 &
     
     sleep 10
     
-    #Monitor runner process
-    log_info "Monitoring runner process..."
+    #Monitor runner process - stay active as long as container runs
+    log_info "Monitoring runner process (will run until container stops or signal received)..."
+    local consecutive_failures=0
+    local max_consecutive_failures=3
+    
     while true; do
         # Check if container is still running first
-        if ! ${PODMAN_SUDO} podman ps -q --filter "id=${container_id}" | grep -qi "${container_id}"; then
+        if ! is_container_running "${CONTAINER_ID}"; then
             log_warn "Container has stopped"
             break
         fi
         
         # Check if manager process is running inside container
-        local process_check
-        process_check="$(${PODMAN_SUDO} podman exec "${container_id}" ps aux 2>/dev/null | grep -c "/usr/local/bin/manager.sh" || echo "0")"
-        if [[ "${process_check}" -eq 0 ]]; then
-            log_warn "Runner process has stopped"
-            if [[ "${VERBOSE}" == "1" ]]; then
-                cat "${LOG_FILE}"
+        if ! is_manager_running "${CONTAINER_ID}"; then
+            consecutive_failures=$((consecutive_failures + 1))
+            log_warn "Runner process check failed (attempt ${consecutive_failures}/${max_consecutive_failures})"
+            
+            if [[ "${consecutive_failures}" -ge "${max_consecutive_failures}" ]]; then
+                log_warn "Runner process has stopped after ${max_consecutive_failures} consecutive checks"
+                if [[ "${VERBOSE}" == "1" ]]; then
+                    echo "=== Recent log output ==="
+                    tail -50 "${LOG_FILE}" 2>/dev/null || true
+                    echo "========================="
+                fi
+                break
             fi
-            ${PODMAN_SUDO} podman stop "${container_id}" --ignore
-            break
+        else
+            consecutive_failures=0
+            log_debug "Container and manager process are running normally"
         fi
+        
+        # Wait before next check
         sleep 12
     done
     
-    log_info "Runner completed"
+    log_info "Container monitoring completed"
 }
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
 #Main function
 main() {
+    # Set up signal handlers early
+    setup_signal_handlers
+    
     #Parse command line arguments
     parse_arguments "$@"
     
@@ -543,7 +614,7 @@ main() {
     #Final status
     if [[ "${QUIET}" != "1" ]]; then
         echo
-        log_info "Runner completed successfully"
+        log_info "Runner Session Ended"
         log_info "Log file: ${LOG_FILE}"
         echo
         log_info "Useful commands:"
