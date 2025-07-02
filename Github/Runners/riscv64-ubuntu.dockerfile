@@ -1,15 +1,9 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
-#Ubuntu 24.04 LTS :: https://wiki.ubuntu.com/Releases
 # Based on :: https://github.com/pkgforge/devscripts/blob/main/Github/Runners/ubuntu-systemd-base.dockerfile
 # Preconfigured with: Systemd + SSHD + Docker
-# REF :: https://docs.docker.com/engine/reference/builder/
-# LINT :: https://github.com/hadolint/hadolint
-## Note :: NO SPACE after EOS using heredoc `EOS` to write multiline scripts
-#FROM nestybox/ubuntu-jammy-systemd-docker:latest
-# URL: https://hub.docker.com/r/pkgforge/gh-runner-x86_64-ubuntu
+# URL: https://hub.docker.com/r/pkgforge/gh-runner-riscv64-ubuntu
 FROM ubuntu:latest
-#FROM ubuntu:jammy
 #------------------------------------------------------------------------------------#
 ##Base Deps
 ENV DEBIAN_FRONTEND="noninteractive"
@@ -101,9 +95,6 @@ RUN <<EOS
  #Recheck 
   grep runner "/etc/passwd"
 EOS
-##Set PATH [Default: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin] /command is s6-tools
-#ENV PATH "/command:${PATH}"
-#RUN echo 'export PATH="/command:${PATH}"' >> "/etc/bash.bashrc"
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
@@ -122,7 +113,7 @@ RUN <<EOS
   #Remove Hardlimit
   sed -i 's/ulimit -Hn/# ulimit -Hn/g' "/etc/init.d/docker"
   #Install Additional Deps
-  packages="btrfs-progs fuse-overlayfs fuse3 kmod libfuse3-dev zfs-dkms"
+  packages="btrfs-progs fuse-overlayfs fuse3 kmod libfuse3-dev"
   for pkg in $packages; do apt install -y --ignore-missing "$pkg" || true; done
   true
 EOS
@@ -150,23 +141,32 @@ EOS
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#
-# Build args
-#ARG TARGETPLATFORM=amd64
-#ARG RUNNER_VERSION=2.313.0
-#------------------------------------------------------------------------------------#
 ##Download Runner Script
-# https://github.com/actions/runner/releases
+# https://github.com/dkurt/github_actions_riscv
 WORKDIR /runner
 RUN <<EOS
- #Setup GH Runner (X86_64)
-  #eget "https://github.com/actions/runner" --asset "linux" --asset "x64" --asset "^arm" --asset "tar.gz" --to "./runner.tar.gz" --download-only
-  wget --quiet --show-progress "https://github.com/pkgforge/devscripts/releases/download/gh-x86_64-Linux/runner.tar.gz" -O "./runner.tar.gz"
+ #Setup Dotnet: https://github.com/dkurt/dotnet_riscv/releases/latest
+  wget --quiet --show-progress "https://github.com/dkurt/dotnet_riscv/releases/latest/download/dotnet-sdk-9.0.100-linux-riscv64-gcc-ubuntu-24.04.tar.gz" -O "./dotnet.tar.gz"
+  if [ ! -f "./dotnet.tar.gz" ]; then
+     exit 1
+  else
+     mkdir -pv "/opt/dotnet"
+     tar -xzf "./dotnet.tar.gz" -C "/opt/dotnet"
+     if [ ! -f "/opt/dotnet/dotnet" ]; then
+        exit 1
+     else
+        ln -fsv "/opt/dotnet/dotnet" "/usr/local/bin/dotnet"
+        rm -rf "./dotnet.tar.gz"
+     fi
+  fi
+ #Setup GH Runner (riscv64): https://github.com/dkurt/github_actions_riscv/releases/latest
+  wget --quiet --show-progress "https://github.com/pkgforge/devscripts/releases/download/gh-riscv64-Linux/runner.tar.gz" -O "./runner.tar.gz"
   if [ ! -f "./runner.tar.gz" ]; then
      exit 1
   fi
  #Untar
   mkdir -p "/runner-init"
-  tar xzf "./runner.tar.gz" -C "/runner-init" && rm "./runner.tar.gz"
+  tar -xzf "./runner.tar.gz" -C "/runner-init" && rm "./runner.tar.gz"
  #Dos2unix
   find "/runner-init" -type f -exec dos2unix --quiet {} \; 2>/dev/null || true
  #Run Install
@@ -248,18 +248,6 @@ RUN <<EOS
   systemctl enable ssh --now 2>/dev/null || true
 EOS
 EXPOSE 22
-#------------------------------------------------------------------------------------#
-
-#------------------------------------------------------------------------------------#
-##Setup TailScale (sudo tailscale up --authkey="$TSKEY" --ssh --hostname="$TS_NAME" --accept-dns="true" --accept-risk="all" --accept-routes="false" --shields-up="false" --advertise-exit-node --reset)
-RUN <<EOS
-  #Install TailScale [pkg]
-  set +e
-  curl -qfsSL "https://tailscale.com/install.sh" -o "./tailscale.sh"
-  dos2unix --quiet "./tailscale.sh"
-  bash "./tailscale.sh" -s -- -h >/dev/null 2>&1 || true ; rm -rf "./tailscale.sh"
-  systemctl -l --type "service" --all | grep -i "tailscale" || true
-EOS
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#

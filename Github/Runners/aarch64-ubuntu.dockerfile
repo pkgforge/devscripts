@@ -123,7 +123,8 @@ RUN <<EOS
   sed -i 's/ulimit -Hn/# ulimit -Hn/g' "/etc/init.d/docker"
   #Install Additional Deps
   packages="btrfs-progs fuse-overlayfs fuse3 kmod libfuse3-dev zfs-dkms"
-  for pkg in $packages; do apt install -y --ignore-missing "$pkg"; done
+  for pkg in $packages; do apt install -y --ignore-missing "$pkg" || true; done
+  true
 EOS
 #------------------------------------------------------------------------------------#
 

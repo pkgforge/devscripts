@@ -121,7 +121,7 @@ RUN <<EOS
   #Remove Hardlimit
   sed -i 's/ulimit -Hn/# ulimit -Hn/g' "/etc/init.d/docker"
   #Install Additional Deps
-  packages="btrfs-progs fuse-overlayfs fuse3 kmod libfuse3-dev zfs-dkms"
+  packages="btrfs-progs fuse-overlayfs fuse3 kmod libfuse3-dev"
   for pkg in $packages; do apt install -y --ignore-missing "$pkg"; done
 EOS
 #------------------------------------------------------------------------------------#
