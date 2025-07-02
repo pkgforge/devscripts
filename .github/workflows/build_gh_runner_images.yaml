@@ -328,7 +328,7 @@ jobs:
             pkgforge/archlinux-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/archlinux-builder:${{ matrix.arch }}
             ghcr.io/pkgforge/devscripts/archlinux-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-debian:
@@ -657,7 +657,7 @@ jobs:
             pkgforge/gh-runner-aarch64-ubuntu:latest-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/gh-runner-aarch64-ubuntu:latest
             ghcr.io/pkgforge/devscripts/gh-runner-aarch64-ubuntu:latest-${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-runner-riscv64:
@@ -728,7 +728,7 @@ jobs:
             pkgforge/gh-runner-riscv64-ubuntu:${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/gh-runner-riscv64-ubuntu:latest
             ghcr.io/pkgforge/devscripts/gh-runner-riscv64-ubuntu:${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-runner-x86-64:
@@ -800,7 +800,7 @@ jobs:
             pkgforge/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/gh-runner-x86_64-ubuntu:latest
             ghcr.io/pkgforge/devscripts/gh-runner-x86_64-ubuntu:${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 ##------------------------------------------------------------------------------------#
 #  build-push-docker-debian-guix:
