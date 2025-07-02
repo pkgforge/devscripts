@@ -162,7 +162,7 @@ jobs:
           push: true
         continue-on-error: true
 
-      - name: Pirnt Manifest (docker.io/pkgforge/debian:${{ matrix.arch }})
+      - name: Print Manifest (docker.io/pkgforge/debian:${{ matrix.arch }})
         run: |
           #Presets
           set +x ; set +e
@@ -170,7 +170,7 @@ jobs:
           docker manifest inspect "docker.io/pkgforge/debian:${{ matrix.arch }}" 2>/dev/null | jq .
         continue-on-error: true
 
-      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }})
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/debian:${{ matrix.arch }})
         run: |
           #Presets
           set +x ; set +e
@@ -306,7 +306,7 @@ jobs:
           outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 
-      - name: Pirnt Manifest (docker.io/pkgforge/debian:loongarch64)
+      - name: Print Manifest (docker.io/pkgforge/debian:loongarch64)
         run: |
           #Presets
           set +x ; set +e
@@ -314,7 +314,7 @@ jobs:
           docker manifest inspect "docker.io/pkgforge/debian:loongarch64" 2>/dev/null | jq .
         continue-on-error: true
 
-      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/debian:loongarch64)
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/debian:loongarch64)
         run: |
           #Presets
           set +x ; set +e

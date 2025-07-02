@@ -162,7 +162,7 @@ jobs:
           push: true
         continue-on-error: true
 
-      - name: Pirnt Manifest (docker.io/pkgforge/alpine:${{ matrix.arch }})
+      - name: Print Manifest (docker.io/pkgforge/alpine:${{ matrix.arch }})
         run: |
           #Presets
           set +x ; set +e
@@ -170,7 +170,7 @@ jobs:
           docker manifest inspect "docker.io/pkgforge/alpine:${{ matrix.arch }}" 2>/dev/null | jq .
         continue-on-error: true
 
-      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }})
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/alpine:${{ matrix.arch }})
         run: |
           #Presets
           set +x ; set +e
@@ -324,7 +324,7 @@ jobs:
           outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 
-      - name: Pirnt Manifest (docker.io/pkgforge/alpine:loongarch64)
+      - name: Print Manifest (docker.io/pkgforge/alpine:loongarch64)
         run: |
           #Presets
           set +x ; set +e
@@ -332,7 +332,7 @@ jobs:
           docker manifest inspect "docker.io/pkgforge/alpine:loongarch64" 2>/dev/null | jq .
         continue-on-error: true
 
-      - name: Pirnt Manifest (ghcr.io/pkgforge/devscripts/alpine:loongarch64)
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/alpine:loongarch64)
         run: |
           #Presets
           set +x ; set +e
