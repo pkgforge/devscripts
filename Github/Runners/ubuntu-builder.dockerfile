@@ -1,24 +1,27 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
 # DOCKER HUB URL : https://hub.docker.com/r/pkgforge/ubuntu-builder
-FROM ubuntu:latest
+#FROM ubuntu:latest
 #FROM ubuntu:rolling
+ARG ARCH
+FROM "ghcr.io/pkgforge/devscripts/ubuntu:${ARCH}"
 #------------------------------------------------------------------------------------#
 ##Base Deps
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN <<EOS
   #Base
-  apt-get update -y
+  apt update -y
   packages="apt-transport-https apt-utils bash ca-certificates coreutils curl dos2unix fdupes findutils git gnupg2 imagemagick jq locales locate moreutils nano ncdu p7zip-full rename rsync software-properties-common sudo texinfo tmux tree unzip util-linux xz-utils wget zip"
   #Install
-  apt-get update -y -qq
+  apt update -y -qq
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   #Install_Re
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   #unminimize : https://wiki.ubuntu.com/Minimal
+  apt install unminimize -y -qq || true
   yes | unminimize
   #Python
-  apt-get install python3 -y
+  apt install python3 -y
   #Test
   python --version 2>/dev/null ; python3 --version 2>/dev/null
   #Install pip:
@@ -37,11 +40,11 @@ EOS
 ##Systemd installation
 RUN <<EOS
   #SystemD
-  apt-get update -y
+  apt update -y
   packages="dbus iptables iproute2 libsystemd0 kmod systemd systemd-sysv udev"
   for pkg in $packages; do apt install -y --ignore-missing "$pkg"; done
  #Housekeeping
-  apt-get clean -y
+  apt clean -y
   rm -rf "/lib/systemd/system/getty.target" 2>/dev/null
   rm -rf "/lib/systemd/system/systemd"*udev* 2>/dev/null
   rm -rf "/usr/share/doc/"* 2>/dev/null
@@ -115,7 +118,7 @@ RUN <<EOS
   set +e
   packages="apt-transport-https apt-utils aria2 asciidoc asciidoctor attr autoconf autoconf-archive automake autopoint bc binutils bison bison++ bisonc++ b3sum brotli build-essential byacc ca-certificates ccache clang cmake cmake-data coreutils desktop-file-utils devscripts diffutils dnsutils dos2unix flex file findutils fontconfig gawk gcc git-lfs gnupg2 gettext help2man imagemagick itstool lzip jq libarchive-dev libargparse-dev libassuan-dev libbearssl-dev libblkid-dev libbpf-dev libbpfcc-dev libbrotli-dev libcap-dev libcapnp-dev libcapstone-dev libc-ares-dev libcmocka-dev libedit-dev libelf-dev libevent-dev libfuse-dev libfuse3-dev libharfbuzz-dev libhwloc-dev libidn-dev libidn2-dev libjemalloc-dev liblz-dev liblz4-dev liblzo*-dev libmagick*-*-dev libmpv-dev libndctl-dev libnvme-dev libpcre2-dev libpopt-dev libpsl-dev librust-lzma-sys-dev libsdl2-dev libseccomp-dev libselinux1-dev libsndio-dev libsodium-dev libsqlite3-dev libssh-dev libtool libtool-bin libunistring-dev liburing libusb-dev libwayland-dev libwolfssl-dev libx11-dev libx11-xcb-dev libxdp-dev libxi-dev libxkbcommon-dev libxmlb-dev libxv-dev libxxhash-dev libyaml-dev libzimg-dev libzstd-dev linux-headers-generic lzma lzma-dev make meson moreutils musl musl-dev musl-tools nasm nettle-dev npm patch patchelf pkg-config python3 python3-pip python3-venv p7zip-full qemu-user-static rsync scons software-properties-common spirv-cross sqlite3 sqlite3-pcre sqlite3-tools swig texinfo texi2html tree txt2html util-linux wget xsltproc xxhash xz-utils yasm zsync"
   #Install
-  apt-get update -y -qq
+  apt update -y -qq
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
   #Install_Re
   for pkg in $packages; do DEBIAN_FRONTEND="noninteractive" apt install -y --ignore-missing "$pkg"; done
@@ -132,10 +135,10 @@ RUN <<EOS
   apt install libpcap-dev pcaputils -y 2>/dev/null 
   #----------------------#        
   #libsqlite3
-  apt-get install libsqlite3-dev sqlite3 sqlite3-pcre sqlite3-tools -y 2>/dev/null
+  apt install libsqlite3-dev sqlite3 sqlite3-pcre sqlite3-tools -y 2>/dev/null
   #----------------------#
   #lzma
-  apt-get install liblz-dev librust-lzma-sys-dev lzma lzma-dev -y
+  apt install liblz-dev librust-lzma-sys-dev lzma lzma-dev -y
   #----------------------#
   #staticx: https://github.com/JonathonReinhart/staticx/blob/main/.github/workflows/build-test.yml
   export CWD="$(realpath .)" ; cd "$(mktemp -d)" >/dev/null 2>&1 ; realpath .
@@ -143,8 +146,8 @@ RUN <<EOS
   git clone --filter "blob:none" "https://github.com/JonathonReinhart/staticx" --branch "add-type-checking" && cd "./staticx"
   #https://github.com/JonathonReinhart/staticx/blob/main/build.sh
   pip install -r "./requirements.txt" --break-system-packages --upgrade --force
-  apt-get update -y
-  apt-get install -y busybox musl-tools scons
+  apt update -y
+  apt install -y busybox musl-tools scons
   export BOOTLOADER_CC="musl-gcc"
   rm -rf "./build" "./dist" "./scons_build" "./staticx/assets"
   python "./setup.py" sdist bdist_wheel

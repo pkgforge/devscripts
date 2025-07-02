@@ -492,20 +492,32 @@ jobs:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu-builder.dockerfile"
           platforms: "linux/${{ matrix.platform }}"
+          build-args: |
+            ARCH=${{ matrix.arch }}
           tags: |
             pkgforge/ubuntu-builder:${{ matrix.arch }}
             pkgforge/ubuntu-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/ubuntu-builder:${{ matrix.arch }}
             ghcr.io/pkgforge/devscripts/ubuntu-builder:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
-  build-push-docker-ubuntu-base-aarch64:
-    name: Push (Ubuntu-Base-aarch64) --> Docker Hub
+  build-push-ubuntu-systemd-base:
+    name: Push (Ubuntu-Base ${{ matrix.arch }}) --> Docker Hub
     needs: [build-push-ubuntu-builder]
-    #runs-on: arm64-linux-healthchecker
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: arm64
+            runner: ubuntu-24.04-arm
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
+          - arch: x86_64
+            platform: amd64
+            runner: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -564,161 +576,15 @@ jobs:
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
-          platforms: "linux/arm64"
+          platforms: "linux/${{ matrix.platform }}"
           build-args: |
-            ARCH=aarch64
+            ARCH=${{ matrix.arch }}
           tags: |
-            pkgforge/ubuntu-systemd-base:aarch64
-            pkgforge/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:aarch64-${{ env.DOCKER_TAG }}
-          push: true  
-        continue-on-error: true
-#------------------------------------------------------------------------------------#
-  build-push-docker-ubuntu-base-riscv64:
-    name: Push (Ubuntu-Base-riscv64) --> Docker Hub
-    needs: [build-push-ubuntu-builder]
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          path: main
-          filter: "blob:none"
-
-      - name: Debloat Runner
-        run: |
-          #Presets
-          set +x ; set +e
-          #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
-        continue-on-error: true
-
-      - name: Setup Env
-        run: |
-          #Presets
-          set +x ; set +e
-          #--------------#
-          #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
-          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
-          #Copy dockerfiles
-          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
-          cp "${GITHUB_WORKSPACE}/main/Github/Runners/ubuntu-systemd-base.dockerfile" "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
-        continue-on-error: true
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        continue-on-error: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        continue-on-error: true
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
-        continue-on-error: true
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: "${{ github.actor }}"
-          password: "${{ secrets.GITHUB_TOKEN }}"
-        continue-on-error: true
-
-    #https://hub.docker.com/r/pkgforge/ubuntu-systemd-base
-      - name: Docker Build and Push (Ubuntu-Systemd-Base)
-        uses: docker/build-push-action@v6
-        with:
-          context: /tmp/DOCKERFILES/
-          file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
-          platforms: "linux/riscv64"
-          build-args: |
-            ARCH=riscv64
-          tags: |
-            pkgforge/ubuntu-systemd-base:riscv64
-            pkgforge/ubuntu-systemd-base:riscv64-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:riscv64
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:riscv64-${{ env.DOCKER_TAG }}
-          push: true
-        continue-on-error: true
-#------------------------------------------------------------------------------------#
-  build-push-docker-ubuntu-base-x64:
-    name: Push (Ubuntu-Base-x64) --> Docker Hub
-    needs: [build-push-ubuntu-builder]
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          path: main
-          filter: "blob:none"
-
-      - name: Debloat Runner
-        run: |
-          #Presets
-          set +x ; set +e
-          #--------------#
-          bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/main/Github/Runners/debloat_ubuntu.sh") --force
-        continue-on-error: true
-
-      - name: Setup Env
-        run: |
-          #Presets
-          set +x ; set +e
-          #--------------#
-          #Docker Tags
-          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
-          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
-          #Copy dockerfiles
-          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
-          cp "${GITHUB_WORKSPACE}/main/Github/Runners/ubuntu-systemd-base.dockerfile" "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
-        continue-on-error: true
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        continue-on-error: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        continue-on-error: true
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
-        continue-on-error: true
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: "${{ github.actor }}"
-          password: "${{ secrets.GITHUB_TOKEN }}"
-        continue-on-error: true
-
-    #https://hub.docker.com/r/pkgforge/ubuntu-systemd-base
-      - name: Docker Build and Push (Ubuntu-Systemd-Base)
-        uses: docker/build-push-action@v6
-        with:
-          context: /tmp/DOCKERFILES/
-          file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
-          platforms: "linux/amd64"
-          build-args: |
-            ARCH=x86_64
-          tags: |
-            pkgforge/ubuntu-systemd-base:x86_64
-            pkgforge/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64
-            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:x86_64-${{ env.DOCKER_TAG }}
-          push: true
+            pkgforge/ubuntu-systemd-base:${{ matrix.arch }}
+            pkgforge/ubuntu-systemd-base:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/ubuntu-systemd-base:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 #------------------------------------------------------------------------------------#
   build-push-docker-runner-aarch64:
