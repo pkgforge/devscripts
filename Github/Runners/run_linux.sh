@@ -78,12 +78,12 @@ cleanup_on_exit() {
     fi
     
     #Clean up any containers with our name
-    local cleanup_containers
-    cleanup_containers="$(${PODMAN_SUDO} podman ps -aq --filter "name=${CONTAINER_NAME}" 2>/dev/null || true)"
-    if [[ -n "${cleanup_containers}" ]]; then
+    local cleanup_containers=()
+    readarray -t cleanup_containers < <(${PODMAN_SUDO} podman ps -aq --filter "name=${CONTAINER_NAME}" 2>/dev/null || true)
+    if [[ ${#cleanup_containers[@]} -gt 0 && -n "${cleanup_containers[0]}" ]]; then
         log_info "Cleaning up remaining containers with name: ${CONTAINER_NAME}"
-        echo "${cleanup_containers}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null || true
-        echo "${cleanup_containers}" | xargs -r ${PODMAN_SUDO} podman rm --force &>/dev/null || true
+        printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null || true
+        printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman rm --force &>/dev/null || true
     fi
     
     log_info "Cleanup completed"
@@ -324,9 +324,13 @@ validate_requirements() {
     if [[ "$(id -u)" -eq 0 ]]; then
         log_info "USER:$(whoami) Running as root, skipping passwordless Sudo Checks"
     else
-        if sudo -n -l | grep -qi 'NOPASSWD'; then
+        local sudo_output=()
+        readarray -t sudo_output < <(sudo -n -l 2>/dev/null || echo "FAILED")
+        if printf '%s\n' "${sudo_output[@]}" | grep -qi 'NOPASSWD'; then
             log_info "Passwordless sudo is configured"
-            [[ "${DEBUG}" == "1" ]] && sudo -n -l 2>/dev/null
+            if [[ "${DEBUG}" == "1" ]]; then
+                printf '%s\n' "${sudo_output[@]}"
+            fi
         else
             log_warn "Passwordless sudo is NOT configured (may still work if docker/podman don't require sudo)"
         fi
@@ -387,12 +391,12 @@ cleanup_containers() {
 #Stop containers
 stop_containers() {
     log_info "Stopping running containers..."
-    local container_ids
-    container_ids="$(${PODMAN_SUDO} podman ps -aqf name="${CONTAINER_NAME}" 2>/dev/null || true)"
-    if [[ -n "${container_ids}" ]]; then
-        ${PODMAN_SUDO} podman stop ${container_ids} &>/dev/null &
+    local container_ids=()
+    readarray -t container_ids < <(${PODMAN_SUDO} podman ps -aqf name="${CONTAINER_NAME}" 2>/dev/null || true)
+    if [[ ${#container_ids[@]} -gt 0 && -n "${container_ids[0]}" ]]; then
+        printf '%s\n' "${container_ids[@]}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null &
         wait
-        ${PODMAN_SUDO} podman stop ${container_ids} &>/dev/null && sleep 5
+        printf '%s\n' "${container_ids[@]}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null && sleep 5
     fi
     log_info "Containers stopped"
 }
@@ -449,6 +453,22 @@ is_container_running() {
 is_manager_running() {
     local container_id="$1"
     [[ -n "${container_id}" ]] && ${PODMAN_SUDO} podman exec "${container_id}" ps aux 2>/dev/null | grep -q "/usr/local/bin/manager.sh"
+}
+
+#Enhanced log tail function
+show_recent_logs() {
+    local log_file="$1"
+    local lines="${2:-50}"
+    
+    if [[ -f "${log_file}" && -r "${log_file}" ]]; then
+        local log_lines=()
+        readarray -t log_lines < <(tail -n "${lines}" "${log_file}" 2>/dev/null || true)
+        if [[ ${#log_lines[@]} -gt 0 ]]; then
+            echo "=== Recent log output (last ${lines} lines) ==="
+            printf '%s\n' "${log_lines[@]}"
+            echo "========================="
+        fi
+    fi
 }
 #------------------------------------------------------------------------------------#
 
@@ -509,7 +529,7 @@ run_container() {
     
     if [[ -z "${CONTAINER_ID}" ]]; then
         log_error "Container failed to start. Check logs: ${LOG_FILE}"
-        cat "${LOG_FILE}"
+        show_recent_logs "${LOG_FILE}" 100
         exit 1
     fi
     
@@ -548,9 +568,7 @@ run_container() {
             if [[ "${consecutive_failures}" -ge "${max_consecutive_failures}" ]]; then
                 log_warn "Runner process has stopped after ${max_consecutive_failures} consecutive checks"
                 if [[ "${VERBOSE}" == "1" ]]; then
-                    echo "=== Recent log output ==="
-                    tail -50 "${LOG_FILE}" 2>/dev/null || true
-                    echo "========================="
+                    show_recent_logs "${LOG_FILE}"
                 fi
                 break
             fi
@@ -620,7 +638,7 @@ main() {
         log_info "Useful commands:"
         echo "  View logs: tail -f ${LOG_FILE}"
         echo "  Container status: ${PODMAN_SUDO} podman ps"
-        echo "  Remove all containers: ${PODMAN_SUDO} podman ps -aq | xargs ${PODMAN_SUDO} podman stop 2>/dev/null && ${PODMAN_SUDO} podman rm \"\$(${PODMAN_SUDO} podman ps -aq)\" --force"
+        echo "  Remove all containers: ${PODMAN_SUDO} podman ps -aq | xargs -r ${PODMAN_SUDO} podman stop 2>/dev/null && ${PODMAN_SUDO} podman rm \"\$(${PODMAN_SUDO} podman ps -aq)\" --force"
         echo "  Remove all images: ${PODMAN_SUDO} podman rmi -f \$(${PODMAN_SUDO} podman images -q) &>/dev/null"
         echo
     fi
