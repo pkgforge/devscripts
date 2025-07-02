@@ -102,10 +102,12 @@ EOS
 RUN <<EOS
   #Install Docker
   rm -rf "/var/lib/apt/lists/"*
-  #cd "$(mktemp -d)" >/dev/null 2>&1
-  #curl -qfsSL "https://get.docker.com" -o "./get-docker.sh" && sh "./get-docker.sh"
-  #cd - >/dev/null 2>&1
-  apt install "docker.io" -y
+  cd "$(mktemp -d)" >/dev/null 2>&1
+  curl -qfsSL "https://get.docker.com" -o "./get-docker.sh" && sh "./get-docker.sh"
+  cd - >/dev/null 2>&1
+  apt update -y -qq
+  hash -r &>/dev/null
+  command -v docker || apt install 'docker.io' -y
  #Add runner to docker
   groupadd docker 2>/dev/null
   usermod -aG "docker" "runner"
