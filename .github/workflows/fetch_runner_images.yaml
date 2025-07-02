@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
   schedule:
   # - cron: "0 */8 * * *"  # Every 8 HRs
-   - cron: "30 07 * * 3"  # 07:30 PM UTC Wed (01:15 AM NPT Thu Midnight)
-   - cron: "30 08 * * 3"  # 08:30 PM UTC Wed (02:15 AM NPT Thu Midnight)
+   - cron: "30 07 * * 1"  # 07:30 PM UTC Mon (01:15 AM NPT Tue Midnight)
+   - cron: "30 07 * * 2"  # 07:30 PM UTC Tue (01:15 AM NPT Wed Midnight)
+   - cron: "00 07 * * 3"  # 07:00 PM UTC Wed (12:45 AM NPT Thu Midnight)
 jobs:
   fetch:
     runs-on: "${{ matrix.runner }}"

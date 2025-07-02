@@ -23,7 +23,6 @@ jobs:
     name: Push (runner-aarch64) --> Docker Hub
     #runs-on: ubuntu-latest
     runs-on: ubuntu-24.04-arm
-    #needs: [build-push-docker-ubuntu-base]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,7 +94,6 @@ jobs:
   build-push-docker-runner-riscv64:
     name: Push (runner-riscv64) --> Docker Hub
     runs-on: ubuntu-latest
-    #needs: [build-push-docker-ubuntu-base]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -166,7 +164,6 @@ jobs:
   build-push-docker-runner-x86-64:
     name: Push (runner-x86_64) --> Docker Hub
     runs-on: ubuntu-latest
-    #needs: [build-push-docker-ubuntu-base]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
