@@ -29,7 +29,8 @@ fi
 ##Start Docker
 #Check for kernel modules
 sudo systemctl stop docker 2>/dev/null
-sudo cp -au "/var/lib/docker" "/var/lib/docker.bk"
+mkdir -p "/var/lib/docker.bk"
+sudo cp -au "/var/lib/docker/." "/var/lib/docker.bk"
 sudo modprobe -n -q "fuse"
 fuse_overlayfs_status=$?
 sudo modprobe -n -q "btrfs"
@@ -46,7 +47,9 @@ if [[ $fuse_overlayfs_status -ne 0 && $btrfs_status -ne 0 ]]; then
     sudo sed 's/"storage-driver": "btrfs"/"storage-driver": "vfs"/' -i "/etc/docker/daemon.json"
     jq . "/etc/docker/daemon.json"
   fi
-  sudo cp -au "/var/lib/docker.bk/." "/var/lib/docker/" && sudo rm -rf "/var/lib/docker.bk"
+  if [[ -d '/var/lib/docker.bk' ]]; then
+    sudo cp -au "/var/lib/docker.bk/." "/var/lib/docker/" && sudo rm -rf "/var/lib/docker.bk"
+  fi
 elif sudo grep -q 'btrfs' "/proc/filesystems" && sudo modprobe -n -q "btrfs"; then
   echo -e "\n[+] Configuring Docker to use btrfs\n"
   sudo rm -rf "/var/lib/docker/"
@@ -59,7 +62,9 @@ elif sudo grep -q 'btrfs' "/proc/filesystems" && sudo modprobe -n -q "btrfs"; th
     sed 's/"storage-driver": "vfs"/"storage-driver": "btrfs"/' -i "/etc/docker/daemon.json"
     jq . "/etc/docker/daemon.json"
   fi
-  sudo cp -au "/var/lib/docker.bk/." "/var/lib/docker/" && sudo rm -rf "/var/lib/docker.bk"  
+  if [[ -d '/var/lib/docker.bk' ]]; then
+    sudo cp -au "/var/lib/docker.bk/." "/var/lib/docker/" && sudo rm -rf "/var/lib/docker.bk"
+  fi
 fi
 ##Restart Services
 if command -v systemctl &>/dev/null && [ -s "/lib/systemd/system/docker.service" ]; then
