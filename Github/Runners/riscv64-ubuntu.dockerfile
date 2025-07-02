@@ -169,6 +169,11 @@ RUN <<EOS
   tar -xzf "./runner.tar.gz" -C "/runner-init" && rm "./runner.tar.gz"
  #Dos2unix
   find "/runner-init" -type f -exec dos2unix --quiet {} \; 2>/dev/null || true
+ #Chown
+  chown -R "runner:runner" "/runner-init"
+  chmod -R 755 "/runner-init"
+  chmod 'a+x' "/runner-init/run.sh" 2>/dev/null
+  chmod 'a+x' "/runner-init/run-helper.sh" 2>/dev/null
  #Run Install
   chmod +x "/runner-init/bin/installdependencies.sh" && bash "/runner-init/bin/installdependencies.sh"
  #Remove cache 
@@ -176,7 +181,7 @@ RUN <<EOS
 EOS
 #Copy Manager script
 COPY "./manager.sh" "/usr/local/bin/manager.sh"
-RUN chmod +x "/usr/local/bin/manager.sh"
+RUN chmod 'a+x' "/usr/local/bin/manager.sh"
 #------------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------#

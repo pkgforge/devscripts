@@ -4,6 +4,22 @@
 #SELF: bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Github/Runners/manage_linux.sh")
 
 #------------------------------------------------------------------------------------#
+#Set up environment
+if [[ -z "${USER+x}" ]] || [[ -z "${USER##*[[:space:]]}" ]]; then
+ USER="$(whoami | tr -d '[:space:]')"
+fi
+if [[ -z "${HOME+x}" ]] || [[ -z "${HOME##*[[:space:]]}" ]]; then
+ #HOME="$(getent passwd "${USER}" | awk -F':' 'NF >= 6 {print $6}' | tr -d '[:space:]')"
+ HOME="$(getent passwd "${USER}" | cut -d: -f6)"
+fi
+if [[ -z "${SYSTMP+x}" ]] || [[ -z "${SYSTMP##*[[:space:]]}" ]]; then
+ SYSTMP="$(dirname "$(mktemp -u)" | tr -d '[:space:]')"
+fi
+export USER HOME SYSTMP
+pushd "${HOME}" &>/dev/null || exit 1
+#------------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------------#
 #Sanity Checks
 if [ -z "${GITHUB_PERSONAL_TOKEN}" ] || \
    [ -z "${GITHUB_OWNER}" ] || \
