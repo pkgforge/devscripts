@@ -23,8 +23,13 @@ jobs:
             file: "/tmp/runner.tar.gz"
             runner: "ubuntu-24.04-arm"
 
+          - image: "riscv64-Linux"
+            arch: "riscv64"
+            file: "/tmp/runner.tar.gz"
+            runner: "ubuntu-latest"
+
           - image: "x86_64-Linux"
-            arch: "aarch64"
+            arch: "x86_64"
             file: "/tmp/runner.tar.gz"
             runner: "ubuntu-latest"
 
@@ -61,7 +66,7 @@ jobs:
           git config --global "user.email" "AjamX101@gmail.com"
           git config --global "user.name" "Azathothas"
           ##User-Agent
-          USER_AGENT="$(curl -qfsSL 'https://pub.ajam.dev/repos/Azathothas/Wordlists/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
+          USER_AGENT="$(curl -qfsSL 'https://github.com/pkgforge/devscripts/raw/refs/heads/main/Misc/User-Agents/ua_chrome_macos_latest.txt')" && export USER_AGENT="${USER_AGENT}"
           echo "USER_AGENT=${USER_AGENT}" >> "${GITHUB_ENV}"
           ##Wget
           echo 'progress = dot:giga' | sudo tee -a "/etc/wgetrc"
@@ -109,7 +114,11 @@ jobs:
           set +x ; set +e
           #-------------#
           OUT_FILE="${{ matrix.file }}"
-          SRC_REPO="actions/runner"
+          if [[ "${{ matrix.image }}" == "riscv64-Linux"]]; then
+             SRC_REPO="dkurt/github_actions_riscv"
+          else
+             SRC_REPO="actions/runner"
+          fi
            pushd "$(mktemp -d)" &>/dev/null && TMPDIR="$(realpath .)"
             #Fetch Release Metadata
              for i in {1..5}; do
@@ -135,6 +144,9 @@ jobs:
                if echo "${{ matrix.image }}" | grep -qiE 'aarch64'; then
                  REL_DL_URL="$(cat "${TMPDIR}/RELEASES.json" | jq -r '.[] | select(.prerelease | not) | .assets[].browser_download_url | select((. | test("\\.(sha|sha256|sha512|sig)$") | not) and (. | test("apple|darwin|macos|osx|win|x64"; "i") | not))' |\
                   grep -Ei "arm64" | grep -Ei "linux" | sort --version-sort | tail -n 1 | tr -d '[:space:]')"
+               elif echo "${{ matrix.image }}" | grep -qiE 'riscv64'; then
+                 REL_DL_URL="$(cat "${TMPDIR}/RELEASES.json" | jq -r '.[] | select(.prerelease | not) | .assets[].browser_download_url | select((. | test("\\.(sha|sha256|sha512|sig)$") | not) and (. | test("apple|arm64|darwin|macos|osx|win"; "i") | not))' |\
+                  grep -Ei "riscv64" | grep -Ei "linux" | sort --version-sort | tail -n 1 | tr -d '[:space:]')"
                elif echo "${{ matrix.image }}" | grep -qiE 'x86_64'; then
                  REL_DL_URL="$(cat "${TMPDIR}/RELEASES.json" | jq -r '.[] | select(.prerelease | not) | .assets[].browser_download_url | select((. | test("\\.(sha|sha256|sha512|sig)$") | not) and (. | test("apple|arm64|darwin|macos|osx|win"; "i") | not))' |\
                   grep -Ei "x64" | grep -Ei "linux" | sort --version-sort | tail -n 1 | tr -d '[:space:]')"
