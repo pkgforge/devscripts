@@ -67,23 +67,30 @@ cleanup_on_exit() {
     fi
     CLEANUP_DONE=1
     
+    # Only proceed with cleanup if we're actually running containers
+    if [[ "${ACTION:-}" == "cleanup" || "${ACTION:-}" == "stop" || "${ACTION:-}" == "logs" || "${ACTION:-}" == "status" ]]; then
+        return
+    fi
+    
     log_warn "Received exit signal, cleaning up..."
     
-    if [[ -n "${CONTAINER_ID}" ]]; then
+    if [[ -n "${CONTAINER_ID:-}" ]]; then
         log_info "Stopping container: ${CONTAINER_ID}"
-        ${PODMAN_SUDO} podman stop "${CONTAINER_ID}" --time 10 &>/dev/null || true
+        ${PODMAN_SUDO:-} podman stop "${CONTAINER_ID}" --time 10 &>/dev/null || true
         
         log_info "Removing container: ${CONTAINER_ID}"
-        ${PODMAN_SUDO} podman rm "${CONTAINER_ID}" --force &>/dev/null || true
+        ${PODMAN_SUDO:-} podman rm "${CONTAINER_ID}" --force &>/dev/null || true
     fi
     
     #Clean up any containers with our name
-    local cleanup_containers=()
-    readarray -t cleanup_containers < <(${PODMAN_SUDO} podman ps -aq --filter "name=${CONTAINER_NAME}" 2>/dev/null || true)
-    if [[ ${#cleanup_containers[@]} -gt 0 && -n "${cleanup_containers[0]}" ]]; then
-        log_info "Cleaning up remaining containers with name: ${CONTAINER_NAME}"
-        printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null || true
-        printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman rm --force &>/dev/null || true
+    if [[ -n "${CONTAINER_NAME:-}" && -n "${PODMAN_SUDO+x}" ]]; then
+        local cleanup_containers=()
+        readarray -t cleanup_containers < <(${PODMAN_SUDO} podman ps -aq --filter "name=${CONTAINER_NAME}" 2>/dev/null || true)
+        if [[ ${#cleanup_containers[@]} -gt 0 && -n "${cleanup_containers[0]}" ]]; then
+            log_info "Cleaning up remaining containers with name: ${CONTAINER_NAME}"
+            printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman stop --time 10 &>/dev/null || true
+            printf '%s\n' "${cleanup_containers[@]}" | xargs -r ${PODMAN_SUDO} podman rm --force &>/dev/null || true
+        fi
     fi
     
     log_info "Cleanup completed"
@@ -588,15 +595,21 @@ run_container() {
 #------------------------------------------------------------------------------------#
 #Main function
 main() {
-    # Set up signal handlers early
-    setup_signal_handlers
-    
     #Parse command line arguments
     parse_arguments "$@"
     
     #Set configuration
     set_configuration
+
+    #Set up signal handlers early
+    setup_signal_handlers
     
+    #Validate requirements
+    validate_requirements
+    
+    #Check sudo requirements
+    check_sudo_requirements
+
     #Handle special actions first
     case "${ACTION:-}" in
         cleanup)
@@ -616,12 +629,6 @@ main() {
             exit 0
             ;;
     esac
-    
-    #Validate requirements
-    validate_requirements
-    
-    #Check sudo requirements
-    check_sudo_requirements
     
     #Show configuration
     show_configuration
