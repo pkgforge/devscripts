@@ -1,5 +1,6 @@
 use std::env;
 use std::io::{self, BufRead, BufReader, Write, BufWriter};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
 use chrono::{DateTime, Local, Utc, TimeZone, Timelike, Datelike};
 
@@ -38,13 +39,15 @@ impl Config {
             unbuffered: true,
             timezone: None,
         };
-
+        
         let args: Vec<String> = env::args().collect();
+        let program_name = Self::get_program_name(&args[0]);
+        
         let mut i = 1;
         while i < args.len() {
             match args[i].as_str() {
                 "-h" | "--help" => {
-                    Self::print_help();
+                    Self::print_help(&program_name);
                     std::process::exit(0);
                 }
                 "-r" | "--relative" => config.relative = true,
@@ -92,25 +95,33 @@ impl Config {
             }
             i += 1;
         }
-
+        
         // Validation
         if config.microseconds && config.nanoseconds {
             eprintln!("Error: Cannot use both --microseconds and --nanoseconds");
             std::process::exit(1);
         }
-
         if config.relative && config.since_epoch {
             eprintln!("Error: Cannot use both --relative and --epoch");
             std::process::exit(1);
         }
-
+        
         Ok(config)
     }
-
-    fn print_help() {
+    
+    fn get_program_name(argv0: &str) -> String {
+        Path::new(argv0)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("ts")
+            .to_string()
+    }
+    
+    fn print_help(program_name: &str) {
         println!(
-            "ts - timestamp each line of input
-Usage: ts [OPTIONS]
+            "{} - timestamp each line of input
+
+Usage: {} [OPTIONS]
 
 Options:
   -f, --format FORMAT      Date format (default: %Y-%m-%d %H:%M:%S)
@@ -136,16 +147,17 @@ Format specifiers (strftime compatible):
   %z  Timezone offset      %Z  Timezone name        %%  Literal %
 
 Examples:
-  ls -la | ts                          # Basic timestamping
-  tail -f /var/log/messages | ts -r    # Relative timestamps
-  ping google.com | ts -f \"[%H:%M:%S.%3f]\"  # Custom format
-  dmesg | ts -i                        # ISO format
-  make 2>&1 | ts -e                    # Epoch timestamps
-  tail -f app.log | ts -r -m           # Relative monotonic
-  cat file.txt | ts --delta            # Show time between lines
-  ping host | ts --color --microseconds # Colored with microseconds
-  command | ts --prefix-only           # Only timestamps
-"
+  ls -la | {}                          # Basic timestamping
+  tail -f /var/log/messages | {} -r    # Relative timestamps
+  ping google.com | {} -f \"[%H:%M:%S.%3f]\"  # Custom format
+  dmesg | {} -i                        # ISO format
+  make 2>&1 | {} -e                    # Epoch timestamps
+  tail -f app.log | {} -r -m           # Relative monotonic
+  cat file.txt | {} --delta            # Show time between lines
+  ping host | {} --color --microseconds # Colored with microseconds
+  command | {} --prefix-only           # Only timestamps",
+            program_name, program_name, program_name, program_name, program_name, 
+            program_name, program_name, program_name, program_name, program_name, program_name
         );
     }
 }
@@ -241,7 +253,7 @@ impl TimeFormatter {
             color: config.color,
         }
     }
-
+    
     #[inline]
     fn format_timestamp(&mut self, monotonic: bool) -> &str {
         self.timestamp_buf.clear();
@@ -252,12 +264,12 @@ impl TimeFormatter {
         
         match &self.format_type {
             FormatType::Delta => {
-                let now = if monotonic {
+                let duration = if monotonic {
                     let instant = Instant::now();
                     let duration = if let Some(last) = self.last_instant {
                         instant.duration_since(last)
                     } else {
-                        std::time::Duration::from_secs(0)
+                        std::time::Duration::ZERO
                     };
                     self.last_instant = Some(instant);
                     duration
@@ -266,37 +278,37 @@ impl TimeFormatter {
                     let duration = if let Some(last) = self.last_time {
                         time.duration_since(last).unwrap_or_default()
                     } else {
-                        std::time::Duration::from_secs(0)
+                        std::time::Duration::ZERO
                     };
                     self.last_time = Some(time);
                     duration
                 };
                 
-                let total_us = now.as_micros();
+                let total_us = duration.as_micros();
                 use std::fmt::Write;
-                write!(self.timestamp_buf, "{}.{:06}", 
-                       total_us / 1_000_000, total_us % 1_000_000).unwrap();
+                let _ = write!(self.timestamp_buf, "{}.{:06}", 
+                       total_us / 1_000_000, total_us % 1_000_000);
             },
             
             FormatType::Epoch => {
                 let now = SystemTime::now();
                 let secs = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
                 use std::fmt::Write;
-                write!(self.timestamp_buf, "{}", secs).unwrap();
+                let _ = write!(self.timestamp_buf, "{}", secs);
             },
             
             FormatType::EpochUs => {
                 let now = SystemTime::now();
                 let us = now.duration_since(UNIX_EPOCH).unwrap().as_micros();
                 use std::fmt::Write;
-                write!(self.timestamp_buf, "{}", us).unwrap();
+                let _ = write!(self.timestamp_buf, "{}", us);
             },
             
             FormatType::EpochNs => {
                 let now = SystemTime::now();
                 let ns = now.duration_since(UNIX_EPOCH).unwrap().as_nanos();
                 use std::fmt::Write;
-                write!(self.timestamp_buf, "{}", ns).unwrap();
+                let _ = write!(self.timestamp_buf, "{}", ns);
             },
             
             FormatType::CommonISO => {
@@ -304,15 +316,15 @@ impl TimeFormatter {
                 if self.utc {
                     let dt: DateTime<Utc> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                            dt.year(), dt.month(), dt.day(),
-                           dt.hour(), dt.minute(), dt.second()).unwrap();
+                           dt.hour(), dt.minute(), dt.second());
                 } else {
                     let dt: DateTime<Local> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                            dt.year(), dt.month(), dt.day(),
-                           dt.hour(), dt.minute(), dt.second()).unwrap();
+                           dt.hour(), dt.minute(), dt.second());
                 }
             },
             
@@ -321,17 +333,17 @@ impl TimeFormatter {
                 if self.utc {
                     let dt: DateTime<Utc> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_millis()).unwrap();
+                           dt.timestamp_subsec_millis());
                 } else {
                     let dt: DateTime<Local> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_millis()).unwrap();
+                           dt.timestamp_subsec_millis());
                 }
             },
             
@@ -340,17 +352,17 @@ impl TimeFormatter {
                 if self.utc {
                     let dt: DateTime<Utc> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_micros()).unwrap();
+                           dt.timestamp_subsec_micros());
                 } else {
                     let dt: DateTime<Local> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_micros()).unwrap();
+                           dt.timestamp_subsec_micros());
                 }
             },
             
@@ -359,17 +371,17 @@ impl TimeFormatter {
                 if self.utc {
                     let dt: DateTime<Utc> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_nanos()).unwrap();
+                           dt.timestamp_subsec_nanos());
                 } else {
                     let dt: DateTime<Local> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
+                    let _ = write!(self.timestamp_buf, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
                            dt.year(), dt.month(), dt.day(),
                            dt.hour(), dt.minute(), dt.second(),
-                           dt.timestamp_subsec_nanos()).unwrap();
+                           dt.timestamp_subsec_nanos());
                 }
             },
             
@@ -378,11 +390,11 @@ impl TimeFormatter {
                 if self.utc {
                     let dt: DateTime<Utc> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{}", dt.format("%Y-%m-%dT%H:%M:%S%.3f%z")).unwrap();
+                    let _ = write!(self.timestamp_buf, "{}", dt.format("%Y-%m-%dT%H:%M:%S%.3f%z"));
                 } else {
                     let dt: DateTime<Local> = now.into();
                     use std::fmt::Write;
-                    write!(self.timestamp_buf, "{}", dt.format("%Y-%m-%dT%H:%M:%S%.3f%z")).unwrap();
+                    let _ = write!(self.timestamp_buf, "{}", dt.format("%Y-%m-%dT%H:%M:%S%.3f%z"));
                 }
             },
             
@@ -411,12 +423,12 @@ impl TimeFormatter {
                             .with_nanosecond(subsec_millis * 1_000_000).unwrap();
                         
                         use std::fmt::Write;
-                        write!(self.timestamp_buf, "{}", dt.format(fmt)).unwrap();
+                        let _ = write!(self.timestamp_buf, "{}", dt.format(fmt));
                     } else {
                         let total_ms = duration.as_millis();
                         use std::fmt::Write;
-                        write!(self.timestamp_buf, "{}.{:03}", 
-                               total_ms / 1000, total_ms % 1000).unwrap();
+                        let _ = write!(self.timestamp_buf, "{}.{:03}", 
+                               total_ms / 1000, total_ms % 1000);
                     }
                 } else {
                     // Handle absolute timestamps with custom format
@@ -425,11 +437,11 @@ impl TimeFormatter {
                         if self.utc {
                             let dt: DateTime<Utc> = now.into();
                             use std::fmt::Write;
-                            write!(self.timestamp_buf, "{}", dt.format(fmt)).unwrap();
+                            let _ = write!(self.timestamp_buf, "{}", dt.format(fmt));
                         } else {
                             let dt: DateTime<Local> = now.into();
                             use std::fmt::Write;
-                            write!(self.timestamp_buf, "{}", dt.format(fmt)).unwrap();
+                            let _ = write!(self.timestamp_buf, "{}", dt.format(fmt));
                         }
                     }
                 }
