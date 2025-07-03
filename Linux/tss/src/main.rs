@@ -2,6 +2,7 @@ use std::env;
 use std::io::{self, BufRead, BufReader, Write, BufWriter};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
+use std::fs::{File, create_dir_all};
 use chrono::{DateTime, Local, Utc, TimeZone, Timelike, Datelike};
 
 struct Config {
@@ -19,6 +20,7 @@ struct Config {
     color: bool,
     buffered: bool,
     timezone: Option<String>,
+    output_file: Option<String>,
 }
 
 impl Config {
@@ -38,6 +40,7 @@ impl Config {
             color: false,
             buffered: false, // Default to unbuffered for real-time output
             timezone: None,
+            output_file: None,
         };
         
         let args: Vec<String> = env::args().collect();
@@ -87,6 +90,14 @@ impl Config {
                         std::process::exit(1);
                     }
                     config.timezone = Some(args[i].clone());
+                }
+                "-o" | "--output" => {
+                    i += 1;
+                    if i >= args.len() {
+                        eprintln!("Error: --output requires a value");
+                        std::process::exit(1);
+                    }
+                    config.output_file = Some(args[i].clone());
                 }
                 _ => {
                     eprintln!("Unknown argument: {}", args[i]);
@@ -142,6 +153,7 @@ Options:
   --color                  Colorize timestamps
   --buffered               Use buffered output (default is unbuffered)
   --timezone TZ            Use specific timezone (e.g., UTC, EST, PST)
+  -o, --output FILE        Write timestamped output to file (creates directories)
   -h, --help               Show this help
 
 Format specifiers (strftime compatible):
@@ -160,10 +172,13 @@ Examples:
   cat file.txt | {} --delta            # Show time between lines
   ping host | {} --color --microseconds # Colored with microseconds
   command | {} --prefix-only           # Only timestamps
+  make 2>&1 | {} -o build.log          # Stream to console and file
+  tail -f app.log | {} -o logs/app-timestamped.log # Save to file with directories
 
 Note: --relative and --delta are mutually exclusive",
             program_name, program_name, program_name, program_name, program_name, 
-            program_name, program_name, program_name, program_name, program_name, program_name
+            program_name, program_name, program_name, program_name, program_name,
+            program_name, program_name, program_name
         );
     }
 }
@@ -272,6 +287,16 @@ impl TimeFormatter {
     
     #[inline]
     fn format_timestamp(&mut self, monotonic: bool) -> &str {
+        self.format_timestamp_impl(monotonic, true)
+    }
+    
+    #[inline]
+    fn format_timestamp_no_color(&mut self, monotonic: bool) -> &str {
+        self.format_timestamp_impl(monotonic, false)
+    }
+    
+    #[inline]
+    fn format_timestamp_impl(&mut self, monotonic: bool, use_color: bool) -> &str {
         self.timestamp_buf.clear();
         
         match &self.format_type {
@@ -283,7 +308,7 @@ impl TimeFormatter {
                     } else {
                         // Initialize with current time for first call
                         self.last_instant = Some(instant);
-                        return if self.color {
+                        return if use_color && self.color {
                             self.timestamp_buf.push_str(self.color_prefix);
                             self.timestamp_buf.push_str("0.000000");
                             self.timestamp_buf.push_str(self.color_suffix);
@@ -301,7 +326,7 @@ impl TimeFormatter {
                     } else {
                         // Initialize with current time for first call
                         self.last_time = Some(time);
-                        return if self.color {
+                        return if use_color && self.color {
                             self.timestamp_buf.push_str(self.color_prefix);
                             self.timestamp_buf.push_str("0.000000");
                             self.timestamp_buf.push_str(self.color_suffix);
@@ -480,7 +505,7 @@ impl TimeFormatter {
         
         // Add color codes if needed - do this outside the timestamp buffer
         // to avoid reallocation on every call
-        if self.color {
+        if use_color && self.color {
             // Create a temporary string with color codes
             let colored = format!("{}{}{}", self.color_prefix, self.timestamp_buf, self.color_suffix);
             self.timestamp_buf = colored;
@@ -497,6 +522,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdin = io::stdin();
     let stdout = io::stdout();
     
+    // Set up output file if specified
+    let mut file_writer = if let Some(ref output_path) = config.output_file {
+        // Create parent directories if they don't exist
+        if let Some(parent) = Path::new(output_path).parent() {
+            create_dir_all(parent)?;
+        }
+        Some(BufWriter::new(File::create(output_path)?))
+    } else {
+        None
+    };
+    
     // Use appropriate buffer sizes based on configuration
     let buffer_size = if config.buffered { 256 * 1024 } else { 0 };
     let reader = BufReader::with_capacity(128 * 1024, stdin);
@@ -509,22 +545,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let line = line_result?;
         let timestamp = formatter.format_timestamp(config.monotonic);
         
-        // Write timestamp
-        writer.write_all(timestamp.as_bytes())?;
+        // Prepare the complete output line
+        let mut output_line = Vec::new();
+        output_line.extend_from_slice(timestamp.as_bytes());
         
         if !config.prefix_only {
-            writer.write_all(separator_bytes)?;
-            writer.write_all(line.as_bytes())?;
+            output_line.extend_from_slice(separator_bytes);
+            output_line.extend_from_slice(line.as_bytes());
         }
         
-        writer.write_all(newline)?;
+        output_line.extend_from_slice(newline);
         
-        // Flush when unbuffered
+        // Write to stdout
+        writer.write_all(&output_line)?;
+        
+        // Write to file if specified (without color codes for clean file output)
+        if let Some(ref mut file_writer) = file_writer {
+            if config.color {
+                // Strip color codes for file output
+                let clean_timestamp = formatter.format_timestamp_no_color(config.monotonic);
+                let mut clean_output = Vec::new();
+                clean_output.extend_from_slice(clean_timestamp.as_bytes());
+                
+                if !config.prefix_only {
+                    clean_output.extend_from_slice(separator_bytes);
+                    clean_output.extend_from_slice(line.as_bytes());
+                }
+                
+                clean_output.extend_from_slice(newline);
+                file_writer.write_all(&clean_output)?;
+            } else {
+                file_writer.write_all(&output_line)?;
+            }
+            
+            // Flush file writer if not buffered
+            if !config.buffered {
+                file_writer.flush()?;
+            }
+        }
+        
+        // Flush stdout when unbuffered
         if !config.buffered {
             writer.flush()?;
         }
     }
     
     writer.flush()?;
+    if let Some(ref mut file_writer) = file_writer {
+        file_writer.flush()?;
+    }
     Ok(())
 }
