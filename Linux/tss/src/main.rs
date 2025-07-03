@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, BufRead, BufReader, Write, BufWriter};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
-use std::fs::{File, create_dir_all};
+use std::fs::{create_dir_all, OpenOptions};
 use chrono::{DateTime, Local, Utc, TimeZone, Timelike, Datelike};
 
 struct Config {
@@ -21,6 +21,7 @@ struct Config {
     buffered: bool,
     timezone: Option<String>,
     output_file: Option<String>,
+    force_overwrite: bool,
 }
 
 impl Config {
@@ -41,6 +42,7 @@ impl Config {
             buffered: false, // Default to unbuffered for real-time output
             timezone: None,
             output_file: None,
+            force_overwrite: false,
         };
         
         let args: Vec<String> = env::args().collect();
@@ -67,6 +69,7 @@ impl Config {
                 "--prefix-only" => config.prefix_only = true,
                 "--color" => config.color = true,
                 "--buffered" => config.buffered = true,
+                "--force-overwrite" => config.force_overwrite = true,
                 "-s" | "--separator" => {
                     i += 1;
                     if i >= args.len() {
@@ -134,27 +137,28 @@ impl Config {
     
     fn print_help(program_name: &str) {
         println!(
-            "{} - timestamp each line of input
+            "{} - timestamp each line of input stream
 
 Usage: {} [OPTIONS]
 
 Options:
-  -f, --format FORMAT      Date format (default: %Y-%m-%d %H:%M:%S)
-  -s, --separator SEP      Separator between timestamp and line (default: \" \")
-  -r, --relative           Show relative timestamps from start
-  -m, --monotonic          Use monotonic clock for relative timestamps
-  -u, --utc                Use UTC time instead of local time
-  -i, --iso                Use ISO 8601 format (2025-07-03T14:30:45.123+05:45)
-  -e, --epoch              Show seconds since Unix epoch
-  --microseconds           Show microseconds precision
-  --nanoseconds            Show nanoseconds precision
-  --delta                  Show time delta between lines
-  --prefix-only            Only show timestamp prefix (no input lines)
-  --color                  Colorize timestamps
   --buffered               Use buffered output (default is unbuffered)
-  --timezone TZ            Use specific timezone (e.g., UTC, EST, PST)
-  -o, --output FILE        Write timestamped output to file (creates directories)
+  --color                  Colorize timestamps
+  --delta                  Show time delta between lines 
+  -e, --epoch              Show seconds since Unix epoch
+  -f, --format FORMAT      Date format (default: %Y-%m-%d %H:%M:%S)
+  --force-overwrite        Overwrite output file instead of appending
+  -i, --iso                Use ISO 8601 format (2025-07-03T14:30:45.123+05:45)
   -h, --help               Show this help
+  --microseconds           Show microseconds precision
+  -m, --monotonic          Use monotonic clock for relative timestamps
+  --nanoseconds            Show nanoseconds precision
+  -o, --output FILE        Write timestamped output to file (appends by default)
+  --prefix-only            Only show timestamp prefix (no input lines)
+  -r, --relative           Show relative timestamps from start
+  -s, --separator SEP      Separator between timestamp and line (default: \" \")
+  --timezone TZ            Use specific timezone (e.g., UTC, EST, PST)
+  -u, --utc                Use UTC time instead of local time
 
 Format specifiers (strftime compatible):
   %Y  4-digit year         %m  Month (01-12)        %d  Day (01-31)
@@ -163,22 +167,24 @@ Format specifiers (strftime compatible):
   %z  Timezone offset      %Z  Timezone name        %%  Literal %
 
 Examples:
-  ls -la | {}                          # Basic timestamping
-  tail -f /var/log/messages | {} -r    # Relative timestamps
-  ping google.com | {} -f \"[%H:%M:%S.%3f]\"  # Custom format
-  dmesg | {} -i                        # ISO format
-  make 2>&1 | {} -e                    # Epoch timestamps
-  tail -f app.log | {} -r -m           # Relative monotonic
-  cat file.txt | {} --delta            # Show time between lines
-  ping host | {} --color --microseconds # Colored with microseconds
-  command | {} --prefix-only           # Only timestamps
-  make 2>&1 | {} -o build.log          # Stream to console and file
-  tail -f app.log | {} -o logs/app-timestamped.log # Save to file with directories
+  ls -la | {}                                             # Basic timestamping
+  tail -f /var/log/messages | {} -r                       # Relative timestamps
+  ping google.com | {} -f \"[%H:%M:%S.%3f]➜ \"              # Custom format
+  dmesg | {} -i                                           # ISO format
+  make 2>&1 | {} -e                                       # Epoch timestamps
+  tail -f app.log | {} -r -m                              # Relative monotonic
+  cat file.txt | {} --delta                               # Show time between lines
+  ping host | {} --color --microseconds                   # Colored with microseconds
+  command | {} --prefix-only                              # Only timestamps
+  make 2>&1 | {} -o build.log                             # Append to file
+  tail -f app.log | {} -o logs/app.log --force-overwrite  # Overwrite file
+  ping host | {} -o network.log                           # Append to network.log
 
-Note: --relative and --delta are mutually exclusive",
+Note: --relative and --delta are mutually exclusive
+      Output files are appended to by default, use --force-overwrite to replace\n",
             program_name, program_name, program_name, program_name, program_name, 
             program_name, program_name, program_name, program_name, program_name,
-            program_name, program_name, program_name
+            program_name, program_name, program_name, program_name
         );
     }
 }
@@ -528,7 +534,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(parent) = Path::new(output_path).parent() {
             create_dir_all(parent)?;
         }
-        Some(BufWriter::new(File::create(output_path)?))
+        
+        // Open file for writing (append by default, create/truncate if force_overwrite)
+        let file = if config.force_overwrite {
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(output_path)?
+        } else {
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(output_path)?
+        };
+        
+        Some(BufWriter::new(file))
     } else {
         None
     };

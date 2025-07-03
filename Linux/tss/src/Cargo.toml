@@ -1,0 +1,19 @@
+[package]
+name = "tss"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = ["Azathothas@pkgforge.dev", "QaidVoid@pkgforge.dev"]
+description = "Timestamp each line of Input Stream"
+
+[dependencies]
+chrono = { version = "0.4", features = ["clock", "std"] }
+
+[profile.release]
+codegen-units = 1
+debug = false
+lto = true
+opt-level = "z"
+panic = "abort"
+strip = true

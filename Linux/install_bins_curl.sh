@@ -421,6 +421,7 @@ install_all_bins() {
         "tok"
         "trufflehog"
         "trurl"
+        "tss"
         "ulexec"
         "unfurl"
         "upx"
