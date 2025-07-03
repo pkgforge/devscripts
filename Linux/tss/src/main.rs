@@ -17,7 +17,7 @@ struct Config {
     delta: bool,
     prefix_only: bool,
     color: bool,
-    unbuffered: bool,
+    buffered: bool,
     timezone: Option<String>,
 }
 
@@ -36,7 +36,7 @@ impl Config {
             delta: false,
             prefix_only: false,
             color: false,
-            unbuffered: true,
+            buffered: false, // Default to unbuffered for real-time output
             timezone: None,
         };
         
@@ -63,7 +63,7 @@ impl Config {
                 "--delta" => config.delta = true,
                 "--prefix-only" => config.prefix_only = true,
                 "--color" => config.color = true,
-                "--buffered" => config.unbuffered = false,
+                "--buffered" => config.buffered = true,
                 "-s" | "--separator" => {
                     i += 1;
                     if i >= args.len() {
@@ -103,6 +103,10 @@ impl Config {
         }
         if config.relative && config.since_epoch {
             eprintln!("Error: Cannot use both --relative and --epoch");
+            std::process::exit(1);
+        }
+        if config.relative && config.delta {
+            eprintln!("Error: Cannot use both --relative and --delta");
             std::process::exit(1);
         }
         
@@ -155,7 +159,9 @@ Examples:
   tail -f app.log | {} -r -m           # Relative monotonic
   cat file.txt | {} --delta            # Show time between lines
   ping host | {} --color --microseconds # Colored with microseconds
-  command | {} --prefix-only           # Only timestamps",
+  command | {} --prefix-only           # Only timestamps
+
+Note: --relative and --delta are mutually exclusive",
             program_name, program_name, program_name, program_name, program_name, 
             program_name, program_name, program_name, program_name, program_name, program_name
         );
@@ -228,6 +234,8 @@ struct TimeFormatter {
     custom_format: Option<String>,
     timestamp_buf: String,
     color: bool,
+    color_prefix: &'static str,
+    color_suffix: &'static str,
 }
 
 impl TimeFormatter {
@@ -238,6 +246,12 @@ impl TimeFormatter {
             Some(fmt.clone())
         } else {
             None
+        };
+        
+        let (color_prefix, color_suffix) = if config.color {
+            ("\x1b[36m", "\x1b[0m") // Cyan color
+        } else {
+            ("", "")
         };
         
         Self {
@@ -251,16 +265,14 @@ impl TimeFormatter {
             custom_format,
             timestamp_buf: String::with_capacity(128),
             color: config.color,
+            color_prefix,
+            color_suffix,
         }
     }
     
     #[inline]
     fn format_timestamp(&mut self, monotonic: bool) -> &str {
         self.timestamp_buf.clear();
-        
-        if self.color {
-            self.timestamp_buf.push_str("\x1b[36m"); // Cyan color
-        }
         
         match &self.format_type {
             FormatType::Delta => {
@@ -269,7 +281,16 @@ impl TimeFormatter {
                     let duration = if let Some(last) = self.last_instant {
                         instant.duration_since(last)
                     } else {
-                        std::time::Duration::ZERO
+                        // Initialize with current time for first call
+                        self.last_instant = Some(instant);
+                        return if self.color {
+                            self.timestamp_buf.push_str(self.color_prefix);
+                            self.timestamp_buf.push_str("0.000000");
+                            self.timestamp_buf.push_str(self.color_suffix);
+                            &self.timestamp_buf
+                        } else {
+                            "0.000000"
+                        };
                     };
                     self.last_instant = Some(instant);
                     duration
@@ -278,7 +299,16 @@ impl TimeFormatter {
                     let duration = if let Some(last) = self.last_time {
                         time.duration_since(last).unwrap_or_default()
                     } else {
-                        std::time::Duration::ZERO
+                        // Initialize with current time for first call
+                        self.last_time = Some(time);
+                        return if self.color {
+                            self.timestamp_buf.push_str(self.color_prefix);
+                            self.timestamp_buf.push_str("0.000000");
+                            self.timestamp_buf.push_str(self.color_suffix);
+                            &self.timestamp_buf
+                        } else {
+                            "0.000000"
+                        };
                     };
                     self.last_time = Some(time);
                     duration
@@ -414,13 +444,13 @@ impl TimeFormatter {
                     if let Some(ref fmt) = self.custom_format {
                         // For relative timestamps, create a time from the duration
                         let total_secs = duration.as_secs();
-                        let subsec_millis = duration.subsec_millis();
+                        let subsec_nanos = duration.subsec_nanos();
                         let hours = (total_secs / 3600) as u32;
                         let mins = ((total_secs % 3600) / 60) as u32;
                         let secs = (total_secs % 60) as u32;
                         
                         let dt = Utc.with_ymd_and_hms(1970, 1, 1, hours, mins, secs).unwrap()
-                            .with_nanosecond(subsec_millis * 1_000_000).unwrap();
+                            .with_nanosecond(subsec_nanos).unwrap();
                         
                         use std::fmt::Write;
                         let _ = write!(self.timestamp_buf, "{}", dt.format(fmt));
@@ -448,8 +478,12 @@ impl TimeFormatter {
             },
         }
         
+        // Add color codes if needed - do this outside the timestamp buffer
+        // to avoid reallocation on every call
         if self.color {
-            self.timestamp_buf.push_str("\x1b[0m"); // Reset color
+            // Create a temporary string with color codes
+            let colored = format!("{}{}{}", self.color_prefix, self.timestamp_buf, self.color_suffix);
+            self.timestamp_buf = colored;
         }
         
         &self.timestamp_buf
@@ -463,14 +497,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdin = io::stdin();
     let stdout = io::stdout();
     
-    // Use larger buffers for better performance unless unbuffered
-    let buffer_size = if config.unbuffered { 0 } else { 256 * 1024 };
+    // Use appropriate buffer sizes based on configuration
+    let buffer_size = if config.buffered { 256 * 1024 } else { 0 };
     let reader = BufReader::with_capacity(128 * 1024, stdin);
-    let mut writer = if config.unbuffered {
-        BufWriter::with_capacity(0, stdout)
-    } else {
-        BufWriter::with_capacity(buffer_size, stdout)
-    };
+    let mut writer = BufWriter::with_capacity(buffer_size, stdout);
     
     let separator_bytes = config.separator.as_bytes();
     let newline = b"\n";
@@ -489,8 +519,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         writer.write_all(newline)?;
         
-        // Always flush when unbuffered (which is now default)
-        if config.unbuffered {
+        // Flush when unbuffered
+        if !config.buffered {
             writer.flush()?;
         }
     }
