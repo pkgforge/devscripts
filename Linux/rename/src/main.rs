@@ -3,13 +3,38 @@ use std::fs;
 use std::io::{self, Write, BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, exit};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use clap::{Parser, ValueEnum};
 use regex::Regex;
 use glob::glob;
+use anyhow::{Result, Context, bail};
+use thiserror::Error;
+use tracing::{info, debug, error, warn};
+use tokio::fs as async_fs;
+use tokio::io::{AsyncBufReadExt, BufReader as AsyncBufReader};
 
-const VERSION: &str = "2.0.0";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[derive(Error, Debug)]
+pub enum RenameError {
+    #[error("Invalid regex pattern: {0}")]
+    InvalidRegex(#[from] regex::Error),
+    #[error("File operation failed: {0}")]
+    FileOperation(#[from] io::Error),
+    #[error("Backup creation failed for {file}: {source}")]
+    BackupFailed { file: String, source: io::Error },
+    #[error("Command execution failed: {command}")]
+    CommandFailed { command: String },
+    #[error("Null byte in filename: {filename}")]
+    NullByteInFilename { filename: String },
+    #[error("Incompatible options: {message}")]
+    IncompatibleOptions { message: String },
+}
 
 #[derive(Debug, Clone, ValueEnum)]
+#[clap(rename_all = "lowercase")]
 enum VersionControl {
     None,
     Off,
@@ -64,7 +89,7 @@ struct Args {
     dry_run: bool,
 
     /// Read filenames from standard input
-    #[arg(short = 's', long, default_value = "true")]
+    #[arg(short = 's', long)]
     stdin: bool,
 
     /// Explain what is being done
@@ -83,9 +108,19 @@ struct Args {
     #[arg(short = 'z', short = 'S', long = "suffix", value_name = "SUFFIX")]
     suffix: Option<String>,
 
-    /// Generate shell completion code
-    #[arg(long, value_name = "SHELL")]
-    shell_completion: Option<String>,
+
+
+    /// Process files in parallel
+    #[arg(short = 'j', long, value_name = "JOBS")]
+    jobs: Option<usize>,
+
+    /// Continue on errors
+    #[arg(long)]
+    continue_on_error: bool,
+
+    /// Use case-insensitive matching
+    #[arg(long)]
+    ignore_case: bool,
 
     /// Regular expression pattern to match
     pattern: Option<String>,
@@ -97,7 +132,7 @@ struct Args {
     files: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum VcmType {
     Off,
     Simple,
@@ -105,6 +140,7 @@ enum VcmType {
     Numbered,
 }
 
+#[derive(Debug, Clone)]
 struct RenameConfig {
     backup: bool,
     copy: bool,
@@ -120,35 +156,40 @@ struct RenameConfig {
     suffix: String,
     pattern: Regex,
     replacement: String,
+    jobs: usize,
+    continue_on_error: bool,
 }
 
 impl RenameConfig {
-    fn new(args: Args) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(args: Args) -> Result<Self> {
         let mut command = args.command;
         
         if args.git {
             command = Some("git mv".to_string());
         }
 
-        // Handle command parameter formatting
+        // Validate incompatible options
         if let Some(ref cmd) = command {
             if args.backup {
-                eprintln!("error: --backup is incompatible with --command");
-                exit(1);
+                bail!(RenameError::IncompatibleOptions {
+                    message: "--backup is incompatible with --command".to_string()
+                });
             }
             
             let placeholder_count = cmd.matches("{}").count();
             if placeholder_count == 0 {
                 command = Some(format!("{} {{}} {{}}", cmd));
             } else if placeholder_count != 2 {
-                eprintln!("error: command needs exactly 0 or 2 of {{}} for parameter substitution");
-                exit(1);
+                bail!(RenameError::IncompatibleOptions {
+                    message: "command needs exactly 0 or 2 of {} for parameter substitution".to_string()
+                });
             }
         }
 
         if args.copy && args.link_only {
-            eprintln!("error: cannot both copy and link");
-            exit(1);
+            bail!(RenameError::IncompatibleOptions {
+                message: "cannot both copy and link".to_string()
+            });
         }
 
         // Determine version control method
@@ -167,10 +208,7 @@ impl RenameConfig {
             VcmType::Off
         };
 
-        let backup = match vcm {
-            VcmType::Off => false,
-            _ => args.backup,
-        };
+        let backup = !matches!(vcm, VcmType::Off) && args.backup;
 
         let suffix = args.suffix.unwrap_or_else(|| {
             env::var("SIMPLE_BACKUP_SUFFIX").unwrap_or_else(|_| "~".to_string())
@@ -178,11 +216,12 @@ impl RenameConfig {
 
         // Build the regex pattern
         let pattern = match args.pattern {
-            Some(p) => Regex::new(&p)?,
-            None => {
-                eprintln!("error: missing pattern argument");
-                exit(1);
+            Some(p) => {
+                let mut builder = regex::RegexBuilder::new(&p);
+                builder.case_insensitive(args.ignore_case);
+                builder.build()?
             }
+            None => bail!("missing pattern argument"),
         };
 
         let replacement = args.replacement.unwrap_or_else(|| {
@@ -205,51 +244,149 @@ impl RenameConfig {
             suffix,
             pattern,
             replacement,
+            jobs: args.jobs.unwrap_or_else(|| num_cpus::get()),
+            continue_on_error: args.continue_on_error,
         })
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt::init();
+
     let args = Args::parse();
 
-    if let Some(shell) = args.shell_completion {
-        generate_shell_completion(&shell);
-        return;
-    }
-
-    let config = match RenameConfig::new(args.clone()) {
-        Ok(config) => config,
-        Err(e) => {
-            eprintln!("error: {}", e);
-            exit(1);
-        }
-    };
+    let config = RenameConfig::new(args.clone())
+        .context("Failed to create configuration")?;
 
     let mut files = args.files;
     
     if files.is_empty() && args.stdin {
-        let stdin = io::stdin();
-        let reader = BufReader::new(stdin.lock());
-        files = reader.lines()
-            .filter_map(|line| line.ok())
-            .collect();
+        files = read_files_from_stdin().await?;
     }
 
     if files.is_empty() {
-        exit(0);
+        return Ok(());
     }
 
-    for file in files {
-        if let Err(e) = process_file(&file, &config) {
-            eprintln!("rename: {}", e);
-        }
+    // Set up signal handling
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        r.store(false, Ordering::SeqCst);
+    });
+
+    // Process files
+    if config.jobs == 1 {
+        process_files_sequential(&files, &config, &running).await?;
+    } else {
+        process_files_parallel(&files, &config, &running).await?;
     }
+
+    Ok(())
 }
 
-fn process_file(file: &str, config: &RenameConfig) -> Result<(), Box<dyn std::error::Error>> {
+async fn read_files_from_stdin() -> Result<Vec<String>> {
+    let stdin = tokio::io::stdin();
+    let reader = AsyncBufReader::new(stdin);
+    let mut lines = reader.lines();
+    let mut files = Vec::new();
+    
+    while let Some(line) = lines.next_line().await? {
+        files.push(line);
+    }
+    
+    Ok(files)
+}
+
+async fn process_files_sequential(
+    files: &[String], 
+    config: &RenameConfig, 
+    running: &Arc<AtomicBool>
+) -> Result<()> {
+    let mut errors = Vec::new();
+    
+    for file in files {
+        if !running.load(Ordering::SeqCst) {
+            break;
+        }
+        
+        if let Err(e) = process_file(file, config).await {
+            error!("Failed to process {}: {}", file, e);
+            errors.push(e);
+            
+            if !config.continue_on_error {
+                break;
+            }
+        }
+    }
+    
+    if !errors.is_empty() && !config.continue_on_error {
+        bail!("Processing stopped due to errors");
+    }
+    
+    Ok(())
+}
+
+async fn process_files_parallel(
+    files: &[String], 
+    config: &RenameConfig, 
+    running: &Arc<AtomicBool>
+) -> Result<()> {
+    use tokio::sync::Semaphore;
+    use futures::future::join_all;
+    
+    let semaphore = Arc::new(Semaphore::new(config.jobs));
+    let config = Arc::new(config.clone());
+    
+    let tasks: Vec<_> = files.iter().map(|file| {
+        let file = file.clone();
+        let config = config.clone();
+        let semaphore = semaphore.clone();
+        let running = running.clone();
+        
+        tokio::spawn(async move {
+            let _permit = semaphore.acquire().await.unwrap();
+            
+            if !running.load(Ordering::SeqCst) {
+                return Ok(());
+            }
+            
+            process_file(&file, &config).await
+        })
+    }).collect();
+    
+    let results = join_all(tasks).await;
+    let mut errors = Vec::new();
+    
+    for result in results {
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                error!("File processing error: {}", e);
+                errors.push(e);
+            }
+            Err(e) => {
+                error!("Task join error: {}", e);
+            }
+        }
+    }
+    
+    if !errors.is_empty() && !config.continue_on_error {
+        bail!("Processing completed with {} errors", errors.len());
+    }
+    
+    Ok(())
+}
+
+async fn process_file(file: &str, config: &RenameConfig) -> Result<()> {
     let new_name = config.pattern.replace_all(file, &config.replacement);
     
     if new_name == file {
+        debug!("No change needed for {}", file);
         return Ok(());
     }
 
@@ -257,27 +394,21 @@ fn process_file(file: &str, config: &RenameConfig) -> Result<(), Box<dyn std::er
 
     // Check for null bytes (security check)
     if new_name.contains('\0') {
-        eprintln!("rename: `{}` -> `{}`, skipping due to null byte", file, new_name);
-        return Ok(());
+        warn!("Skipping {} -> {} due to null byte", file, new_name);
+        return Err(RenameError::NullByteInFilename { 
+            filename: new_name 
+        }.into());
     }
 
     let new_path = Path::new(&new_name);
     
     if new_path.exists() && !config.force {
-        if !is_writable(new_path) && atty::is(atty::Stream::Stdin) {
-            print!("rename: overwrite `{}`, overriding mode? ", new_name);
-            io::stdout().flush()?;
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            if !input.trim().to_lowercase().starts_with('y') {
+        if !is_writable(new_path).await && is_interactive() {
+            if !prompt_user(&format!("overwrite `{}`, overriding mode?", new_name)).await? {
                 return Ok(());
             }
         } else if config.interactive {
-            print!("rename: replace `{}`? ", new_name);
-            io::stdout().flush()?;
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            if !input.trim().to_lowercase().starts_with('y') {
+            if !prompt_user(&format!("replace `{}`?", new_name)).await? {
                 return Ok(());
             }
         }
@@ -285,38 +416,43 @@ fn process_file(file: &str, config: &RenameConfig) -> Result<(), Box<dyn std::er
 
     // Handle backup
     if config.backup && new_path.exists() {
-        let backup_path = create_backup_name(&new_name, &config)?;
+        let backup_path = create_backup_name(&new_name, config).await?;
         
-        if config.verbose && config.dry_run {
-            println!("backup: {} -> {}", new_name, backup_path);
+        if config.verbose {
+            info!("backup: {} -> {}", new_name, backup_path);
         }
         
         if !config.dry_run {
             if let Some(parent) = Path::new(&backup_path).parent() {
-                fs::create_dir_all(parent)?;
+                async_fs::create_dir_all(parent).await?;
             }
-            fs::rename(&new_name, &backup_path)?;
+            async_fs::rename(&new_name, &backup_path).await
+                .map_err(|e| RenameError::BackupFailed { 
+                    file: new_name.clone(), 
+                    source: e 
+                })?;
         }
     }
 
     // Create parent directories if needed
     if let Some(parent) = new_path.parent() {
         if !parent.exists() {
-            if config.dry_run && config.verbose {
-                println!("mkdir: {}", parent.display());
-            } else if !config.dry_run {
-                fs::create_dir_all(parent)?;
+            if config.verbose {
+                info!("mkdir: {}", parent.display());
+            }
+            if !config.dry_run {
+                async_fs::create_dir_all(parent).await?;
             }
         }
     }
 
     // Show what we're doing
-    if config.dry_run || config.verbose {
+    if config.verbose {
         if let Some(ref cmd) = config.command {
-            println!("exec: {}", cmd.replace("{}", file).replacen("{}", &new_name, 1));
+            info!("exec: {}", cmd.replace("{}", file).replacen("{}", &new_name, 1));
         } else {
             let op = if config.link_only { "=" } else { "-" };
-            println!("{} {}> {}", file, op, new_name);
+            info!("{} {}> {}", file, op, new_name);
         }
     }
 
@@ -326,28 +462,37 @@ fn process_file(file: &str, config: &RenameConfig) -> Result<(), Box<dyn std::er
 
     // Perform the actual operation
     if let Some(ref command) = config.command {
-        let cmd = command.replace("{}", file).replacen("{}", &new_name, 1);
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .output()?;
-        
-        if !output.status.success() {
-            eprintln!("rename: error running `{}`: {}", cmd, 
-                String::from_utf8_lossy(&output.stderr));
-        }
+        execute_command(command, file, &new_name).await?;
     } else if config.link_only {
-        fs::hard_link(file, &new_name)?;
+        async_fs::hard_link(file, &new_name).await?;
     } else if config.copy {
-        fs::copy(file, &new_name)?;
+        async_fs::copy(file, &new_name).await?;
     } else {
-        fs::rename(file, &new_name)?;
+        async_fs::rename(file, &new_name).await?;
     }
 
     Ok(())
 }
 
-fn create_backup_name(filename: &str, config: &RenameConfig) -> Result<String, Box<dyn std::error::Error>> {
+async fn execute_command(command: &str, from: &str, to: &str) -> Result<()> {
+    let cmd = command.replace("{}", from).replacen("{}", to, 1);
+    
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .output()
+        .context("Failed to execute command")?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        error!("Command failed: {}, stderr: {}", cmd, stderr);
+        return Err(RenameError::CommandFailed { command: cmd }.into());
+    }
+    
+    Ok(())
+}
+
+async fn create_backup_name(filename: &str, config: &RenameConfig) -> Result<String> {
     match config.vcm {
         VcmType::Simple => {
             let path = Path::new(filename);
@@ -375,7 +520,7 @@ fn create_backup_name(filename: &str, config: &RenameConfig) -> Result<String, B
 
             let next_num = if let Some(highest) = existing_backups.first() {
                 extract_backup_number(highest) + 1
-            } else if config.vcm == VcmType::Test {
+            } else if matches!(config.vcm, VcmType::Test) {
                 // For "test" mode, fall back to simple backup if no numbered backups exist
                 let path = Path::new(filename);
                 let parent = path.parent().unwrap_or(Path::new(""));
@@ -408,46 +553,23 @@ fn extract_backup_number(path: &Path) -> u32 {
     }
 }
 
-fn is_writable(path: &Path) -> bool {
-    path.metadata()
+async fn is_writable(path: &Path) -> bool {
+    async_fs::metadata(path)
+        .await
         .map(|m| !m.permissions().readonly())
         .unwrap_or(false)
 }
 
-fn generate_shell_completion(shell: &str) {
-    match shell {
-        "bash" => {
-            println!("complete -F _comp_rename rename;");
-            println!("_comp_rename() {{");
-            println!("    COMPREPLY=($(compgen -W \"--backup --copy --command --prefix --force --git --help --interactive --link-only --just-print --dry-run --stdin --no-stdin --verbose --version-control --basename-prefix --suffix --shell-completion --version\" -- \"${{COMP_WORDS[$COMP_CWORD]}}\"));");
-            println!("}};");
-        }
-        "zsh" => {
-            println!("compdef _comp_rename rename;");
-            println!("_comp_rename() {{");
-            println!("    _arguments -S -s \\");
-            println!("        '(-b --backup){{-b,--backup}}[make backup before removal]' \\");
-            println!("        '(-c --copy){{-c,--copy}}[copy file instead of rename]' \\");
-            println!("        '(-C --command){{-C,--command}}[use COMMAND instead of rename]:command:' \\");
-            println!("        '(-B --prefix){{-B,--prefix}}[set backup filename prefix]:prefix:' \\");
-            println!("        '(-f --force){{-f,--force}}[remove existing destinations, never prompt]' \\");
-            println!("        '(-g --git){{-g,--git}}[use git mv instead of rename]' \\");
-            println!("        '(-i --interactive){{-i,--interactive}}[prompt before overwrite]' \\");
-            println!("        '(-l --link-only){{-l,--link-only}}[hard link files instead of rename]' \\");
-            println!("        '(-n --just-print --dry-run){{-n,--just-print,--dry-run}}[don\\'t rename, implies --verbose]' \\");
-            println!("        '(-s --stdin --no-stdin){{-s,--stdin,--no-stdin}}[read filenames from standard input]' \\");
-            println!("        '(-v --verbose){{-v,--verbose}}[explain what is being done]' \\");
-            println!("        '(-V --version-control){{-V,--version-control}}[set backup method]:method:(none off nil existing numbered t never simple)' \\");
-            println!("        '(-Y --basename-prefix){{-Y,--basename-prefix}}[set backup file basename prefix]:prefix:' \\");
-            println!("        '(-z -S --suffix){{-z,-S,--suffix}}[set backup filename suffix]:suffix:' \\");
-            println!("        '1:pattern:' \\");
-            println!("        '2:replacement:' \\");
-            println!("        '*:files:_files';");
-            println!("}};");
-        }
-        _ => {
-            eprintln!("No completion support for `{}`", shell);
-            exit(1);
-        }
-    }
+fn is_interactive() -> bool {
+    atty::is(atty::Stream::Stdin)
+}
+
+async fn prompt_user(message: &str) -> Result<bool> {
+    print!("rename: {}? ", message);
+    io::stdout().flush()?;
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    
+    Ok(input.trim().to_lowercase().starts_with('y'))
 }
