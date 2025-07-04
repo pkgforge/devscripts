@@ -644,7 +644,7 @@ RUN <<EOS
   apk add rubberband-static --latest --upgrade --no-interactive 2>/dev/null
   apk add rustup --latest --upgrade --no-interactive 2>/dev/null ; rustup-init -y
   #https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/rustup/APKBUILD#L8
-  hash -r &>/dev/null
+  hash -r >/dev/null 2>&1
   command -v cargo || apk add cargo --latest --upgrade --no-interactive 2>/dev/null
   apk add samurai --latest --upgrade --no-interactive 2>/dev/null
   apk add scons --latest --upgrade --no-interactive 2>/dev/null
@@ -806,7 +806,7 @@ RUN <<EOS
  #musl-gcc wrapper
   ln --symbolic "/usr/bin/$(uname -m)-alpine-linux-musl-gcc" "/usr/local/bin/musl-gcc" 2>/dev/null
  #Zig
-  hash -r &>/dev/null
+  hash -r >/dev/null 2>&1
   if ! command -v zig >/dev/null 2>&1; then
     cd "$(mktemp -d)" >/dev/null 2>&1
     curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_zig.sh" -o "./install_zig.sh"

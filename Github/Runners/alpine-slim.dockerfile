@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #------------------------------------------------------------------------------------#
-#https://hub.docker.com/r/pkgforge/alpine-builder
+#https://hub.docker.com/r/pkgforge/alpine-slim
 #FROM alpine:edge
 ARG ARCH
 FROM "ghcr.io/pkgforge/devscripts/alpine:${ARCH}"
@@ -82,10 +82,6 @@ RUN <<EOS
   apk add python3-dev --latest --upgrade --no-cache --no-interactive 2>/dev/null
   apk add readline-static --latest --upgrade --no-cache --no-interactive 2>/dev/null
   apk add rsync --latest --upgrade --no-cache --no-interactive 2>/dev/null
-  apk add rustup --latest --upgrade --no-cache --no-interactive 2>/dev/null ; rustup-init -y
-  #https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/rustup/APKBUILD#L8
-  hash -r &>/dev/null
-  command -v cargo || apk add cargo --latest --upgrade --no-cache --no-interactive 2>/dev/null
   apk add sed --latest --upgrade --no-cache --no-interactive 2>/dev/null
   apk add sqlite-static --latest --upgrade --no-cache --no-interactive 2>/dev/null
   apk add sudo --latest --upgrade --no-cache --no-interactive 2>/dev/null
