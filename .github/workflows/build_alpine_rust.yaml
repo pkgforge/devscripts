@@ -156,7 +156,7 @@ jobs:
             pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
             ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 
       - name: Print Manifest (docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
@@ -317,7 +317,7 @@ jobs:
             pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
             ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
             ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
-          push: true
+          outputs: type=registry,compression=zstd,compression-level=22
         continue-on-error: true
 
       - name: Print Manifest (docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
