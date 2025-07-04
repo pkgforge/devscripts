@@ -1,0 +1,338 @@
+name: 🐬 Build Alpine Rust Images DockerHub 🐬
+#------------------------------------------------------------------------------------#
+on:
+  #push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2,14 * * *"  # 02:00 AM/PM UTC (07:45 AM/PM NPT)
+defaults:
+  run:
+    shell: bash
+    working-directory: /tmp
+permissions:
+  contents: read
+  packages: write
+jobs:  
+#------------------------------------------------------------------------------------#
+  build-push-alpine-rust-nightly:
+    name: Push (Alpine rust nightly ${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: arm64
+            runner: ubuntu-24.04-arm
+            toolchain: nightly
+
+          - arch: loongarch64
+            platform: loong64
+            runner: ubuntu-latest
+            toolchain: nightly
+
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
+            toolchain: nightly
+
+          - arch: x86_64
+            platform: amd64
+            runner: ubuntu-latest
+            toolchain: nightly
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: main
+          filter: "blob:none"
+
+      - name: Install Addons
+        run: |
+          ##Presets
+          set +x ; set +e
+          #-------------#
+          ##Debug?
+          if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+            set -x
+          fi
+          #-------------#
+          #export PARALLEL=1
+          #bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh")
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/local/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ansi2txt" -o "/usr/local/bin/ansi2txt" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2c" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/askalono" -o "/usr/local/bin/askalono" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/bsdtar" -o "/usr/local/bin/bsdtar" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/b3sum" -o "/usr/local/bin/b3sum" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/dasel" -o "/usr/local/bin/dasel" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/eget" -o "/usr/local/bin/eget" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/huggingface-cli" -o "/usr/local/bin/huggingface-cli" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/jq" -o "/usr/local/bin/jq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/oras" -o "/usr/local/bin/oras" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ouch" -o "/usr/local/bin/ouch" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/rsync" -o "/usr/local/bin/rsync" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/trufflehog" -o "/usr/local/bin/trufflehog" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xq" -o "/usr/local/bin/xq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xz" -o "/usr/local/bin/xz" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/yq" -o "/usr/local/bin/yq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/bin/zstd" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/local/bin/zstd" &
+          wait ; echo
+          sudo chmod -v 'a+x' \
+          "/usr/bin/7z" \
+          "/usr/local/bin/7z" \
+          "/usr/local/bin/ansi2txt" \
+          "/usr/local/bin/aria2" \
+          "/usr/local/bin/aria2c" \
+          "/usr/local/bin/askalono" \
+          "/usr/local/bin/bsdtar" \
+          "/usr/local/bin/b3sum" \
+          "/usr/local/bin/dasel" \
+          "/usr/local/bin/eget" \
+          "/usr/local/bin/huggingface-cli" \
+          "/usr/local/bin/jq" \
+          "/usr/local/bin/oras" \
+          "/usr/local/bin/ouch" \
+          "/usr/local/bin/rsync" \
+          "/usr/local/bin/trufflehog" \
+          "/usr/local/bin/xq" \
+          "/usr/local/bin/xz" \
+          "/usr/local/bin/yq" \
+          "/usr/bin/zstd" \
+          "/usr/local/bin/zstd"
+        continue-on-error: true
+
+      - name: Setup Env
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          #Docker Tags
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
+          #Copy dockerfiles
+          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
+          cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine-rust.dockerfile" "/tmp/DOCKERFILES/alpine-rust.dockerfile"
+        continue-on-error: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        continue-on-error: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        continue-on-error: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/alpine-rust-nightly
+      - name: Docker Build and Push (alpine-rust-nightly)
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/DOCKERFILES/
+          file: "/tmp/DOCKERFILES/alpine-rust.dockerfile"
+          platforms: "linux/${{ matrix.platform }}"
+          build-args: |
+            ARCH=${{ matrix.arch }}
+            TOOLCHAIN=${{ matrix.toolchain }}
+          tags: |
+            pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
+            pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+          push: true
+        continue-on-error: true
+
+      - name: Print Manifest (docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+#------------------------------------------------------------------------------------#
+  build-push-alpine-rust-stable:
+    name: Push (Alpine rust stable ${{ matrix.arch }}) --> Docker Hub
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: arm64
+            runner: ubuntu-24.04-arm
+            toolchain: stable
+
+          - arch: loongarch64
+            platform: loong64
+            runner: ubuntu-latest
+            toolchain: stable
+
+          - arch: riscv64
+            platform: riscv64
+            runner: ubuntu-latest
+            toolchain: stable
+
+          - arch: x86_64
+            platform: amd64
+            runner: ubuntu-latest
+            toolchain: stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: main
+          filter: "blob:none"
+
+      - name: Install Addons
+        run: |
+          ##Presets
+          set +x ; set +e
+          #-------------#
+          ##Debug?
+          if [[ "${DEBUG}" = "1" ]] || [[ "${DEBUG}" = "ON" ]]; then
+            set -x
+          fi
+          #-------------#
+          #export PARALLEL=1
+          #bash <(curl -qfsSL "https://raw.githubusercontent.com/pkgforge/devscripts/refs/heads/main/Linux/install_bins_curl.sh")
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/7z" -o "/usr/local/bin/7z" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ansi2txt" -o "/usr/local/bin/ansi2txt" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/aria2" -o "/usr/local/bin/aria2c" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/askalono" -o "/usr/local/bin/askalono" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/bsdtar" -o "/usr/local/bin/bsdtar" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/b3sum" -o "/usr/local/bin/b3sum" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/dasel" -o "/usr/local/bin/dasel" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/eget" -o "/usr/local/bin/eget" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/huggingface-cli" -o "/usr/local/bin/huggingface-cli" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/jq" -o "/usr/local/bin/jq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/oras" -o "/usr/local/bin/oras" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/ouch" -o "/usr/local/bin/ouch" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/rsync" -o "/usr/local/bin/rsync" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/trufflehog" -o "/usr/local/bin/trufflehog" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xq" -o "/usr/local/bin/xq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/xz" -o "/usr/local/bin/xz" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/yq" -o "/usr/local/bin/yq" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/bin/zstd" &
+          sudo curl -qfsSL "https://bin.pkgforge.dev/$(uname -m)-$(uname -s)/zstd" -o "/usr/local/bin/zstd" &
+          wait ; echo
+          sudo chmod -v 'a+x' \
+          "/usr/bin/7z" \
+          "/usr/local/bin/7z" \
+          "/usr/local/bin/ansi2txt" \
+          "/usr/local/bin/aria2" \
+          "/usr/local/bin/aria2c" \
+          "/usr/local/bin/askalono" \
+          "/usr/local/bin/bsdtar" \
+          "/usr/local/bin/b3sum" \
+          "/usr/local/bin/dasel" \
+          "/usr/local/bin/eget" \
+          "/usr/local/bin/huggingface-cli" \
+          "/usr/local/bin/jq" \
+          "/usr/local/bin/oras" \
+          "/usr/local/bin/ouch" \
+          "/usr/local/bin/rsync" \
+          "/usr/local/bin/trufflehog" \
+          "/usr/local/bin/xq" \
+          "/usr/local/bin/xz" \
+          "/usr/local/bin/yq" \
+          "/usr/bin/zstd" \
+          "/usr/local/bin/zstd"
+        continue-on-error: true
+
+      - name: Setup Env
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          #Docker Tags
+          DOCKER_TAG="v$(date +'%Y.%m.%d')" && export DOCKER_TAG="${DOCKER_TAG}"
+          echo "DOCKER_TAG=${DOCKER_TAG}" >> "${GITHUB_ENV}"
+          #Copy dockerfiles
+          mkdir -p "/tmp/DOCKERFILES" && cd "/tmp/DOCKERFILES"
+          cp "${GITHUB_WORKSPACE}/main/Github/Runners/alpine-rust.dockerfile" "/tmp/DOCKERFILES/alpine-rust.dockerfile"
+        continue-on-error: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        continue-on-error: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        continue-on-error: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
+
+    #https://hub.docker.com/r/pkgforge/alpine-rust-stable
+      - name: Docker Build and Push (alpine-rust-stable)
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/DOCKERFILES/
+          file: "/tmp/DOCKERFILES/alpine-rust.dockerfile"
+          platforms: "linux/${{ matrix.platform }}"
+          build-args: |
+            ARCH=${{ matrix.arch }}
+            TOOLCHAIN=${{ matrix.toolchain }}
+          tags: |
+            pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
+            pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+            ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}
+            ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}-${{ env.DOCKER_TAG }}
+          push: true
+        continue-on-error: true
+
+      - name: Print Manifest (docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "docker.io/pkgforge/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+
+      - name: Print Manifest (ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }})
+        run: |
+          #Presets
+          set +x ; set +e
+          #--------------#
+          docker manifest inspect "ghcr.io/pkgforge/devscripts/alpine-rust-${{ matrix.toolchain }}:${{ matrix.arch }}" 2>/dev/null | jq .
+        continue-on-error: true
+#------------------------------------------------------------------------------------#
