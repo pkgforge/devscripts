@@ -256,7 +256,7 @@ determine_target_and_image() {
     # Determine container image and platform based on target
     case "${RUST_TARGET}" in
         x86_64-unknown-linux-musl)
-            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-slim:x86_64"
+            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-rust-${TOOLCHAIN}:x86_64"
             CONTAINER_PLATFORM="linux/amd64"
             ;;
         x86_64-unknown-linux-gnu)
@@ -264,7 +264,7 @@ determine_target_and_image() {
             CONTAINER_PLATFORM="linux/amd64"
             ;;
         aarch64-unknown-linux-musl)
-            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-slim:aarch64"
+            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-rust-${TOOLCHAIN}:aarch64"
             CONTAINER_PLATFORM="linux/aarch64"
             ;;
         aarch64-unknown-linux-gnu)
@@ -272,7 +272,7 @@ determine_target_and_image() {
             CONTAINER_PLATFORM="linux/aarch64"
             ;;
         riscv64gc-unknown-linux-musl)
-            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-slim:riscv64"
+            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-rust-${TOOLCHAIN}:riscv64"
             CONTAINER_PLATFORM="linux/riscv64"
             ;;
         riscv64gc-unknown-linux-gnu)
@@ -280,7 +280,7 @@ determine_target_and_image() {
             CONTAINER_PLATFORM="linux/riscv64"
             ;;
         loongarch64-unknown-linux-musl)
-            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-slim:loongarch64"
+            CONTAINER_IMAGE="ghcr.io/pkgforge/devscripts/alpine-rust-${TOOLCHAIN}:loongarch64"
             CONTAINER_PLATFORM="linux/loong64"
             ;;
         loongarch64-unknown-linux-gnu)
