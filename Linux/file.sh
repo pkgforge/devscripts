@@ -1,6 +1,9 @@
 #!/bin/sh
 
 #-------------------------------------------------------#
+##WARNING: This was written before we had a file appimage: https://bin.pkgforge.dev/$(uname -m)/file
+## Just use the AppImage instead
+## This version was written a long time ago & is probably unreliable
 ## Replaces only basic file command functionality with support for common file types
 ## Minimal dependencies, maximum compatibility, but some grep/sed flags may not be compatible
 #-------------------------------------------------------#
