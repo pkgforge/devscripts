@@ -645,7 +645,7 @@ file() {
                     0003) 
                         #Need to distinguish between shared library and PIE executable
                         #Check if it has an interpreter section
-                        if extract_strings "$1" | grep -qi "^/lib.*ld\|^ld-linux\|^ld\.so" 2>/dev/null; then
+                        if extract_strings "$1" | grep -qi "^/lib.*ld\|^ld-linux\|ld-musl\|^ld\.so" 2>/dev/null; then
                             elf_type="pie executable"
                         else
                             elf_type="shared object"
@@ -725,10 +725,10 @@ file() {
             
             #Check for dynamic linking and interpreter (This is not always 100% Accurate)
             interpreter=""
-            if extract_strings "$1" | grep -qi "^/lib.*ld\|^ld-linux\|^ld\.so" 2>/dev/null; then
+            if extract_strings "$1" | grep -qi "^/lib.*ld\|^ld-linux\|ld-musl\|^ld\.so" 2>/dev/null; then
                 printf ', dynamically linked'
                 #Try to find the interpreter
-                interpreter=$(extract_strings "$1" | grep "^/lib.*ld\|^ld-linux\|^ld\.so" | head -1 2>/dev/null)
+                interpreter=$(extract_strings "$1" | grep "^/lib.*ld\|^ld-linux\|ld-musl\|^ld\.so" | head -1 2>/dev/null | sed 's/[^/]*\(\/.*\)/\1/')
                 if [ -n "$interpreter" ]; then
                     printf ', interpreter %s' "$interpreter"
                 fi
@@ -760,6 +760,24 @@ file() {
             if [ "$osabi" = "SYSV" ] && [ -n "$interpreter" ]; then
                 case "$interpreter" in
                     */ld-linux*) printf ', for GNU/Linux' ;;
+                    */ld-musl*) printf ', for musl/Linux' ;;
+                    */ld-*) printf ', for Linux' ;;
+                esac
+            elif [ "$osabi" = "Linux" ] && [ -n "$interpreter" ]; then
+                case "$interpreter" in
+                    */ld-musl*) printf ', for musl/Linux' ;;
+                    */ld-linux*) printf ', for GNU/Linux' ;;
+                    */ld-*) printf ', for Linux' ;;
+                esac
+            elif [ -n "$interpreter" ]; then
+                # Handle other OS/ABI types
+                case "$interpreter" in
+                    */ld-linux*) printf ', for GNU/Linux' ;;
+                    */ld-musl*) printf ', for musl/Linux' ;;
+                    */ld-*) printf ', for Linux' ;;
+                    */dyld) printf ', for macOS' ;;
+                    */ld.so*) printf ', for BSD' ;;
+                    */ld-elf.so*) printf ', for FreeBSD' ;;
                 esac
             fi
             
