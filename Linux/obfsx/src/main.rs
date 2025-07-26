@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use blake3;
 
@@ -17,8 +17,8 @@ const MAX_AUTO_CHECKSUM_SIZE: usize = 100 * 1024 * 1024; // 100MB
 #[derive(Debug, Clone)]
 struct Config {
     command: Option<Command>,
-    input_file: String,
-    output_file: Option<String>,
+    input_file: PathBuf,
+    output_file: Option<PathBuf>,
     force: bool,
     inplace: bool,
     magic: Vec<u8>,
@@ -49,7 +49,7 @@ struct ObfuscationHeader {
 
 impl ObfuscationHeader {
     const SIZE: usize = 4 + 1 + 1 + 1 + 1 + 4 + BLAKE3_HASH_SIZE; // 44 bytes
-
+    
     fn new(original_length: u32, magic_len: u8, checksum: Option<[u8; BLAKE3_HASH_SIZE]>) -> Self {
         let flags = if checksum.is_some() { 0x01 } else { 0x00 };
         Self {
@@ -62,7 +62,7 @@ impl ObfuscationHeader {
             checksum: checksum.unwrap_or([0; BLAKE3_HASH_SIZE]),
         }
     }
-
+    
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(Self::SIZE);
         bytes.extend_from_slice(&self.signature);
@@ -74,22 +74,22 @@ impl ObfuscationHeader {
         bytes.extend_from_slice(&self.checksum);
         bytes
     }
-
+    
     fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() < Self::SIZE {
             return Err("Header too small".to_string());
         }
-
+        
         let signature = [bytes[0], bytes[1], bytes[2], bytes[3]];
         if signature != *b"OBFX" {
             return Err("Invalid header signature".to_string());
         }
-
+        
         let version = bytes[4];
         if version != VERSION_BYTE {
             return Err(format!("Unsupported format version: {}", version));
         }
-
+        
         let flags = bytes[5];
         let magic_len = bytes[6];
         let reserved = bytes[7];
@@ -97,10 +97,10 @@ impl ObfuscationHeader {
         let original_length = u32::from_le_bytes([
             bytes[8], bytes[9], bytes[10], bytes[11]
         ]);
-
+        
         let mut checksum = [0u8; BLAKE3_HASH_SIZE];
         checksum.copy_from_slice(&bytes[12..12 + BLAKE3_HASH_SIZE]);
-
+        
         Ok(Self {
             signature,
             version,
@@ -111,7 +111,7 @@ impl ObfuscationHeader {
             checksum,
         })
     }
-
+    
     fn has_checksum(&self) -> bool {
         self.flags & 0x01 != 0
     }
@@ -121,7 +121,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             command: None,
-            input_file: String::new(),
+            input_file: PathBuf::new(),
             output_file: None,
             force: false,
             inplace: false,
@@ -135,13 +135,58 @@ impl Default for Config {
     }
 }
 
+fn resolve_path(path: &str) -> Result<PathBuf, String> {
+    let path = Path::new(path);
+    
+    // Convert to absolute path
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        env::current_dir()
+            .map_err(|e| format!("Failed to get current directory: {}", e))?
+            .join(path)
+    };
+    
+    // Resolve symlinks and canonicalize
+    absolute_path.canonicalize()
+        .or_else(|_| {
+            // If canonicalize fails (e.g., file doesn't exist), try to resolve parent
+            if let Some(parent) = absolute_path.parent() {
+                if parent.exists() {
+                    let canonical_parent = parent.canonicalize()
+                        .map_err(|e| format!("Failed to resolve parent directory: {}", e))?;
+                    if let Some(filename) = absolute_path.file_name() {
+                        Ok(canonical_parent.join(filename))
+                    } else {
+                        Err("Invalid path structure".to_string())
+                    }
+                } else {
+                    Err("Parent directory does not exist".to_string())
+                }
+            } else {
+                Err("Cannot resolve path".to_string())
+            }
+        })
+        .map_err(|e| format!("Failed to resolve path '{}': {}", path.display(), e))
+}
+
+fn create_parent_directories(path: &Path) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directories for '{}': {}", path.display(), e))?;
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program_name = Path::new(&args[0])
         .file_name()
         .unwrap_or_else(|| std::ffi::OsStr::new("obfsx"))
         .to_string_lossy();
-
+    
     let config = match parse_args(&args) {
         Ok(config) => config,
         Err(e) => {
@@ -150,7 +195,7 @@ fn main() {
             process::exit(1);
         }
     };
-
+    
     if let Err(e) = run(config) {
         eprintln!("Error: {}", e);
         process::exit(1);
@@ -161,10 +206,10 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
     if args.len() < 2 {
         return Err("No input file specified".to_string());
     }
-
+    
     let mut config = Config::default();
     let mut i = 1;
-
+    
     // Check if first arg is a command or flag
     if let Some(first_arg) = args.get(1) {
         if first_arg == "-h" || first_arg == "--help" {
@@ -175,7 +220,7 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
             print_help(&program_name);
             process::exit(0);
         }
-
+        
         if !first_arg.starts_with('-') {
             match first_arg.as_str() {
                 "of" | "obf" | "obfuscate" => {
@@ -193,13 +238,13 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
                 }
                 _ => {
                     // Not a command, treat as input file
-                    config.input_file = first_arg.clone();
+                    config.input_file = PathBuf::from(first_arg);
                     i = 2;
                 }
             }
         }
     }
-
+    
     // Parse remaining arguments
     while i < args.len() {
         match args[i].as_str() {
@@ -244,17 +289,17 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
                 if i >= args.len() {
                     return Err("Missing value for --write-to".to_string());
                 }
-                config.output_file = Some(args[i].clone());
+                config.output_file = Some(PathBuf::from(&args[i]));
             }
             arg if arg.starts_with('-') => {
                 return Err(format!("Unknown option: {}", arg));
             }
             _ => {
                 // Positional arguments
-                if config.input_file.is_empty() {
-                    config.input_file = args[i].clone();
+                if config.input_file.as_os_str().is_empty() {
+                    config.input_file = PathBuf::from(&args[i]);
                 } else if config.output_file.is_none() && !config.verify_only {
-                    config.output_file = Some(args[i].clone());
+                    config.output_file = Some(PathBuf::from(&args[i]));
                 } else {
                     return Err("Too many positional arguments".to_string());
                 }
@@ -262,20 +307,41 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
         }
         i += 1;
     }
-
-    if config.input_file.is_empty() {
+    
+    if config.input_file.as_os_str().is_empty() {
         return Err("No input file specified".to_string());
     }
-
+    
+    // Resolve input file path and symlinks
+    config.input_file = resolve_path(&config.input_file.to_string_lossy())?;
+    
+    // Resolve output file path if specified
+    if let Some(ref output_file) = config.output_file {
+        // For output files that may not exist yet, we need special handling
+        let output_str = output_file.to_string_lossy().to_string();
+        config.output_file = Some(if output_file.exists() {
+            resolve_path(&output_str)?
+        } else {
+            // If output file doesn't exist, resolve parent and append filename
+            if output_file.is_absolute() {
+                output_file.to_path_buf()
+            } else {
+                env::current_dir()
+                    .map_err(|e| format!("Failed to get current directory: {}", e))?
+                    .join(output_file)
+            }
+        });
+    }
+    
     // Validate conflicting options
     if config.inplace && config.output_file.is_some() {
         return Err("Cannot use --inplace with --write-to".to_string());
     }
-
+    
     if config.verify_only && (config.inplace || config.output_file.is_some()) {
         return Err("Cannot use output options with --verify".to_string());
     }
-
+    
     // Ensure minimum offset can accommodate header
     if config.offset < ObfuscationHeader::SIZE + config.magic.len() {
         config.offset = ObfuscationHeader::SIZE + config.magic.len();
@@ -283,7 +349,7 @@ fn parse_args(args: &[String]) -> Result<Config, String> {
             eprintln!("Warning: Offset increased to {} to accommodate header and magic bytes", config.offset);
         }
     }
-
+    
     Ok(config)
 }
 
@@ -291,7 +357,7 @@ fn parse_magic_bytes(s: &str) -> Result<Vec<u8>, String> {
     if s.is_empty() {
         return Err("Magic bytes cannot be empty".to_string());
     }
-
+    
     let bytes = if s.starts_with("0x") || s.starts_with("\\x") {
         // Hex format: 0xDEADBEEF or \xDE\xAD\xBE\xEF
         let hex_str = s.replace("0x", "").replace("\\x", "");
@@ -308,11 +374,11 @@ fn parse_magic_bytes(s: &str) -> Result<Vec<u8>, String> {
         // Raw bytes
         s.as_bytes().to_vec()
     };
-
+    
     if bytes.len() > MAX_MAGIC_SIZE {
         return Err(format!("Magic bytes too long (max {} bytes)", MAX_MAGIC_SIZE));
     }
-
+    
     Ok(bytes)
 }
 
@@ -341,18 +407,17 @@ fn should_use_checksum(config: &Config, file_size: usize) -> Result<bool, String
 
 fn run(config: Config) -> Result<(), String> {
     // Validate input file exists and get metadata
-    let input_path = Path::new(&config.input_file);
-    if !input_path.exists() {
-        return Err(format!("Input file '{}' does not exist", config.input_file));
+    if !config.input_file.exists() {
+        return Err(format!("Input file '{}' does not exist", config.input_file.display()));
     }
-
-    let metadata = fs::metadata(input_path)
+    
+    let metadata = fs::metadata(&config.input_file)
         .map_err(|e| format!("Failed to read file metadata: {}", e))?;
     
     if !metadata.is_file() {
-        return Err(format!("'{}' is not a regular file", config.input_file));
+        return Err(format!("'{}' is not a regular file", config.input_file.display()));
     }
-
+    
     let file_size = metadata.len() as usize;
     if file_size < MIN_FILE_SIZE && !config.force {
         return Err(format!(
@@ -360,15 +425,15 @@ fn run(config: Config) -> Result<(), String> {
             file_size, MIN_FILE_SIZE
         ));
     }
-
+    
     // Read input file
     let data = fs::read(&config.input_file)
         .map_err(|e| format!("Failed to read input file: {}", e))?;
-
+    
     if data.len() != file_size {
         return Err("File size mismatch during read".to_string());
     }
-
+    
     // Determine operation if not specified
     let command = config.command.clone().unwrap_or_else(|| {
         if is_obfuscated(&data, &config.magic) {
@@ -381,7 +446,7 @@ fn run(config: Config) -> Result<(), String> {
             Command::Obfuscate
         }
     });
-
+    
     match command {
         Command::Verify => verify_file(&data, &config),
         Command::Obfuscate => {
@@ -400,7 +465,7 @@ fn verify_file(data: &[u8], config: &Config) -> Result<(), String> {
     if !is_obfuscated(data, &config.magic) {
         return Err("File does not appear to be obfuscated".to_string());
     }
-
+    
     let header = extract_header(data, config.offset)?;
     
     if !config.quiet {
@@ -410,7 +475,7 @@ fn verify_file(data: &[u8], config: &Config) -> Result<(), String> {
         println!("  Has checksum: {}", header.has_checksum());
         println!("  Magic length: {} bytes", header.magic_len);
     }
-
+    
     if header.has_checksum() {
         // Perform temporary deobfuscation to verify checksum
         let deobfuscated = deobfuscate(data, &config.magic, config.offset, false)?;
@@ -428,11 +493,11 @@ fn verify_file(data: &[u8], config: &Config) -> Result<(), String> {
             println!("  Checksum: Not present");
         }
     }
-
+    
     if !config.quiet {
         println!("File verification: PASSED ✓");
     }
-
+    
     Ok(())
 }
 
@@ -442,50 +507,65 @@ fn write_output(config: &Config, original_data: &[u8], result_data: &[u8], comma
         config.input_file.clone()
     } else {
         config.output_file.clone().unwrap_or_else(|| {
-            let input_path = Path::new(&config.input_file);
             match command {
                 Command::Obfuscate => {
-                    format!("{}.{}", config.input_file, OBFUSCATED_EXT)
+                    config.input_file.with_extension(
+                        format!("{}.{}", 
+                            config.input_file.extension()
+                                .map(|ext| ext.to_string_lossy())
+                                .unwrap_or_default(),
+                            OBFUSCATED_EXT
+                        )
+                    )
                 }
                 Command::Deobfuscate => {
-                    if let Some(stem) = input_path.file_stem() {
-                        let stem_str = stem.to_string_lossy();
-                        if stem_str.ends_with(&format!(".{}", OBFUSCATED_EXT)) {
-                            let new_stem = &stem_str[..stem_str.len() - OBFUSCATED_EXT.len() - 1];
-                            if let Some(parent) = input_path.parent() {
-                                parent.join(new_stem).to_string_lossy().to_string()
-                            } else {
-                                new_stem.to_string()
-                            }
-                        } else {
-                            format!("{}_deobfuscated", config.input_file)
-                        }
+                    let stem = config.input_file.file_stem()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "deobfuscated".to_string());
+                    
+                    // Check if it ends with .obfsx and remove it
+                    if stem.ends_with(&format!(".{}", OBFUSCATED_EXT)) {
+                        let new_stem = &stem[..stem.len() - OBFUSCATED_EXT.len() - 1];
+                        config.input_file
+                            .parent()
+                            .unwrap_or_else(|| Path::new("."))
+                            .join(new_stem)
                     } else {
-                        format!("{}_deobfuscated", config.input_file)
+                        config.input_file.with_file_name(format!("{}_deobfuscated", stem))
                     }
                 }
                 Command::Verify => unreachable!(),
             }
         })
     };
-
+    
+    // Create parent directories if needed
+    create_parent_directories(&output_file)?;
+    
     // Check for overwrite protection
-    if !config.force && !config.inplace && Path::new(&output_file).exists() {
-        return Err(format!("Output file '{}' exists. Use --force to overwrite", output_file));
+    if !config.force && !config.inplace && output_file.exists() {
+        return Err(format!("Output file '{}' exists. Use --force to overwrite", output_file.display()));
     }
-
+    
     // Write with atomic operation
-    let temp_file = format!("{}.tmp", output_file);
+    let temp_file = output_file.with_extension(
+        format!("{}.tmp", 
+            output_file.extension()
+                .map(|ext| ext.to_string_lossy())
+                .unwrap_or_else(|| "tmp".into())
+        )
+    );
+    
     fs::write(&temp_file, result_data)
         .map_err(|e| format!("Failed to write temporary file: {}", e))?;
-
+    
     // Atomic rename
     fs::rename(&temp_file, &output_file)
         .map_err(|e| {
             let _ = fs::remove_file(&temp_file);
             format!("Failed to finalize output file: {}", e)
         })?;
-
+    
     // Output info
     if !config.quiet {
         let operation = match command {
@@ -495,7 +575,7 @@ fn write_output(config: &Config, original_data: &[u8], result_data: &[u8], comma
         };
         
         if config.verbose {
-            println!("{}: {} -> {}", operation, config.input_file, output_file);
+            println!("{}: {} -> {}", operation, config.input_file.display(), output_file.display());
             println!("Magic bytes: {:02X?}", config.magic);
             println!("Offset: {}", config.offset);
             println!("Original size: {} bytes", original_data.len());
@@ -506,10 +586,10 @@ fn write_output(config: &Config, original_data: &[u8], result_data: &[u8], comma
                 println!("Checksum enabled: {}", use_checksum);
             }
         } else {
-            println!("{}: {} -> {}", operation, config.input_file, output_file);
+            println!("{}: {} -> {}", operation, config.input_file.display(), output_file.display());
         }
     }
-
+    
     Ok(())
 }
 
@@ -517,7 +597,7 @@ fn extract_header(data: &[u8], offset: usize) -> Result<ObfuscationHeader, Strin
     if data.len() < offset + ObfuscationHeader::SIZE {
         return Err("File too small to contain header".to_string());
     }
-
+    
     ObfuscationHeader::from_bytes(&data[offset..offset + ObfuscationHeader::SIZE])
 }
 
@@ -534,12 +614,12 @@ fn obfuscate(data: &[u8], magic: &[u8], offset: usize, use_checksum: bool) -> Re
     if data.len() < magic.len() {
         return Err(format!("File too small to obfuscate ({} bytes, need at least {})", data.len(), magic.len()));
     }
-
+    
     // Verify file is not already obfuscated
     if is_obfuscated(data, magic) {
         return Err("File appears to already be obfuscated".to_string());
     }
-
+    
     let original_len = data.len();
     let mut result = data.to_vec();
     
@@ -548,7 +628,7 @@ fn obfuscate(data: &[u8], magic: &[u8], offset: usize, use_checksum: bool) -> Re
     if result.len() < required_size {
         result.resize(required_size, 0);
     }
-
+    
     // Store original magic bytes after the header
     let original_magic = result[..magic.len()].to_vec();
     let magic_storage_offset = offset + ObfuscationHeader::SIZE;
@@ -559,22 +639,22 @@ fn obfuscate(data: &[u8], magic: &[u8], offset: usize, use_checksum: bool) -> Re
     }
     
     result[magic_storage_offset..magic_storage_offset + magic.len()].copy_from_slice(&original_magic);
-
+    
     // Calculate checksum if enabled
     let checksum = if use_checksum {
         Some(calculate_blake3_hash(data))
     } else {
         None
     };
-
+    
     // Create and store header
     let header = ObfuscationHeader::new(original_len as u32, magic.len() as u8, checksum);
     let header_bytes = header.to_bytes();
     result[offset..offset + ObfuscationHeader::SIZE].copy_from_slice(&header_bytes);
-
+    
     // Replace file magic bytes with obfuscation magic
     result[..magic.len()].copy_from_slice(magic);
-
+    
     Ok(result)
 }
 
@@ -583,23 +663,23 @@ fn deobfuscate(data: &[u8], magic: &[u8], offset: usize, verbose: bool) -> Resul
     if !is_obfuscated(data, magic) {
         return Err("File does not appear to be obfuscated with this magic".to_string());
     }
-
+    
     if data.len() < offset + ObfuscationHeader::SIZE {
         return Err("File too small or corrupted for deobfuscation".to_string());
     }
-
+    
     // Extract and validate header
     let header = extract_header(data, offset)?;
     
     if header.magic_len as usize != magic.len() {
         return Err("Magic byte length mismatch".to_string());
     }
-
+    
     let magic_storage_offset = offset + ObfuscationHeader::SIZE;
     if data.len() < magic_storage_offset + magic.len() {
         return Err("File too small to contain stored magic bytes".to_string());
     }
-
+    
     let mut result = data.to_vec();
     
     // Restore original magic bytes
@@ -613,7 +693,7 @@ fn deobfuscate(data: &[u8], magic: &[u8], offset: usize, verbose: bool) -> Resul
     } else if original_len > result.len() {
         return Err("Original length exceeds current file size - file may be corrupted".to_string());
     }
-
+    
     // Verify checksum if present
     if header.has_checksum() {
         let calculated_hash = calculate_blake3_hash(&result);
@@ -624,7 +704,7 @@ fn deobfuscate(data: &[u8], magic: &[u8], offset: usize, verbose: bool) -> Resul
             println!("Checksum verification: PASSED ✓");
         }
     }
-
+    
     Ok(result)
 }
 
@@ -660,14 +740,6 @@ fn print_help(program_name: &str) {
     println!("    {} -m 0xDEADBEEF -c -o 64 file.exe # Custom magic, force checksum, custom offset", program_name);
     println!("    {} verify secret.bin               # Verify file integrity", program_name);
     println!("    {} --no-checksum large_file.bin    # Disable checksum for large files", program_name);
-    println!();
-    println!("FEATURES:");
-    println!("  • BLAKE3 checksums for data integrity verification");
-    println!("  • Automatic checksum for files under 100MB");
-    println!("  • Atomic file operations with temporary files");
-    println!("  • Format versioning for future compatibility");
-    println!("  • Comprehensive error checking and recovery");
-    println!("  • In-place editing with safety checks");
     println!();
     println!("Default magic bytes: {:02X?}", DEFAULT_MAGIC);
     println!("Default offset: {} bytes", DEFAULT_OFFSET);
