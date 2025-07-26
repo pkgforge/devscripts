@@ -1,0 +1,23 @@
+[package]
+name = "obfsx"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+authors = ["Azathothas@pkgforge.dev", "QaidVoid@pkgforge.dev"]
+description = "Obfuscate/Deobfuscate Magic Bytes"
+
+[[bin]]
+name = "obfsx"
+path = "src/main.rs"
+
+[dependencies]
+# Nothing for now
+
+[profile.release]
+codegen-units = 1
+debug = false
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
