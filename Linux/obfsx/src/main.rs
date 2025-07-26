@@ -294,7 +294,7 @@ fn run(config: Config) -> Result<(), String> {
 }
 
 fn is_obfuscated(data: &[u8], magic: &[u8], offset: usize) -> bool {
-    if data.len() < offset + magic.len() {
+    if data.len() < offset + magic.len() + 4 {  // +4 for length storage
         return false;
     }
     
@@ -314,20 +314,21 @@ fn obfuscate(data: &[u8], magic: &[u8], offset: usize) -> Result<Vec<u8>, String
         return Err(format!("File too small to obfuscate ({} bytes, need at least {})", data.len(), magic.len()));
     }
 
-    if offset + magic.len() > data.len() && offset < 1024 {
-        return Err("Offset too close to end of file".to_string());
-    }
-
+    let original_len = data.len();
     let mut result = data.to_vec();
     
-    // Extend file if necessary to accommodate offset
-    if result.len() < offset + magic.len() {
-        result.resize(offset + magic.len(), 0);
+    // Always extend file if necessary to accommodate offset
+    if result.len() < offset + magic.len() + 4 {  // +4 for storing original length
+        result.resize(offset + magic.len() + 4, 0);
     }
 
     // Store original magic bytes at offset
     let original_magic = result[..magic.len()].to_vec();
     result[offset..offset + magic.len()].copy_from_slice(&original_magic);
+    
+    // Store original file length at offset + magic.len()
+    let len_bytes = (original_len as u32).to_le_bytes();
+    result[offset + magic.len()..offset + magic.len() + 4].copy_from_slice(&len_bytes);
     
     // Replace magic bytes with obfuscation magic
     result[..magic.len()].copy_from_slice(magic);
@@ -336,7 +337,7 @@ fn obfuscate(data: &[u8], magic: &[u8], offset: usize) -> Result<Vec<u8>, String
 }
 
 fn deobfuscate(data: &[u8], magic: &[u8], offset: usize) -> Result<Vec<u8>, String> {
-    if data.len() < offset + magic.len() {
+    if data.len() < offset + magic.len() + 4 {
         return Err("File too small or corrupted for deobfuscation".to_string());
     }
 
@@ -351,8 +352,14 @@ fn deobfuscate(data: &[u8], magic: &[u8], offset: usize) -> Result<Vec<u8>, Stri
     let stored_magic = data[offset..offset + magic.len()].to_vec();
     result[..magic.len()].copy_from_slice(&stored_magic);
     
-    // Clear stored magic bytes (optional)
-    result[offset..offset + magic.len()].fill(0);
+    // Get original file length
+    let len_bytes = &data[offset + magic.len()..offset + magic.len() + 4];
+    let original_len = u32::from_le_bytes([len_bytes[0], len_bytes[1], len_bytes[2], len_bytes[3]]) as usize;
+    
+    // Trim to original length if it was extended
+    if original_len > 0 && original_len < result.len() {
+        result.truncate(original_len);
+    }
 
     Ok(result)
 }
