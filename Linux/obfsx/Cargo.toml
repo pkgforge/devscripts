@@ -12,7 +12,7 @@ name = "obfsx"
 path = "src/main.rs"
 
 [dependencies]
-# Nothing for now
+blake3 = "1.8"
 
 [profile.release]
 codegen-units = 1
