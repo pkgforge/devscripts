@@ -156,7 +156,7 @@ jobs:
       #Artifacts
       - name: Upload (Build) Artifacts
         if: env.HAS_IMAGE == 'TRUE'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
             name: "ARTIFACTS-${{ matrix.image }}_${{ matrix.arch }}"
             path: |
