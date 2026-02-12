@@ -222,7 +222,7 @@ jobs:
       #continuous
       - name: Releaser (Continuous)
         if: env.HAS_RELEASE == 'TRUE'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2.5.0
         with:
           name: "${{ env.METADATA_TAG }}"
           tag_name: "${{ env.METADATA_TAG }}"
@@ -237,7 +237,7 @@ jobs:
       #Snapshot
       - name: Releaser (Snapshot)
         if: env.HAS_RELEASE == 'TRUE'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2.5.0
         with:
           name: "${{ env.METADATA_TAG }}"
           tag_name: "${{ env.UTC_TIME }}-${{ env.METADATA_TAG }}"
