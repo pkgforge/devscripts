@@ -119,7 +119,7 @@ jobs:
         continue-on-error: false
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         continue-on-error: true
 
       - name: Set up Docker Buildx
@@ -280,7 +280,7 @@ jobs:
         continue-on-error: false
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         continue-on-error: true
 
       - name: Set up Docker Buildx
