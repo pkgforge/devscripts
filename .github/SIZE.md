@@ -1,5 +1,5 @@
 ```mathematica
-932K └─┬ main
+936K └─┬ main
 428K   ├─┬ Github
 424K   │ └─┬ Runners
  88K   │   ├─┬ bootstrap
@@ -69,9 +69,10 @@
 4.0K   │ ├── install_golang.sh
 4.0K   │ ├── gentoo.conf
 4.0K   │ └── DAGU_CRON.md
-120K   ├─┬ Misc
- 72K   │ ├─┬ User-Agents
+124K   ├─┬ Misc
+ 76K   │ ├─┬ User-Agents
  12K   │ │ ├── user_agents_all.txt
+8.0K   │ │ ├── ua_chrome_windows_all.txt
 4.0K   │ │ ├── ua_safari_macos_latest.txt
 4.0K   │ │ ├── ua_safari_macos_all.txt
 4.0K   │ │ ├── ua_safari_iphone_latest.txt
@@ -81,7 +82,6 @@
 4.0K   │ │ ├── ua_firefox_macos_latest.txt
 4.0K   │ │ ├── ua_firefox_macos_all.txt
 4.0K   │ │ ├── ua_chrome_windows_latest.txt
-4.0K   │ │ ├── ua_chrome_windows_all.txt
 4.0K   │ │ ├── ua_chrome_macos_latest.txt
 4.0K   │ │ ├── ua_chrome_macos_all.txt
 4.0K   │ │ ├── ua_chrome_android_latest.txt
