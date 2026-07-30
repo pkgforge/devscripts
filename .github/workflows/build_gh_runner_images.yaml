@@ -77,7 +77,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/gh-runner-aarch64-ubuntu
       - name: Docker Build and Push (gh-runner-aarch64-ubuntu)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/aarch64-ubuntu.dockerfile"
@@ -148,7 +148,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/gh-runner-riscv64-ubuntu
       - name: Docker Build and Push (gh-runner-riscv64-ubuntu)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/riscv64-ubuntu.dockerfile"
@@ -218,7 +218,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/gh-runner-x86_64-ubuntu
       - name: Docker Build and Push (gh-runner-x86_64-ubuntu)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/x86_64-ubuntu.dockerfile"

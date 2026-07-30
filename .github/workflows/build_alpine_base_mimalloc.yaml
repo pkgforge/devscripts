@@ -82,7 +82,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc [edge]
       - name: Docker Build and Push (alpine-base-mimalloc:edge)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: "/tmp/alpine-base-mimalloc"
           platforms: "linux/amd64,linux/arm64,linux/riscv64"
@@ -104,7 +104,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/alpine-base-mimalloc [stable]
       - name: Docker Build and Push (alpine-base-mimalloc:stable)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: "/tmp/alpine-base-mimalloc"
           platforms: "linux/amd64,linux/arm64"

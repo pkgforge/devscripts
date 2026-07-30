@@ -149,7 +149,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/ubuntu
       - name: Docker Build and Push (Ubuntu)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu.dockerfile"

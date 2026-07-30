@@ -149,7 +149,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/alpine
       - name: Docker Build and Push (Alpine)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
@@ -311,7 +311,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/alpine
       - name: Docker Build and Push (alpine - loongarch64)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine.dockerfile"
