@@ -91,7 +91,7 @@ jobs:
           
     #https://hub.docker.com/r/pkgforge/alpine-builder
       - name: Docker Build and Push (alpine-builder:${{ matrix.arch }})
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine-builder.dockerfile"
@@ -178,7 +178,7 @@ jobs:
           
     #https://hub.docker.com/r/pkgforge/alpine-slim
       - name: Docker Build and Push (alpine-slim:${{ matrix.arch }})
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/alpine-slim.dockerfile"
@@ -405,7 +405,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/archlinux-builder
       - name: Docker Build and Push (ArchLinux-Builder)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/archlinux-builder.dockerfile"
@@ -490,7 +490,7 @@ jobs:
           
     #https://hub.docker.com/r/pkgforge/debian-builder-unstable
       - name: Docker Build and Push (debian-builder-unstable:${{ matrix.arch }})
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/debian-builder-unstable.dockerfile"
@@ -574,7 +574,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/ubuntu-builder
       - name: Docker Build and Push (ubuntu-builder)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu-builder.dockerfile"
@@ -659,7 +659,7 @@ jobs:
 
     #https://hub.docker.com/r/pkgforge/ubuntu-systemd-base
       - name: Docker Build and Push (Ubuntu-Systemd-Base)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: /tmp/DOCKERFILES/
           file: "/tmp/DOCKERFILES/ubuntu-systemd-base.dockerfile"
